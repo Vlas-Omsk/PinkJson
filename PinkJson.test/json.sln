@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29806.167
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "json.test", "json\json.test.csproj", "{ABBB8519-8EE5-4DA2-92E8-F6C3FC2BD59E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PinkJson", "..\PinkJson\PinkJson.csproj", "{94ACFCD4-6447-4B17-B1B5-FF9451CC874A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ABBB8519-8EE5-4DA2-92E8-F6C3FC2BD59E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABBB8519-8EE5-4DA2-92E8-F6C3FC2BD59E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABBB8519-8EE5-4DA2-92E8-F6C3FC2BD59E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABBB8519-8EE5-4DA2-92E8-F6C3FC2BD59E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94ACFCD4-6447-4B17-B1B5-FF9451CC874A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94ACFCD4-6447-4B17-B1B5-FF9451CC874A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94ACFCD4-6447-4B17-B1B5-FF9451CC874A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94ACFCD4-6447-4B17-B1B5-FF9451CC874A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A5CAAC81-35E9-441E-919B-CF8BDC399E43}
+	EndGlobalSection
+EndGlobal

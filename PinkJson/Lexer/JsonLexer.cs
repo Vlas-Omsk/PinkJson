@@ -167,6 +167,14 @@ namespace PinkJson.Lexer
                         case 't':
                             value += '\t';
                             goto end;
+                        case 'u':
+                            string unicode_value = "";
+                            for (var i = 0; i < 4; i++) {
+                                LexerPosition.CurrentPosition++;
+                                unicode_value += Current;
+                            }
+                            value += (char)Convert.ToInt32(unicode_value, 16);
+                            goto end;
                         case '"':
                             value += '\"';
                             goto end;

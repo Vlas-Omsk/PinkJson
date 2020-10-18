@@ -52,13 +52,13 @@ namespace json
                         },
                         new Phone() {
                             Name = "LENOVO TAB3 7",
-                            Tags = new string[] { "Very bad assembly\n\t", "Big 7' screen, but low resolution\n\t", "Capacious li-ion battery\n\t" }
+                            
                         }
                     }
                 },
                 new Phone() {
                     Name = "XIAOMI REDMI NOTE 7",
-                    Tags = new string[] { "Very performance\r\t\n\b   TEST", "Big resolution", "Fast charge" },
+                    
                     dynamicHuinya = true
                 }
             }
@@ -66,21 +66,24 @@ namespace json
 
         static void Main(string[] args)
         {
-            Stopwatch stopWatch = new Stopwatch();
-            stopWatch.Start();
-            var s = Json.FromStructure(test, true);
-            stopWatch.Stop();
-            Console.WriteLine($"{stopWatch.ElapsedMilliseconds} ms");
-            File.WriteAllText("test.json", s.ToFormatString());
+            Console.WriteLine(@"\u0072\u0079\u0020y\n performa\\nce   TEST".UnescapeString().EscapeString().ToUnicodeString());
 
-            stopWatch.Start();
-            var file = new Json(File.ReadAllText("test.json"));
-            var testout = Json.ToStructure<Test>(new Json(file));
-            stopWatch.Stop();
-            Console.WriteLine($"{stopWatch.ElapsedMilliseconds} ms");
+            //Stopwatch stopWatch = new Stopwatch();
+            //stopWatch.Start();
+            //var j = new JsonObjectArray(File.ReadAllText(@"detectable.json"));
+            //var s = Json.FromStructure(test, true);
+            //stopWatch.Stop();
+            //Console.WriteLine($"{stopWatch.ElapsedMilliseconds} ms");
+            //File.WriteAllText("test.json", s.ToFormatString());
 
-            var ss = Json.FromStructure(testout, true);
-            Console.WriteLine(ss.ToFormatString() + "\r\n\r\n");
+            //stopWatch.Start();
+            //var file = new Json(File.ReadAllText("test.json"));
+            //var testout = Json.ToStructure<Test>(new Json(file));
+            //stopWatch.Stop();
+            //Console.WriteLine($"{stopWatch.ElapsedMilliseconds} ms");
+
+            //var ss = Json.FromStructure(testout, true);
+            //Console.WriteLine(ss.ToFormatString() + "\r\n\r\n");
 
             Main2(args);
 

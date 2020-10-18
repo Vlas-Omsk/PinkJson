@@ -170,44 +170,7 @@ namespace PinkJson.Parser
             else if (value is JsonObjectArray)
                 return (value as JsonObjectArray).ToString();
             else
-                return $"\"{EscapeString(value.ToString())}\"";
-        }
-
-        public static object EscapeString(string value)
-        {
-            string result = "";
-            for (var i = 0; i < value.Length; i++)
-            {
-                switch (value[i])
-                {
-                    case '\b':
-                        result += "\\b";
-                        break;
-                    case '\f':
-                        result += "\\f";
-                        break;
-                    case '\n':
-                        result += "\\n";
-                        break;
-                    case '\r':
-                        result += "\\r";
-                        break;
-                    case '\t':
-                        result += "\\t";
-                        break;
-                    case '\"':
-                        result += "\\\"";
-                        break;
-                    case '\\':
-                        result += "\\\\";
-                        break;
-                    default:
-                        result += value[i];
-                        break;
-                }
-            }
-
-            return result;
+                return $"\"{value.ToString().EscapeString()}\"";
         }
         #endregion
 

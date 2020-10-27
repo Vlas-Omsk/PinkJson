@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
+using System.Text;
 using System.Threading;
 
 namespace PinkJson.Lexer
@@ -143,7 +144,7 @@ namespace PinkJson.Lexer
         private void ReadString()
         {
             bool escape = false;
-            string value = "";
+            StringBuilder value = new StringBuilder("");
             LexerPosition.CurrentPosition++;
             while (Current != '"' || escape == true)
             {
@@ -153,36 +154,37 @@ namespace PinkJson.Lexer
                     switch (Current)
                     {
                         case 'b':
-                            value += '\b';
+                            value.Append('\b');
                             goto end;
                         case 'f':
-                            value += '\f';
+                            value.Append('\f');
                             goto end;
                         case 'n':
-                            value += '\n';
+                            value.Append('\n');
                             goto end;
                         case 'r':
-                            value += '\r';
+                            value.Append('\r');
                             goto end;
                         case 't':
-                            value += '\t';
+                            value.Append('\t');
                             goto end;
                         case 'u':
                             string unicode_value = "";
-                            for (var i = 0; i < 4; i++) {
+                            for (var i = 0; i < 4; i++)
+                            {
                                 LexerPosition.CurrentPosition++;
                                 unicode_value += Current;
                             }
-                            value += (char)Convert.ToInt32(unicode_value, 16);
+                            value.Append((char)Convert.ToInt32(unicode_value, 16));
                             goto end;
                         case '"':
-                            value += '\"';
+                            value.Append('\"');
                             goto end;
                         case '\\':
-                            value += '\\';
+                            value.Append('\\');
                             goto end;
                         case '/':
-                            value += '/';
+                            value.Append('/');
                             goto end;
                         default:
                             throw new Exception($"Unidentified escape sequence \\{Current} at position {LexerPosition.CurrentPosition}.");
@@ -194,7 +196,7 @@ namespace PinkJson.Lexer
                     goto end;
                 }
 
-                value += Current;
+                value.Append(Current);
 
                 end:
                 LexerPosition.CurrentPosition++;
@@ -203,7 +205,7 @@ namespace PinkJson.Lexer
 
             //int len = LexerPosition.CurrentPosition - LexerPosition.StartPosition;
             //Value = Content.Substring(LexerPosition.StartPosition, len);
-            Value = value;
+            Value = value.ToString();
 
             Kind = SyntaxKind.STRING;
         }

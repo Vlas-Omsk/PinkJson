@@ -22,314 +22,314 @@ namespace PinkJson.Parser
 
         public static string ToAnsiWithEscapeSequences(object value, int spacing = 4, int gen = 1)
         {
-            var result = BackgroundColor.ToAnsiBackgroundEscapeCode() + "\x1b[J";
+            var result = new StringBuilder(BackgroundColor.ToAnsiBackgroundEscapeCode() + "\x1b[J");
             if (value is Json)
             {
                 var valueAsJson = value as Json;
                 if (valueAsJson.Count == 0)
                 {
-                    result += BracketsColor.ToAnsiForegroundEscapeCode();
-                    result += "{}";
+                    result.Append(BracketsColor.ToAnsiForegroundEscapeCode());
+                    result.Append("{}");
                 }
                 else
                 {
-                    result += BracketsColor.ToAnsiForegroundEscapeCode();
-                    result += "{\r\n";
+                    result.Append(BracketsColor.ToAnsiForegroundEscapeCode());
+                    result.Append("{\r\n");
                     for (var i = 0; i < valueAsJson.Count; i++)
                     {
                         var element = valueAsJson[i];
-                        result += ToAnsiWithEscapeSequences(element, spacing, gen + 1);
+                        result.Append(ToAnsiWithEscapeSequences(element, spacing, gen + 1));
                         if (i != valueAsJson.Count - 1)
                         {
-                            result += CommaColor.ToAnsiForegroundEscapeCode();
-                            result += ",\r\n";
+                            result.Append(CommaColor.ToAnsiForegroundEscapeCode());
+                            result.Append(",\r\n");
                         }
                     }
-                    result += BracketsColor.ToAnsiForegroundEscapeCode();
-                    result += $"\r\n{new string(' ', spacing * (gen - 1))}}}";
+                    result.Append(BracketsColor.ToAnsiForegroundEscapeCode());
+                    result.Append($"\r\n{new string(' ', spacing * (gen - 1))}}}");
                 }
             }
             else if (value is JsonObject)
             {
                 var valueAsJsonObject = value as JsonObject;
-                result += KeyColor.ToAnsiForegroundEscapeCode();
-                result += $"{new string(' ', spacing * (gen - 1))}\"{valueAsJsonObject.Key}\"";
-                result += DoubleDotColor.ToAnsiForegroundEscapeCode();
-                result += ": ";
-                result += ToAnsiWithEscapeSequences(valueAsJsonObject.Value, spacing, gen);
+                result.Append(KeyColor.ToAnsiForegroundEscapeCode());
+                result.Append($"{new string(' ', spacing * (gen - 1))}\"{valueAsJsonObject.Key}\"");
+                result.Append(DoubleDotColor.ToAnsiForegroundEscapeCode());
+                result.Append(": ");
+                result.Append(ToAnsiWithEscapeSequences(valueAsJsonObject.Value, spacing, gen));
             }
             else if (value is JsonObjectArray)
             {
                 var valueAsJsonObjectArray = value as JsonObjectArray;
                 if (valueAsJsonObjectArray.Count == 0)
                 {
-                    result += BracketsColor.ToAnsiForegroundEscapeCode();
-                    result += "[]";
+                    result.Append(BracketsColor.ToAnsiForegroundEscapeCode());
+                    result.Append("[]");
                 }
                 else
                 {
-                    result += BracketsColor.ToAnsiForegroundEscapeCode();
-                    result += "[\r\n";
+                    result.Append(BracketsColor.ToAnsiForegroundEscapeCode());
+                    result.Append("[\r\n");
                     for (var i = 0; i < valueAsJsonObjectArray.Count; i++)
                     {
                         var element = valueAsJsonObjectArray[i];
-                        result += new string(' ', spacing * gen);
-                        result += ToAnsiWithEscapeSequences(element, spacing, gen + 1);
+                        result.Append(new string(' ', spacing * gen));
+                        result.Append(ToAnsiWithEscapeSequences(element, spacing, gen + 1));
                         if (i != valueAsJsonObjectArray.Count - 1)
                         {
-                            result += CommaColor.ToAnsiForegroundEscapeCode();
-                            result += ",\r\n";
+                            result.Append(CommaColor.ToAnsiForegroundEscapeCode());
+                            result.Append(",\r\n");
                         }
                     }
-                    result += BracketsColor.ToAnsiForegroundEscapeCode();
-                    result += $"\r\n{new string(' ', spacing * (gen - 1))}]";
+                    result.Append(BracketsColor.ToAnsiForegroundEscapeCode());
+                    result.Append($"\r\n{new string(' ', spacing * (gen - 1))}]");
                 }
             }
             else if (value is null)
             {
-                result += NullValueColor.ToAnsiForegroundEscapeCode();
-                result += "null";
+                result.Append(NullValueColor.ToAnsiForegroundEscapeCode());
+                result.Append("null");
             }
             else if (value is bool)
             {
-                result += BoolValueColor.ToAnsiForegroundEscapeCode();
-                result += ((bool)value) ? "true" : "false";
+                result.Append(BoolValueColor.ToAnsiForegroundEscapeCode());
+                result.Append(((bool)value) ? "true" : "false");
             }
             else if (value is long)
             {
-                result += NumberValueColor.ToAnsiForegroundEscapeCode();
-                result += ((long)value).ToString();
+                result.Append(NumberValueColor.ToAnsiForegroundEscapeCode());
+                result.Append(((long)value).ToString());
             }
             else if (value is int)
             {
-                result += NumberValueColor.ToAnsiForegroundEscapeCode();
-                result += ((int)value).ToString();
+                result.Append(NumberValueColor.ToAnsiForegroundEscapeCode());
+                result.Append(((int)value).ToString());
             }
             else if (value is short)
             {
-                result += NumberValueColor.ToAnsiForegroundEscapeCode();
-                result += ((short)value).ToString();
+                result.Append(NumberValueColor.ToAnsiForegroundEscapeCode());
+                result.Append(((short)value).ToString());
             }
             else
             {
-                result += StringValueColor.ToAnsiForegroundEscapeCode();
-                result += $"\"{value.ToString().EscapeString()}\"";
+                result.Append(StringValueColor.ToAnsiForegroundEscapeCode());
+                result.Append($"\"{value.ToString().EscapeString()}\"");
             }
 
-            return result;
+            return result.ToString();
         }
 
         public static string ToRtf(object value, Encoding encoding, int spacing = 4, int gen = 1)
         {
-            var result = @"{\rtf1\" + encoding.WebName + @"\deff0 {\fonttbl {\f0 Courier New;}}";
-            result += @"{\colortbl;";
-            result += BracketsColor.ToRtfTableColor();
-            result += CommaColor.ToRtfTableColor();
-            result += DoubleDotColor.ToRtfTableColor();
-            result += NullValueColor.ToRtfTableColor();
-            result += BoolValueColor.ToRtfTableColor();
-            result += NumberValueColor.ToRtfTableColor();
-            result += StringValueColor.ToRtfTableColor();
-            result += KeyColor.ToRtfTableColor();
-            result += @"}";
-            result += _ToRtf(value, spacing, gen);
-            return result += @"}";
+            var result = new StringBuilder(@"{\rtf1\" + encoding.WebName + @"\deff0 {\fonttbl {\f0 Courier New;}}");
+            result.Append(@"{\colortbl;");
+            result.Append(BracketsColor.ToRtfTableColor());
+            result.Append(CommaColor.ToRtfTableColor());
+            result.Append(DoubleDotColor.ToRtfTableColor());
+            result.Append(NullValueColor.ToRtfTableColor());
+            result.Append(BoolValueColor.ToRtfTableColor());
+            result.Append(NumberValueColor.ToRtfTableColor());
+            result.Append(StringValueColor.ToRtfTableColor());
+            result.Append(KeyColor.ToRtfTableColor());
+            result.Append(@"}");
+            result.Append(_ToRtf(value, spacing, gen));
+            return result.Append(@"}").ToString();
         }
 
         public static string ToHtml(object value, int spacing = 4, int gen = 1)
         {
-            var result = @"<html><body>";
-            result += _ToHtml(value, spacing, gen);
-            return result += @"</body></html>";
+            var result = new StringBuilder(@"<html><body>");
+            result.Append(_ToHtml(value, spacing, gen));
+            return result.Append(@"</body></html>").ToString();
         }
 
 
         private static string _ToHtml(object value, int spacing = 4, int gen = 1)
         {
-            var result = "";
+            var result = new StringBuilder("");
             if (value is Json)
             {
                 var valueAsJson = value as Json;
                 if (valueAsJson.Count == 0)
-                    result += BracketsColor.ToHtml("{}");
+                    result.Append(BracketsColor.ToHtml("{}"));
                 else
                 {
-                    result += BracketsColor.ToHtml("{<br>");
+                    result.Append(BracketsColor.ToHtml("{<br>"));
                     for (var i = 0; i < valueAsJson.Count; i++)
                     {
                         var element = valueAsJson[i];
-                        result += _ToHtml(element, spacing, gen + 1);
+                        result.Append(_ToHtml(element, spacing, gen + 1));
                         if (i != valueAsJson.Count - 1)
                         {
-                            result += CommaColor.ToHtml(",<br>");
+                            result.Append(CommaColor.ToHtml(",<br>"));
                         }
                     }
-                    result += BracketsColor.ToHtml($"<br>{new_string("&nbsp;", spacing * (gen - 1))}}}");
+                    result.Append(BracketsColor.ToHtml($"<br>{new_string("&nbsp;", spacing * (gen - 1))}}}"));
                 }
             }
             else if (value is JsonObject)
             {
                 var valueAsJsonObject = value as JsonObject;
-                result += KeyColor.ToHtml($"{new_string("&nbsp;", spacing * (gen - 1))}\"{valueAsJsonObject.Key}\"");
-                result += DoubleDotColor.ToHtml(": ");
-                result += _ToHtml(valueAsJsonObject.Value, spacing, gen);
+                result.Append(KeyColor.ToHtml($"{new_string("&nbsp;", spacing * (gen - 1))}\"{valueAsJsonObject.Key}\""));
+                result.Append(DoubleDotColor.ToHtml(": "));
+                result.Append(_ToHtml(valueAsJsonObject.Value, spacing, gen));
             }
             else if (value is JsonObjectArray)
             {
                 var valueAsJsonObjectArray = value as JsonObjectArray;
                 if (valueAsJsonObjectArray.Count == 0)
-                    result += BracketsColor.ToHtml("[]");
+                    result.Append(BracketsColor.ToHtml("[]"));
                 else
                 {
-                    result += BracketsColor.ToHtml("[<br>");
+                    result.Append(BracketsColor.ToHtml("[<br>"));
                     for (var i = 0; i < valueAsJsonObjectArray.Count; i++)
                     {
                         var element = valueAsJsonObjectArray[i];
-                        result += new_string("&nbsp;", spacing * gen);
-                        result += _ToHtml(element, spacing, gen + 1);
+                        result.Append(new_string("&nbsp;", spacing * gen));
+                        result.Append(_ToHtml(element, spacing, gen + 1));
                         if (i != valueAsJsonObjectArray.Count - 1)
                         {
-                            result += CommaColor.ToHtml(",<br>");
+                            result.Append(CommaColor.ToHtml(",<br>"));
                         }
                     }
-                    result += BracketsColor.ToHtml($"<br>{new_string("&nbsp;", spacing * (gen - 1))}]");
+                    result.Append(BracketsColor.ToHtml($"<br>{new_string("&nbsp;", spacing * (gen - 1))}]"));
                 }
             }
             else if (value is null)
             {
-                result += NullValueColor.ToHtml("null");
+                result.Append(NullValueColor.ToHtml("null"));
             }
             else if (value is bool)
             {
-                result += BoolValueColor.ToHtml(((bool)value) ? "true" : "false");
+                result.Append(BoolValueColor.ToHtml(((bool)value) ? "true" : "false"));
             }
             else if (value is long)
             {
-                result += NumberValueColor.ToHtml(((long)value).ToString());
+                result.Append(NumberValueColor.ToHtml(((long)value).ToString()));
             }
             else if (value is int)
             {
-                result += NumberValueColor.ToHtml(((int)value).ToString());
+                result.Append(NumberValueColor.ToHtml(((int)value).ToString()));
             }
             else if (value is short)
             {
-                result += NumberValueColor.ToHtml(((short)value).ToString());
+                result.Append(NumberValueColor.ToHtml(((short)value).ToString()));
             }
             else
             {
                 var tmp = value.ToString().EscapeString();
                 var isUri = Uri.IsWellFormedUriString(tmp, UriKind.Absolute);
-                result += isUri ? $"<a href=\"{tmp}\">\"{tmp}\"</a>" : StringValueColor.ToHtml($"\"{tmp}\"");
+                result.Append(isUri ? $"<a href=\"{tmp}\">\"{tmp}\"</a>" : StringValueColor.ToHtml($"\"{tmp}\""));
             }
 
-            return result;
+            return result.ToString();
         }
 
         private static string _ToRtf(object value, int spacing = 4, int gen = 1)
         {
-            var result = "";
+            var result = new StringBuilder("");
             if (value is Json)
             {
                 var valueAsJson = value as Json;
                 if (valueAsJson.Count == 0)
                 {
-                    result += BracketsColor.ToRtf();
-                    result += @"\{\}";
+                    result.Append(BracketsColor.ToRtf());
+                    result.Append(@"\{\}");
                 }
                 else
                 {
-                    result += BracketsColor.ToRtf();
-                    result += @"\{\line";
+                    result.Append(BracketsColor.ToRtf());
+                    result.Append(@"\{\line");
                     for (var i = 0; i < valueAsJson.Count; i++)
                     {
                         var element = valueAsJson[i];
-                        result += _ToRtf(element, spacing, gen + 1);
+                        result.Append(_ToRtf(element, spacing, gen + 1));
                         if (i != valueAsJson.Count - 1)
                         {
-                            result += CommaColor.ToRtf();
-                            result += @",\line";
+                            result.Append(CommaColor.ToRtf());
+                            result.Append(@",\line");
                         }
                     }
-                    result += BracketsColor.ToRtf();
-                    result += $"\\line{new string(' ', spacing * (gen - 1))}\\}}";
+                    result.Append(BracketsColor.ToRtf());
+                    result.Append($"\\line{new string(' ', spacing * (gen - 1))}\\}}");
                 }
             }
             else if (value is JsonObject)
             {
                 var valueAsJsonObject = value as JsonObject;
-                result += KeyColor.ToRtf();
-                result += $"{new string(' ', spacing * (gen - 1))}\"{valueAsJsonObject.Key}\"";
-                result += DoubleDotColor.ToRtf();
-                result += ": ";
-                result += _ToRtf(valueAsJsonObject.Value, spacing, gen);
+                result.Append(KeyColor.ToRtf());
+                result.Append($"{new string(' ', spacing * (gen - 1))}\"{valueAsJsonObject.Key}\"");
+                result.Append(DoubleDotColor.ToRtf());
+                result.Append(": ");
+                result.Append(_ToRtf(valueAsJsonObject.Value, spacing, gen));
             }
             else if (value is JsonObjectArray)
             {
                 var valueAsJsonObjectArray = value as JsonObjectArray;
                 if (valueAsJsonObjectArray.Count == 0)
                 {
-                    result += BracketsColor.ToRtf();
-                    result += "[]";
+                    result.Append(BracketsColor.ToRtf());
+                    result.Append("[]");
                 }
                 else
                 {
-                    result += BracketsColor.ToRtf();
-                    result += @"[\line";
+                    result.Append(BracketsColor.ToRtf());
+                    result.Append(@"[\line");
                     for (var i = 0; i < valueAsJsonObjectArray.Count; i++)
                     {
                         var element = valueAsJsonObjectArray[i];
-                        result += new string(' ', spacing * gen);
-                        result += _ToRtf(element, spacing, gen + 1);
+                        result.Append(new string(' ', spacing * gen));
+                        result.Append(_ToRtf(element, spacing, gen + 1));
                         if (i != valueAsJsonObjectArray.Count - 1)
                         {
-                            result += CommaColor.ToRtf();
-                            result += @",\line";
+                            result.Append(CommaColor.ToRtf());
+                            result.Append(@",\line");
                         }
                     }
-                    result += BracketsColor.ToRtf();
-                    result += $"\\line{new string(' ', spacing * (gen - 1))}]";
+                    result.Append(BracketsColor.ToRtf());
+                    result.Append($"\\line{new string(' ', spacing * (gen - 1))}]");
                 }
             }
             else if (value is null)
             {
-                result += NullValueColor.ToRtf();
-                result += "null";
+                result.Append(NullValueColor.ToRtf());
+                result.Append("null");
             }
             else if (value is bool)
             {
-                result += BoolValueColor.ToRtf();
-                result += ((bool)value) ? "true" : "false";
+                result.Append(BoolValueColor.ToRtf());
+                result.Append(((bool)value) ? "true" : "false");
             }
             else if (value is long)
             {
-                result += NumberValueColor.ToRtf();
-                result += ((long)value).ToString();
+                result.Append(NumberValueColor.ToRtf());
+                result.Append(((long)value).ToString());
             }
             else if (value is int)
             {
-                result += NumberValueColor.ToRtf();
-                result += ((int)value).ToString();
+                result.Append(NumberValueColor.ToRtf());
+                result.Append(((int)value).ToString());
             }
             else if (value is short)
             {
-                result += NumberValueColor.ToRtf();
-                result += ((short)value).ToString();
+                result.Append(NumberValueColor.ToRtf());
+                result.Append(((short)value).ToString());
             }
             else
             {
-                result += StringValueColor.ToRtf();
-                result += $"\"{value.ToString().EscapeString().EscapeString()}\"";
+                result.Append(StringValueColor.ToRtf());
+                result.Append($"\"{value.ToString().EscapeString().EscapeString()}\"");
             }
 
-            return result;
+            return result.ToString();
         }
 
         private static string new_string(object value, int count)
         {
-            var result = "";
+            var result = new StringBuilder("");
             for (var i = 0; i < count; i++)
-                result += value;
-            return result;
+                result.Append(value);
+            return result.ToString();
         }
 
 

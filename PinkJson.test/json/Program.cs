@@ -66,7 +66,20 @@ namespace json
 
         static void Main(string[] args)
         {
-            Console.WriteLine(@"\u0072\u0079\u0020y\n performa\\nce   TEST".UnescapeString().EscapeString().ToUnicodeString());
+            SyntaxHighlighting.EnableVirtualTerminalProcessing();
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
+            var j = Json.FromStructure(test, true);
+            File.WriteAllText(@"test.html", SyntaxHighlighting.ToHtml(j));
+            File.WriteAllText(@"test.rtf", SyntaxHighlighting.ToRtf(j, Encoding.Default), Encoding.Default);
+            Console.WriteLine(SyntaxHighlighting.ToAnsiWithEscapeSequences(j));
+            stopWatch.Stop();
+            Console.WriteLine($"{stopWatch.ElapsedMilliseconds} ms");
+            Thread.Sleep(0);
+            Process.Start("cmd", "/c start test.html");
+            Process.Start("cmd", "/c start test.rtf");
+
+            //Console.WriteLine(@"\u0072\u0079\u0020y\n performa\\nce   TEST".UnescapeString().EscapeString().ToUnicodeString());
 
             //Stopwatch stopWatch = new Stopwatch();
             //stopWatch.Start();
@@ -85,7 +98,7 @@ namespace json
             //var ss = Json.FromStructure(testout, true);
             //Console.WriteLine(ss.ToFormatString() + "\r\n\r\n");
 
-            Main2(args);
+            //Main2(args);
 
             Console.ReadLine();
         }

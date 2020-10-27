@@ -354,7 +354,7 @@ namespace PinkJson.Parser
             return new JsonObjectArray(StructureConverter.ConvertArrayFrom(array, usePrivateFields));
         }
 
-        public static T ToArray<T>(JsonObjectArray array)
+        public static T[] ToArray<T>(JsonObjectArray array)
         {
             return StructureConverter.ConvertArrayTo<T>(array);
         }

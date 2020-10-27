@@ -60,9 +60,10 @@ namespace PinkJson.Parser
             return (T)ConvertTo(json, typeof(T));
         }
 
-        public static T ConvertArrayTo<T>(JsonObjectArray json)
+        public static T[] ConvertArrayTo<T>(JsonObjectArray json)
         {
-            return (T)ConvertArrayTo(json, typeof(T).GetElementType());
+            var test = ConvertArrayTo(json, typeof(T));
+            return (T[])test;
         }
 
         private static object ConvertTo(Json json, Type structType)
@@ -75,6 +76,9 @@ namespace PinkJson.Parser
 
             fields.ForEach(field =>
             {
+                if (json.IndexByKey(field.Name) == -1)
+                    return;
+
                 object value = json[field.Name].Value;
 
                 if (value is Json)

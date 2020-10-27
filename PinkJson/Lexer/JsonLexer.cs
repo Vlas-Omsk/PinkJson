@@ -181,6 +181,9 @@ namespace PinkJson.Lexer
                         case '\\':
                             value += '\\';
                             goto end;
+                        case '/':
+                            value += '/';
+                            goto end;
                         default:
                             throw new Exception($"Unidentified escape sequence \\{Current} at position {LexerPosition.CurrentPosition}.");
                     }

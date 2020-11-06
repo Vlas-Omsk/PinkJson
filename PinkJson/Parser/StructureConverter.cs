@@ -12,7 +12,7 @@ namespace PinkJson.Parser
 {
     public class StructureConverter
     {
-        public static List<JsonObject> ConvertFrom(object structure, bool usePrivateFields)
+        public static List<JsonObject> ConvertFrom(object structure, bool usePrivateFields, string[] exclusion_fields = null)
         {
             if (structure is Array)
                 throw new Exception("Use JsonObjectArray.FromArray(Array array).");
@@ -28,26 +28,29 @@ namespace PinkJson.Parser
 
             return fields.Select<FieldInfo, JsonObject>(field =>
             {
-                object value = field.GetValue(structure);
                 string name = field.Name;
+                if (!(exclusion_fields is null) && exclusion_fields.Contains(name))
+                    return null;
+
+                object value = field.GetValue(structure);
 
                 if (value is Array)
-                    value = JsonObjectArray.FromArray(value as Array, usePrivateFields);
+                    value = JsonObjectArray.FromArray(value as Array, usePrivateFields, exclusion_fields);
                 else if (IsStructureType(field.FieldType))
-                    value = Json.FromStructure(value, usePrivateFields);
+                    value = Json.FromStructure(value, usePrivateFields, exclusion_fields);
 
                 return new JsonObject(name, value);
             }).OfType<JsonObject>().ToList();
         }
 
-        public static List<object> ConvertArrayFrom(Array array, bool usePrivateFields)
+        public static List<object> ConvertArrayFrom(Array array, bool usePrivateFields, string[] exclusion_fields = null)
         {
             List<object> list = new List<object>();
             foreach (var elem in array)
             {
                 var type = elem.GetType();
                 if (IsStructureType(type))
-                    list.Add(Json.FromStructure(elem, usePrivateFields));
+                    list.Add(Json.FromStructure(elem, usePrivateFields, exclusion_fields));
                 else
                     list.Add(elem);
             }

@@ -29,6 +29,9 @@ namespace PinkJson.Parser
                     case '\b':
                         result += "\\b";
                         break;
+                    case '\a':
+                        result += "\\a";
+                        break;
                     case '\f':
                         result += "\\f";
                         break;
@@ -69,6 +72,9 @@ namespace PinkJson.Parser
                     {
                         case 'b':
                             result += '\b';
+                            goto end;
+                        case 'a':
+                            result += '\a';
                             goto end;
                         case 'f':
                             result += '\f';

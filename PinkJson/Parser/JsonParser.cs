@@ -40,9 +40,9 @@ namespace PinkJson.Parser
             return new Json(AnonymousConverter.Convert(anonymous) as List<JsonObject>);
         }
 
-        public static Json FromStructure(object structure, bool usePrivateFields)
+        public static Json FromStructure(object structure, bool usePrivateFields, string[] exclusion_fields = null)
         {
-            return new Json(StructureConverter.ConvertFrom(structure, usePrivateFields));
+            return new Json(StructureConverter.ConvertFrom(structure, usePrivateFields, exclusion_fields));
         }
 
         public static T ToStructure<T>(Json json)
@@ -349,9 +349,9 @@ namespace PinkJson.Parser
             return new JsonObjectArray(AnonymousConverter.ConvertArray(json) as List<object>);
         }
 
-        public static JsonObjectArray FromArray(Array array, bool usePrivateFields)
+        public static JsonObjectArray FromArray(Array array, bool usePrivateFields, string[] exclusion_fields = null)
         {
-            return new JsonObjectArray(StructureConverter.ConvertArrayFrom(array, usePrivateFields));
+            return new JsonObjectArray(StructureConverter.ConvertArrayFrom(array, usePrivateFields, exclusion_fields));
         }
 
         public static T[] ToArray<T>(JsonObjectArray array)

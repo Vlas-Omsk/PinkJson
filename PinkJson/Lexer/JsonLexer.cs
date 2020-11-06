@@ -156,6 +156,9 @@ namespace PinkJson.Lexer
                         case 'b':
                             value.Append('\b');
                             goto end;
+                        case 'a':
+                            value.Append('\a');
+                            goto end;
                         case 'f':
                             value.Append('\f');
                             goto end;

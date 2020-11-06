@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 
 namespace PinkJson.Parser
 {
@@ -33,7 +34,7 @@ namespace PinkJson.Parser
             return propertyNames.Select<string, JsonObject>(name =>
             {
                 dynamic value = type.GetProperty(name).GetValue(json, null);
-                if (IsAnonymousType(value.GetType()))
+                if (!(value is null) && IsAnonymousType(value.GetType()))
                     value = Json.FromAnonymous(value);
                 else if (value is Array)
                     value = JsonObjectArray.FromAnonymous(value);

@@ -69,15 +69,30 @@ namespace json
             SyntaxHighlighting.EnableVirtualTerminalProcessing();
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
-            var j = Json.FromStructure(test, true);
-            File.WriteAllText(@"test.html", SyntaxHighlighting.ToHtml(j));
-            File.WriteAllText(@"test.rtf", SyntaxHighlighting.ToRtf(j, Encoding.Default), Encoding.Default);
-            Console.WriteLine(SyntaxHighlighting.ToAnsiWithEscapeSequences(j));
+            var j = new Json(File.ReadAllText("in.json"));
+            //File.WriteAllText(@"test.html", SyntaxHighlighting.ToHtml(j));
+            //File.WriteAllText(@"test.json", j.ToFormatString(), Encoding.UTF8);
+            //foreach (Json json in j["response"]["items"].Value as JsonObjectArray)
+            //{
+            //    Console.WriteLine("\r\n" + json["conversation_message_id"].Value + ((int)json["from_id"].Value == 272611387 ? " Egor" : " Vlas"));
+            //    Console.WriteLine(SyntaxHighlighting.ToAnsiWithEscapeSequences(json["text"].Value));
+            //    if (json.IndexByKey("fwd_messages") != -1)
+            //        foreach (Json jsonfwd in json["fwd_messages"].Value as JsonObjectArray)
+            //            Console.WriteLine("\t" + SyntaxHighlighting.ToAnsiWithEscapeSequences(jsonfwd["text"].Value));
+            //}
+            var f = File.OpenWrite("testst.txt");
+            for (var i = 0; i < 200000; i++)
+            {
+                var bytes = Encoding.UTF8.GetBytes($"{i}: &#{i};\r\n");
+                f.Write(bytes, 0, bytes.Length);
+            }
+            f.Close();
+            //Console.WriteLine(SyntaxHighlighting.ToAnsiWithEscapeSequences(j));
             stopWatch.Stop();
             Console.WriteLine($"{stopWatch.ElapsedMilliseconds} ms");
-            Thread.Sleep(0);
-            Process.Start("cmd", "/c start test.html");
-            Process.Start("cmd", "/c start test.rtf");
+            //Thread.Sleep(0);
+            //Process.Start("cmd", "/c start test.html");
+            //Process.Start("cmd", "/c start test.rtf");
 
             //Console.WriteLine(@"\u0072\u0079\u0020y\n performa\\nce   TEST".UnescapeString().EscapeString().ToUnicodeString());
 

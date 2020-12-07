@@ -82,7 +82,7 @@ namespace PinkJson.Parser
             }
         }
 
-        public void AddJsonObject()
+        private void AddJsonObject()
         {
             var key = tokens[currentposition - 1].Value.ToString();
             object value;
@@ -157,12 +157,18 @@ namespace PinkJson.Parser
                 return "null";
             else if (value is bool)
                 return ((bool)value) ? "true" : "false";
-            else if (value is long)
-                return ((long)value).ToString();
-            else if (value is int)
-                return ((int)value).ToString();
-            else if (value is short)
-                return ((short)value).ToString();
+            else if (  value is sbyte
+                    || value is byte
+                    || value is short
+                    || value is ushort
+                    || value is int
+                    || value is uint
+                    || value is long
+                    || value is ulong
+                    || value is float
+                    || value is double
+                    || value is decimal)
+                return value.ToString();
             else if(value is Json)
                 return (value as Json).ToString();
             else if (value is JsonObject)

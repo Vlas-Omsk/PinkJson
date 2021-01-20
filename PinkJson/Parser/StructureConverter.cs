@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Collections;
 
 namespace PinkJson.Parser
 {
@@ -36,6 +37,8 @@ namespace PinkJson.Parser
 
                 if (value is Array)
                     value = JsonObjectArray.FromArray(value as Array, usePrivateFields, exclusion_fields);
+                else if (value is IList)
+                    value = JsonObjectArray.FromArray((value as IList).OfType<object>().ToArray(), usePrivateFields, exclusion_fields);
                 else if (IsStructureType(field.FieldType))
                     value = Json.FromStructure(value, usePrivateFields, exclusion_fields);
 
@@ -51,6 +54,10 @@ namespace PinkJson.Parser
                 var type = elem.GetType();
                 if (IsStructureType(type))
                     list.Add(Json.FromStructure(elem, usePrivateFields, exclusion_fields));
+                else if (elem is Array)
+                    list.Add(JsonObjectArray.FromArray(elem as Array, usePrivateFields, exclusion_fields));
+                else if (elem is IList)
+                    list.Add(JsonObjectArray.FromArray((elem as IList).OfType<object>().ToArray(), usePrivateFields, exclusion_fields));
                 else
                     list.Add(elem);
             }

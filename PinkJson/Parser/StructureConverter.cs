@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Collections;
 
-namespace PinkJson.Parser
+namespace PinkJson
 {
     public class StructureConverter
     {
@@ -36,9 +36,9 @@ namespace PinkJson.Parser
                 object value = field.GetValue(structure);
 
                 if (value is Array)
-                    value = JsonObjectArray.FromArray(value as Array, usePrivateFields, exclusion_fields);
+                    value = JsonArray.FromArray(value as Array, usePrivateFields, exclusion_fields);
                 else if (value is IList)
-                    value = JsonObjectArray.FromArray((value as IList).OfType<object>().ToArray(), usePrivateFields, exclusion_fields);
+                    value = JsonArray.FromArray((value as IList).OfType<object>().ToArray(), usePrivateFields, exclusion_fields);
                 else if (IsStructureType(field.FieldType))
                     value = Json.FromStructure(value, usePrivateFields, exclusion_fields);
 
@@ -49,15 +49,17 @@ namespace PinkJson.Parser
         public static List<object> ConvertArrayFrom(Array array, bool usePrivateFields, string[] exclusion_fields = null)
         {
             List<object> list = new List<object>();
+            if (array is null)
+                return list;
             foreach (var elem in array)
             {
                 var type = elem.GetType();
                 if (IsStructureType(type))
                     list.Add(Json.FromStructure(elem, usePrivateFields, exclusion_fields));
                 else if (elem is Array)
-                    list.Add(JsonObjectArray.FromArray(elem as Array, usePrivateFields, exclusion_fields));
+                    list.Add(JsonArray.FromArray(elem as Array, usePrivateFields, exclusion_fields));
                 else if (elem is IList)
-                    list.Add(JsonObjectArray.FromArray((elem as IList).OfType<object>().ToArray(), usePrivateFields, exclusion_fields));
+                    list.Add(JsonArray.FromArray((elem as IList).OfType<object>().ToArray(), usePrivateFields, exclusion_fields));
                 else
                     list.Add(elem);
             }
@@ -70,7 +72,7 @@ namespace PinkJson.Parser
             return (T)ConvertTo(json, typeof(T));
         }
 
-        public static T[] ConvertArrayTo<T>(JsonObjectArray json)
+        public static T[] ConvertArrayTo<T>(JsonArray json)
         {
             var test = ConvertArrayTo(json, typeof(T));
             return (T[])test;
@@ -96,9 +98,9 @@ namespace PinkJson.Parser
                     var fieldset = FormatterServices.GetUninitializedObject(field.FieldType);
                     ConvertTo(value as Json, field.FieldType);
                 }
-                else if (value is JsonObjectArray)
+                else if (value is JsonArray)
                 {
-                    value = ConvertArrayTo(value as JsonObjectArray, field.FieldType.GetElementType());
+                    value = ConvertArrayTo(value as JsonArray, field.FieldType.GetElementType());
                 }
 
                 field.SetValue(result, value);
@@ -107,15 +109,15 @@ namespace PinkJson.Parser
             return result;
         }
 
-        private static object ConvertArrayTo(JsonObjectArray json, Type elemType)
+        private static object ConvertArrayTo(JsonArray json, Type elemType)
         {
             Array list = Array.CreateInstance(elemType, json.Count);
 
             for (var i = 0; i < json.Count; i++)
             {
                 var elem = json[i];
-                if (elem is Json)
-                    list.SetValue(ConvertTo(elem as Json, elemType), i);
+                if (elem.Value is Json)
+                    list.SetValue(ConvertTo(elem.Get<Json>(), elemType), i);
                 else
                     list.SetValue(elem, i);
             }

@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
-namespace PinkJson.Parser
+namespace PinkJson
 {
     public class AnonymousConverter
     {
@@ -37,7 +37,7 @@ namespace PinkJson.Parser
                 if (!(value is null) && IsAnonymousType(value.GetType()))
                     value = Json.FromAnonymous(value);
                 else if (value is Array)
-                    value = JsonObjectArray.FromAnonymous(value);
+                    value = JsonArray.FromAnonymous(value);
 
                 return new JsonObject(name, value);
             }).OfType<JsonObject>().ToList();

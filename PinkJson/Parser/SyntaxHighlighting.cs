@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PinkJson.Parser
+namespace PinkJson
 {
     public class SyntaxHighlighting
     {
@@ -58,9 +58,14 @@ namespace PinkJson.Parser
                 result.Append(": ");
                 result.Append(ToAnsiWithEscapeSequences(valueAsJsonObject.Value, spacing, gen));
             }
-            else if (value is JsonObjectArray)
+            else if (value is JsonArrayObject)
             {
-                var valueAsJsonObjectArray = value as JsonObjectArray;
+                var valueAsJsonArrayObject = value as JsonArrayObject;
+                result.Append(ToAnsiWithEscapeSequences(valueAsJsonArrayObject.Value, spacing, gen));
+            }
+            else if (value is JsonArray)
+            {
+                var valueAsJsonObjectArray = value as JsonArray;
                 if (valueAsJsonObjectArray.Count == 0)
                 {
                     result.Append(BracketsColor.ToAnsiForegroundEscapeCode());
@@ -174,9 +179,14 @@ namespace PinkJson.Parser
                 result.Append(DoubleDotColor.ToHtml(": "));
                 result.Append(_ToHtml(valueAsJsonObject.Value, spacing, gen));
             }
-            else if (value is JsonObjectArray)
+            else if (value is JsonArrayObject)
             {
-                var valueAsJsonObjectArray = value as JsonObjectArray;
+                var valueAsJsonArrayObject = value as JsonArrayObject;
+                result.Append(_ToHtml(valueAsJsonArrayObject.Value, spacing, gen));
+            }
+            else if (value is JsonArray)
+            {
+                var valueAsJsonObjectArray = value as JsonArray;
                 if (valueAsJsonObjectArray.Count == 0)
                     result.Append(BracketsColor.ToHtml("[]"));
                 else
@@ -263,9 +273,14 @@ namespace PinkJson.Parser
                 result.Append(": ");
                 result.Append(_ToRtf(valueAsJsonObject.Value, spacing, gen));
             }
-            else if (value is JsonObjectArray)
+            else if (value is JsonArrayObject)
             {
-                var valueAsJsonObjectArray = value as JsonObjectArray;
+                var valueAsJsonArrayObject = value as JsonArrayObject;
+                result.Append(_ToRtf(valueAsJsonArrayObject.Value, spacing, gen));
+            }
+            else if (value is JsonArray)
+            {
+                var valueAsJsonObjectArray = value as JsonArray;
                 if (valueAsJsonObjectArray.Count == 0)
                 {
                     result.Append(BracketsColor.ToRtf());

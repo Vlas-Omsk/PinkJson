@@ -21,42 +21,42 @@ namespace PinkJson
 
         public static string EscapeString(this string value)
         {
-            string result = "";
+            StringBuilder result = new StringBuilder();
             for (var i = 0; i < value.Length; i++)
             {
                 switch (value[i])
                 {
                     case '\b':
-                        result += "\\b";
+                        result.Append("\\b");
                         break;
                     case '\a':
-                        result += "\\a";
+                        result.Append("\\a");
                         break;
                     case '\f':
-                        result += "\\f";
+                        result.Append("\\f");
                         break;
                     case '\n':
-                        result += "\\n";
+                        result.Append("\\n");
                         break;
                     case '\r':
-                        result += "\\r";
+                        result.Append("\\r");
                         break;
                     case '\t':
-                        result += "\\t";
+                        result.Append("\\t");
                         break;
                     case '\"':
-                        result += "\\\"";
+                        result.Append("\\\"");
                         break;
                     case '\\':
-                        result += "\\\\";
+                        result.Append("\\\\");
                         break;
                     default:
-                        result += value[i];
+                        result.Append(value[i]);
                         break;
                 }
             }
 
-            return result;
+            return result.ToString();
         }
 
         public static string UnescapeString(this string value)

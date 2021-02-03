@@ -117,11 +117,12 @@ namespace json
             clone = j["abc"][1][4]["arr"]["lol"][1].Get<Json>().Clone() as Json;                                              //Стало v1
             j["abc"][1][4]["arr"]["lol"].Get<JsonArray>().Add(clone);                                                         //Стало v1
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            clone = j.Dyn.abc._1._4.arr.lol._1.Get<Json>().Clone();                                                           //Стало v2
-            j.Dyn.abc._1._4.arr.lol.Get<JsonArray>().Add(clone);                                                              //Стало v2
+            clone = j.GetDynamic().abc._1._4.arr.lol._1.Value.Clone();                                                        //Стало v2
+            j.GetDynamic().abc._1._4.arr.lol.Value.Add(clone);                                                                //Стало v2
 
-            j.Dyn.abc._1._4.arr.___dsad.Key = "s\ntewrwe";
+            j.GetDynamic().abc._1._4.arr.___dsad.Key = "s\ntewrwe";
 
+            //j["abc"][1][4]["arr"].RemoveByKey("lol");
             Console.WriteLine(new Json(j["abc"]).ToFormatString());
 
             //Console.WriteLine(SyntaxHighlighting.ToAnsiWithEscapeSequences(Json.FromStructure(test, true)));

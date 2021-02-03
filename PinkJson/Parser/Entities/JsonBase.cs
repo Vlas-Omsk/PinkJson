@@ -27,8 +27,11 @@ namespace PinkJson
                 Collection = new List<T>();
         }
 
-        protected List<T> Collection;
-        public abstract override object Value { get; set; }
+        public List<T> Collection
+        {
+            get => (List<T>)Value;
+            set => Value = value;
+        }
 
         public int Count => Collection.Count;
         public bool IsReadOnly => false;

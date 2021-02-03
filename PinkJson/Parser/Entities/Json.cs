@@ -17,8 +17,6 @@ namespace PinkJson
         private int currentposition = 0;
         private TokenCollection tokens;
 
-        public override object Value { get => new Json(Collection); set => Collection = ((Json)value).Collection; }
-
         #region Constructors
         public Json()
         {
@@ -197,6 +195,32 @@ namespace PinkJson
         #endregion
 
         #region Override
+        public override JsonObject ElementByKey(string key)
+        {
+            foreach (var jsonObject in this)
+                if (jsonObject.Key == key)
+                    return jsonObject;
+
+            return null;
+        }
+
+        public override int IndexByKey(string key)
+        {
+            for (var i = 0; i < Count; i++)
+            {
+                var jsonObject = this[i];
+                if (jsonObject.Key == key)
+                    return i;
+            }
+
+            return -1;
+        }
+
+        public override void RemoveByKey(string key)
+        {
+            RemoveAt(IndexByKey(key));
+        }
+
         public override string ToString()
         {
             return $"{{{string.Join(", ", this.Select(o => Json.ValueToJsonString(o)))}}}";

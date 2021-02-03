@@ -22,6 +22,31 @@ namespace PinkJson
             Value = value;
         }
 
+        #region Override
+        public override JsonObject ElementByKey(string key)
+        {
+            if (GetValType() == typeof(Json))
+                return Get<Json>().ElementByKey(key);
+            return null;
+        }
+
+        public override int IndexByKey(string key)
+        {
+            if (GetValType() == typeof(Json))
+                return Get<Json>().IndexByKey(key);
+            return -1;
+        }
+
+        public override void RemoveByKey(string key)
+        {
+            if (GetValType() == typeof(Json))
+            {
+                Get<Json>().RemoveByKey(key);
+                return;
+            }
+            throw new InvalidTypeException("Value type is not Json");
+        }
+
         public override string ToString()
         {
             return $"\"{Key.EscapeString()}\": {Json.ValueToJsonString(Value)}";
@@ -36,5 +61,6 @@ namespace PinkJson
         {
             return new JsonObject(this.Key, this.Value);
         }
+        #endregion
     }
 }

@@ -14,8 +14,10 @@ namespace PinkJson
 {
     public abstract class ObjectBase : DynamicObject, ICloneable
     {
-        public virtual object Value { get; set; }
-        public dynamic Dyn => Value;
+        public object Value { get; set; }
+        
+        public dynamic GetDynamic() =>
+            this;
 
         #region Dynamic override
         public override bool TryGetMember(GetMemberBinder binder, out object result)
@@ -123,6 +125,21 @@ namespace PinkJson
         #endregion
 
         #region Abstract
+        public abstract JsonObject ElementByKey(string key);
+
+        /// <summary>
+        /// Gets the index of element at the specified key
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public abstract int IndexByKey(string key);
+
+        /// <summary>
+        /// Deletes an element by the specified key
+        /// </summary>
+        /// <param name="key"></param>
+        public abstract void RemoveByKey(string key);
+
         public override abstract string ToString();
 
         public abstract string ToFormatString(int spacing = 4, int gen = 1);
@@ -187,57 +204,6 @@ namespace PinkJson
                 else
                     throw new Exception($"Cannot set value by index \"{index}\".");
             }
-        }
-        #endregion
-
-        #region Virtual
-        public virtual JsonObject ElementByKey(string key)
-        {
-            if (GetValType() == typeof(Json))
-            {
-                foreach (var jsonObject in Get<Json>())
-                    if (jsonObject.Key == key)
-                        return jsonObject;
-            }
-            //else
-                //throw new InvalidTypeException("Value type is not Json");
-            //throw new Exception($"Cannot get value by key \"{key}\".");
-            return null;
-        }
-
-        /// <summary>
-        /// Gets the index of element at the specified key
-        /// </summary>
-        /// <param name="key"></param>
-        /// <returns></returns>
-        public virtual int IndexByKey(string key)
-        {
-            if (GetValType() == typeof(Json))
-            {
-                for (var i = 0; i < Get<Json>().Count; i++)
-                {
-                    var jsonObject = this[i] as JsonObject;
-                    if (jsonObject.Key == key)
-                        return i;
-                }
-            }
-            //else
-                //throw new InvalidTypeException("Value type is not Json");
-            return -1;
-        }
-
-        /// <summary>
-        /// Deletes an element by the specified key
-        /// </summary>
-        /// <param name="key"></param>
-        public virtual void RemoveByKey(string key)
-        {
-            if (GetValType() == typeof(Json))
-            {
-                Get<Json>().RemoveAt(IndexByKey(key));
-            }
-            else
-                throw new InvalidTypeException("Value type is not Json");
         }
         #endregion
     }

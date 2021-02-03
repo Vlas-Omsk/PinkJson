@@ -17,8 +17,6 @@ namespace PinkJson
         private int currentposition = 0;
         private TokenCollection tokens;
 
-        public override object Value { get => new JsonArray(Collection); set => Collection = ((JsonArray)value).Collection; }
-
         #region Constructors
         public JsonArray()
         {
@@ -134,6 +132,21 @@ namespace PinkJson
         #endregion
 
         #region Override
+        public override JsonObject ElementByKey(string key)
+        {
+            return null;
+        }
+
+        public override int IndexByKey(string key)
+        {
+            return -1;
+        }
+
+        public override void RemoveByKey(string key)
+        {
+            throw new InvalidTypeException("Value type is not Json");
+        }
+
         public override string ToString()
         {
             return $"[{string.Join(", ", this.Select(o => Json.ValueToJsonString(o)))}]";

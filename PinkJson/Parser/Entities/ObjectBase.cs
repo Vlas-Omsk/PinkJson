@@ -182,12 +182,10 @@ namespace PinkJson
         {
             get
             {
-                if (GetValType() == typeof(Json))
-                    return (Value as Json)[index];
-                else if (GetValType() == typeof(JsonArray))
-                    return (Value as JsonArray)[index];
+                //if (GetValType() == typeof(Json))
+                return (Value as IEnumerable).OfType<ObjectBase>().ElementAt(index);
 
-                return null;
+                //return null;
                 //throw new Exception($"Cannot get value by index \"{index}\".");
             }
             set

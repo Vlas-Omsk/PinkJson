@@ -12,274 +12,177 @@ namespace json
 {
     class Program
     {
-        public struct Phone
+        static void SerializeArray()
+        {
+            int[,] numbers = new int[,]
+            {
+                { 9, 5, -9 },
+                { -11, 4, 0 },
+                { 6, 115, 3 },
+                { -12, -9, 71 },
+                { 1, -6, -1 }
+            };
+
+            JsonArray JArray = JsonArray.FromArray(numbers, false);
+
+            Console.WriteLine(JArray.ToString());
+        }
+
+        static void DeserializeArray()
+        {
+            string json = "[9, \"Five\", -9, -11, 4, 0, 6, 115, 3, -12, -9, 71, 1, -6, -1]";
+
+            object[] numbers = JsonArray.ToArray<object>(new JsonArray(json));
+
+            Console.WriteLine(numbers[7] + ", " + numbers[1]);
+        }
+
+        struct Product
+        {
+            public Product(string name)
+            {
+                Name = name;
+                Expiry = default;
+                Sizes = null;
+            }
+
+            private string Name;
+            public DateTime Expiry;
+            public string[] Sizes;
+        }
+
+        static void SerializeObject()
+        {
+            Product product = new Product("Apple");
+            product.Expiry = new DateTime(2008, 12, 28);
+            product.Sizes = new string[] { "Small" };
+
+            Json JObject = Json.FromObject(product, true);
+
+            Console.WriteLine(JObject.ToFormatString());
+        }
+
+        class Movie
         {
             public string Name;
-            public string[] Tags;
-            public Phone[] Phones;
-            public dynamic dynamicHuinya;
+            public string ReleaseDate;
+            public string[] Genres { get; set; }
         }
 
-        public struct Test
+        static void DeserealizeObject()
         {
-            public string LastName;
-            private string FirstName;
-            public Phone[] Phones;
-            internal Int64[] Диапазон;
+            string json = @"{
+                'Name': 'Bad Boys',
+                'ReleaseDate': '1995-4-7T00:00:00',
+                'Genres': [
+                    'Action',
+                    'Comedy'
+                ]
+            }".Replace('\'', '"');
 
-            public Test(string firstname)
+            Movie m = Json.ToObject<Movie>(new Json(json));
+
+            Console.WriteLine(m.Name);
+        }
+
+        static void SerializeAnonymous()
+        {
+            var anonymous = new 
             {
-                FirstName = firstname;
-                LastName = null;
-                Phones = null;
-                Диапазон = null;
-            }
+                Name = "Bad Boys",
+                ReleaseDate = "1995-4-7T00:00:00",
+                Genres = new[]
+                {
+                    "Action",
+                    "Comedy"
+                }
+            };
+
+            Json JObject = Json.FromAnonymous(anonymous);
+
+            Console.WriteLine(JObject.ToFormatString());
         }
 
-        public static Test test = new Test("Vasily")
+        static void CreateJson()
         {
-            LastName = "Ivanov",
-            Диапазон = new long[] { 19, 24 },
-            Phones = new Phone[] {
-                new Phone() {
-                    Name="HUifon 10X",
-                    Tags=new string[] { "Company HUepple\n\t", "Without root access\n\t", "WITHOUT FUCKING JACK 3.5" },
-                    Phones = new Phone[] {
-                        new Phone() {
-                            Name="HUifon 10X",
-                            Tags=new string[] { "Company HUepple\n\t", "Without root access\n\t", "WITHOUT FUCKING JACK 3.5" },
+            JsonArray array = new JsonArray();
+            array.Add("Manual text");
+            array.Add(new DateTime(2000, 5, 23));
+
+            Json o = new Json() { "MyArray" };
+            o["MyArray"].Value = array;
+            //or
+            //Json o = new Json() { ("MyArray", array) };
+
+            Console.WriteLine(o.ToFormatString());
+        }
+
+        static void PathsTest()
+        {
+            var json = new JsonArray(@"[
+                {
+                    '_id': '5973782bdb9a930533b05cb2',
+                    'isActive': true,
+                    'balance': '$1,446.35',
+                    'age': 32,
+                    'eyeColor': 'green',
+                    'name': 'Logan Keller',
+                    'gender': 'male',
+                    'company': 'ARTIQ',
+                    'email': 'logankeller@artiq.com',
+                    'phone': '+1 (952) 533-2258',
+                    'friends': [
+                        {
+                            'id': 0,
+                            'name': 'Colon Salazar'
                         },
-                        new Phone() {
-                            Name = "LENOVO TAB3 7",
-                            
-                        }
-                    }
-                },
-                new Phone() {
-                    Name = "XIAOMI REDMI NOTE 7",
-                    
-                    dynamicHuinya = true
-                }
-            }
-        };
-
-        static void Main(string[] args)
-        {
-            SyntaxHighlighting.EnableVirtualTerminalProcessing();
-
-            var j = Json.FromAnonymous(new
-            {
-                abc = new
-                {
-                    hello = "123",
-                    h1 = new JsonArray()
-                    {
-                        false,
-                        true,
-                        "str",
-                        12785681,
-                        Json.FromAnonymous(new
                         {
-                            id = 32,
-                            name = "egor",
-                            arr = new
-                            {
-                                clas = "base",
-                                ___dsad = 2,
-                                lol = new[]
-                                {
-                                    new
-                                    {
-                                        prikol = "rjaka",
-                                        ind = 1
-                                    },
-                                    new
-                                    {
-                                        prikol = "rs",
-                                        ind = 2
-                                    }
-                                },
-                                hash = "dijnaogsndghin039j\r\nt3y8972gtrb3789r3fb"
-                            }
-                        })
-                    },
-                    h2 = new[]
-                    {
-                        "Hi",
-                        "Hell"
-                    }
+                            'id': 1,
+                            'name': 'French Mcneil'
+                        },
+                        {
+                            'id': 2,
+                            'name': 'Carol Martin'
+                        }
+                    ],
+                    'favoriteFruit': 'banana'
                 }
-            });
+            ]".Replace('\'', '"'));
 
-            var clone = (((j["abc"][1].Value as JsonArray)[4].Value as Json)["arr"]["lol"][1].Value as Json).Clone() as Json; //Было
-            (((j["abc"][1].Value as JsonArray)[4].Value as Json)["arr"]["lol"].Value as JsonArray).Add(clone);                //Было
-            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            clone = j["abc"][1][4]["arr"]["lol"][1].Get<Json>().Clone() as Json;                                              //Стало v1
-            j["abc"][1][4]["arr"]["lol"].Get<JsonArray>().Add(clone);                                                         //Стало v1
-            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            clone = j.GetDynamic().abc._1._4.arr.lol._1.Value.Clone();                                                        //Стало v2
-            j.GetDynamic().abc._1._4.arr.lol.Value.Add(clone);                                                                //Стало v2
+            Console.WriteLine("json[0][\"phone\"].Value => " + json[0]["phone"].Value);
+            Console.WriteLine("json.GetDynamic()._0.phone.Value => " + json.GetDynamic()._0.phone.Value);
+            Console.WriteLine();
+            Console.WriteLine("json[0][\"friends\"][2][\"name\"].Value => " + json[0]["friends"][2]["name"].Value);
+            Console.WriteLine("json.GetDynamic()._0.friends._2.name.Value => " + json.GetDynamic()._0.friends._2.name.Value);
+        }
 
-            j.GetDynamic().abc._1._4.arr.___dsad.Key = "s\ntewrwe";
-
-            //j["abc"][1][4]["arr"].RemoveByKey("lol");
-            Console.WriteLine(new Json(j["abc"]).ToFormatString());
-
-            //Console.WriteLine(SyntaxHighlighting.ToAnsiWithEscapeSequences(Json.FromStructure(test, true)));
-
-            //Console.WriteLine(j.Dyn._ToFormatString);
-
-            //Stopwatch stopWatch = new Stopwatch();
-            //stopWatch.Start();
-            //var j = new Json(File.ReadAllText("in.json"));
-            //File.WriteAllText(@"test.html", SyntaxHighlighting.ToHtml(j));
-            //File.WriteAllText(@"test.json", j.ToFormatString(), Encoding.UTF8);
-            //foreach (Json json in j["response"]["items"].Value as JsonObjectArray)
-            //{
-            //    Console.WriteLine("\r\n" + json["conversation_message_id"].Value + ((int)json["from_id"].Value == 272611387 ? " Egor" : " Vlas"));
-            //    Console.WriteLine(SyntaxHighlighting.ToAnsiWithEscapeSequences(json["text"].Value));
-            //    if (json.IndexByKey("fwd_messages") != -1)
-            //        foreach (Json jsonfwd in json["fwd_messages"].Value as JsonObjectArray)
-            //            Console.WriteLine("\t" + SyntaxHighlighting.ToAnsiWithEscapeSequences(jsonfwd["text"].Value));
-            //}
-            //var f = File.OpenWrite("testst.txt");
-            //for (var i = 0; i < 200000; i++)
-            //{
-            //    var bytes = Encoding.UTF8.GetBytes($"{i}: &#{i};\r\n");
-            //    f.Write(bytes, 0, bytes.Length);
-            //}
-            //f.Close();
-            //Console.WriteLine(SyntaxHighlighting.ToAnsiWithEscapeSequences(j));
-            //stopWatch.Stop();
-            //Console.WriteLine($"{stopWatch.ElapsedMilliseconds} ms");
-            //Thread.Sleep(0);
-            //Process.Start("cmd", "/c start test.html");
-            //Process.Start("cmd", "/c start test.rtf");
-
-            //Console.WriteLine(@"\u0072\u0079\u0020y\n performa\\nce   TEST".UnescapeString().EscapeString().ToUnicodeString());
-
-            //Stopwatch stopWatch = new Stopwatch();
-            //stopWatch.Start();
-            //var j = new JsonObjectArray(File.ReadAllText(@"detectable.json"));
-            //var s = Json.FromStructure(test, true);
-            //stopWatch.Stop();
-            //Console.WriteLine($"{stopWatch.ElapsedMilliseconds} ms");
-            //File.WriteAllText("test.json", s.ToFormatString());
-
-            //stopWatch.Start();
-            //var file = new Json(File.ReadAllText("test.json"));
-            //var testout = Json.ToStructure<Test>(new Json(file));
-            //stopWatch.Stop();
-            //Console.WriteLine($"{stopWatch.ElapsedMilliseconds} ms");
-
-            //var ss = Json.FromStructure(testout, true);
-            //Console.WriteLine(ss.ToFormatString() + "\r\n\r\n");
-
-            //Main2(args);
+        static void Main()
+        {
+            Console.WriteLine($"=== SerializeArray ===");
+            Run(SerializeArray);
+            Console.WriteLine($"\r\n=== DeserializeArray ===");
+            Run(DeserializeArray);
+            Console.WriteLine($"\r\n=== SerializeObject ===");
+            Run(SerializeObject);
+            Console.WriteLine($"\r\n=== DeserealizeObject ===");
+            Run(DeserealizeObject);
+            Console.WriteLine($"\r\n=== SerializeAnonymous ===");
+            Run(SerializeAnonymous);
+            Console.WriteLine($"\r\n=== CreateJson ===");
+            Run(CreateJson);
+            Console.WriteLine($"\r\n=== PathsTest ===");
+            Run(PathsTest);
 
             Console.ReadLine();
         }
 
-        static void Main2(string[] args)
+        static void Run(Action action)
         {
-            Stopwatch stopWatch = new Stopwatch();
-
-            stopWatch.Start();
-            var j = Json.FromAnonymous(new
-            {
-                abc = new
-                {
-                    hello = "123",
-                    h1 = new JsonArray()
-                    {
-                        false,
-                        true,
-                        "str",
-                        12785681,
-                        Json.FromAnonymous(new
-                        {
-                            id = 32,
-                            name = "egor",
-                            arr = new
-                            {
-                                clas = "base",
-                                lol = new[]
-                                {
-                                    new
-                                    {
-                                        prikol = "rjaka",
-                                        ind = 1
-                                    },
-                                    new
-                                    {
-                                        prikol = "rs",
-                                        ind = 2
-                                    }
-                                },
-                                hash = "dijnaogsndghin039j\r\nt3y8972gtrb3789r3fb"
-                            }
-                        })
-                    },
-                    h2 = new[]
-                    {
-                        "Hi",
-                        "Hell"
-                    }
-                }
-            });
-
-
-            stopWatch.Stop();
-            Console.WriteLine($"{stopWatch.ElapsedMilliseconds} ms");
-            Console.WriteLine(j.ToFormatString() + "\r\n\r\n");
-
-            var sj = "[{" +
-                "	'guild_experiments': [" +
-                "		[3601750436, null, 1, [" +
-                "				[-1, [{" +
-                "					's': 1000," +
-                "					'e': 10000" +
-                "				}]]," +
-                "				[1, [{" +
-                "					's': 500," +
-                "					'e': 1000" +
-                "				}]]" +
-                "			]," +
-                "			[]," +
-                "			[{" +
-                "				'k': ['21683865395396608', '315263844207558671', '392832386079129630', '114560575232671745', '689502507277615175']," +
-                "				'b': 1" +
-                "			}]" +
-                "		]," +
-                "		[3567166443, null, 3, [" +
-                "				[2, [{" +
-                "					's': 0," +
-                "					'e': 10000" +
-                "				}]]" +
-                "			]," +
-                "			[" +
-                "				[580727696, [" +
-                "					[3399957344, 51326]," +
-                "					[1238858341, null]" +
-                "				]]" +
-                "			]," +
-                "			[]" +
-                "		]" +
-                "	]" +
-                "}," +
-                "{" +
-                "	'resp': true," +
-                "	'resp2': 'true'" +
-                "}]";
-            sj = sj.Replace('\'', '"');
-            stopWatch = new Stopwatch();
-            stopWatch.Start();
-            var jj = new JsonArray(sj);
-            stopWatch.Stop();
-            Console.WriteLine($"{stopWatch.ElapsedMilliseconds} ms");
-            Console.WriteLine(jj.ToFormatString() + "\r\n\r\n");
-
-            Console.ReadLine();
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            action();
+            sw.Stop();
+            Console.WriteLine(sw.ElapsedMilliseconds + " ms");
         }
     }
 }

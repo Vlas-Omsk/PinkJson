@@ -22,6 +22,21 @@ namespace PinkJson
             Value = value;
         }
 
+        public JsonObject(string key)
+        {
+            Key = key;
+        }
+
+        public static implicit operator JsonObject(string key)
+        {
+            return new JsonObject(key);
+        }
+
+        public static implicit operator JsonObject((string, object) jsonObject)
+        {
+            return new JsonObject(jsonObject.Item1, jsonObject.Item2);
+        }
+
         #region Override
         public override JsonObject ElementByKey(string key)
         {

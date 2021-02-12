@@ -45,12 +45,12 @@ namespace PinkJson
 
         public static JsonArray FromArray(Array array, bool usePrivateFields, string[] exclusion_fields = null)
         {
-            return new JsonArray(StructureConverter.ConvertArrayFrom(array, usePrivateFields, exclusion_fields));
+            return new JsonArray(JsonConverter.ConvertArrayFrom(array, usePrivateFields, exclusion_fields));
         }
 
         public static T[] ToArray<T>(JsonArray array)
         {
-            return StructureConverter.ConvertArrayTo<T>(array);
+            return JsonConverter.ConvertArrayTo<T>(array);
         }
         #endregion
 

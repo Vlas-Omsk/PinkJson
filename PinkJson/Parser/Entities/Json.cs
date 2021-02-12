@@ -47,14 +47,14 @@ namespace PinkJson
             return new Json(AnonymousConverter.Convert(anonymous) as List<JsonObject>);
         }
 
-        public static Json FromStructure(object structure, bool usePrivateFields, string[] exclusion_fields = null)
+        public static Json FromObject(object structure, bool usePrivateFields, string[] exclusion_fields = null)
         {
-            return new Json(StructureConverter.ConvertFrom(structure, usePrivateFields, exclusion_fields));
+            return new Json(JsonConverter.ConvertFrom(structure, usePrivateFields, exclusion_fields));
         }
 
-        public static T ToStructure<T>(Json json)
+        public static T ToObject<T>(Json json)
         {
-            return StructureConverter.ConvertTo<T>(json);
+            return JsonConverter.ConvertTo<T>(json);
         }
         #endregion
 
@@ -64,7 +64,7 @@ namespace PinkJson
             tokens = json;
 
             if (tokens[0].Kind == SyntaxKind.OBA && tokens[tokens.Count - 1].Kind == SyntaxKind.CBA)
-                throw new Exception("Use JsonObjectArray(string json).");
+                throw new Exception("Use JsonArray(string json).");
             else if (tokens[0].Kind == SyntaxKind.OB && tokens[tokens.Count - 1].Kind == SyntaxKind.CB)
             {
                 tokens.RemoveAt(tokens.Count - 1);
@@ -169,6 +169,8 @@ namespace PinkJson
                 return "null";
             else if (value is bool)
                 return ((bool)value) ? "true" : "false";
+            else if (value is DateTime)
+                return '\"' + ((DateTime)value).ToString("yyyy-MM-ddTHH:mm:ss.fffZ") + '\"';
             else if (value is sbyte
                     || value is byte
                     || value is short

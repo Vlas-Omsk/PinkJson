@@ -57,7 +57,7 @@
     <Compile Include="Parser\Entities\JsonObject.cs" />
     <Compile Include="Parser\Entities\ObjectBase.cs" />
     <Compile Include="StringExtension.cs" />
-    <Compile Include="Parser\StructureConverter.cs" />
+    <Compile Include="Parser\JsonConverter.cs" />
     <Compile Include="Parser\SyntaxHighlighting.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -46,7 +46,7 @@ namespace PinkJson
                 object value = field.GetValue(obj);
 
                 if (TryGetAsArray(value, out Array arr))
-                    value = JsonArray.FromArray(value as Array, usePrivateFields, exclusion_fields);
+                    value = JsonArray.FromArray(arr, usePrivateFields, exclusion_fields);
                 else if (IsStructureOrSpecificClassType(field.GetFieldType()))
                     value = Json.FromObject(value, usePrivateFields, exclusion_fields);
 

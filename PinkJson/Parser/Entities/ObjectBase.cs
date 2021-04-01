@@ -152,7 +152,21 @@ namespace PinkJson
         {
             if (Value is null)
                 return default;
-            return (T)Value;
+            try
+            {
+                return (T)Convert.ChangeType(Value, typeof(T));
+            }
+            catch
+            {
+                try
+                {
+                    return (T)Value;
+                }
+                catch
+                {
+                    return default;
+                }
+            }
         }
 
         public T Get<T>(int index)

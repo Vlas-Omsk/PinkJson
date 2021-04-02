@@ -110,7 +110,24 @@ namespace PinkJson
                 }
                 else if (value is JsonArray)
                 {
-                    value = ConvertArrayTo(value as JsonArray, field.GetFieldType().GetElementType());
+                    var fieldType = field.GetFieldType();
+                    var currentType = fieldType;
+                    while (currentType != typeof(Object))
+                    {
+                        if (currentType.IsGenericType)
+                            break;
+                        currentType = currentType.BaseType;
+                    }
+                    var asd = new object[3];
+                    if (currentType.GetInterface("IList") != null)
+                    {
+                        if (currentType != fieldType)
+                            value = GetNotGenericList(value as JsonArray, fieldType);
+                        else
+                            value = ConvertArrayTo(value as JsonArray, currentType.GetGenericArguments().Single(), true);
+                    }
+                    else
+                        value = ConvertArrayTo(value as JsonArray, currentType.GetElementType());
                 }
 
                 field.SetValue(result, value);
@@ -119,7 +136,7 @@ namespace PinkJson
             return result;
         }
 
-        private static object ConvertArrayTo(JsonArray json, Type elemType)
+        private static object ConvertArrayTo(JsonArray json, Type elemType, bool asList = false)
         {
             Array list = Array.CreateInstance(elemType, json.Count);
 
@@ -132,6 +149,25 @@ namespace PinkJson
                     list.SetValue(elem.Value, i);
             }
 
+            if (asList)
+            {
+                Type genericListType = typeof(List<>);
+                Type concreteListType = genericListType.MakeGenericType(elemType);
+
+                return Activator.CreateInstance(concreteListType, new object[] { list });
+            }
+
+            return list;
+        }
+
+        private static object GetNotGenericList(JsonArray json, Type type)
+        {
+            var list = (IList)Activator.CreateInstance(type);
+            for (var i = 0; i < json.Count; i++)
+            {
+                var elem = json[i];
+                list.Add(elem);
+            }
             return list;
         }
 

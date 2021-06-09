@@ -135,7 +135,7 @@ namespace PinkJson
                         value = ConvertArrayTo(value as JsonArray, fieldType.GetElementType());
                 }
 
-                field.SetValue(result, value);
+                field.SetValue(result, ConvertValue(value, fieldType));
             });
 
             return result;
@@ -151,7 +151,7 @@ namespace PinkJson
                 if (elem.Value is Json)
                     list.SetValue(ConvertTo(elem.Get<Json>(), elemType), i);
                 else
-                    list.SetValue(elem.Value, i);
+                    list.SetValue(ConvertValue(elem.Value, elemType), i);
             }
 
             if (asList)
@@ -171,7 +171,7 @@ namespace PinkJson
             for (var i = 0; i < json.Count; i++)
             {
                 var elem = json[i];
-                list.Add(elem.Value);
+                list.Add(ConvertValue(elem.Value, type));
             }
             return list;
         }
@@ -187,7 +187,7 @@ namespace PinkJson
         //        .Any(x => x.GetTypeInfo().IsGenericType && x.GetGenericTypeDefinition() == interfaceType);
         //}
 
-        public static bool TryGetAsArray(object value, out Array array)
+        private static bool TryGetAsArray(object value, out Array array)
         {
             array = null;
 
@@ -197,6 +197,16 @@ namespace PinkJson
                 array = (value as IList).OfType<object>().ToArray();
 
             return array != null;
+        }
+
+        private static object ConvertValue(object value, Type type)
+        {
+            if (type == typeof(DateTime))
+                return DateTime.Parse(value.ToString());
+            else if (type == typeof(TimeSpan))
+                return TimeSpan.Parse(value.ToString());
+            else
+                return value;
         }
 
         public static bool IsStructureOrSpecificClassType(Type type)

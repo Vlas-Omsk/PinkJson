@@ -111,29 +111,28 @@ namespace PinkJson
                 }
                 else if (value is JsonArray)
                 {
-                    if (fieldType.IsGenericType && ImplementsGenericInterface(fieldType, typeof(IList<>)))
-                        value = ConvertListTo(value as JsonArray, fieldType);
+                    //if (ImplementsGenericInterface(fieldType, typeof(IList<>)) && ImplementsGenericInterface(fieldType, typeof(IList)))
+                    //    value = ConvertListTo(value as JsonArray, fieldType);
+                    //else
+                    //    value = ConvertArrayTo(value as JsonArray, fieldType.GetElementType());
+
+                    var currentType = fieldType;
+                    while (currentType != typeof(Object))
+                    {
+                        if (currentType.IsGenericType)
+                            break;
+                        currentType = currentType.BaseType;
+                    }
+
+                    if (currentType.GetInterface("IList") != null)
+                    {
+                        if (currentType != fieldType)
+                            value = ConvertListTo(value as JsonArray, fieldType);
+                        else
+                            value = ConvertArrayTo(value as JsonArray, currentType.GetGenericArguments().Single(), true);
+                    }
                     else
                         value = ConvertArrayTo(value as JsonArray, fieldType.GetElementType());
-
-                    //var fieldType = field.GetFieldType();
-                    //var currentType = fieldType;
-                    //while (currentType != typeof(Object))
-                    //{
-                    //    if (currentType.IsGenericType)
-                    //        break;
-                    //    currentType = currentType.BaseType;
-                    //}
-
-                    //if (currentType.GetInterface("IList") != null)
-                    //{
-                    //    if (currentType != fieldType)
-                    //        value = GetNotGenericList(value as JsonArray, fieldType);
-                    //    else
-                    //        value = ConvertArrayTo(value as JsonArray, currentType.GetGenericArguments().Single(), true);
-                    //}
-                    //else
-                    //    value = ConvertArrayTo(value as JsonArray, currentType.GetElementType());
                 }
 
                 field.SetValue(result, value);
@@ -142,7 +141,7 @@ namespace PinkJson
             return result;
         }
 
-        private static object ConvertArrayTo(JsonArray json, Type elemType)
+        private static object ConvertArrayTo(JsonArray json, Type elemType, bool asList = false)
         {
             Array list = Array.CreateInstance(elemType, json.Count);
 
@@ -153,6 +152,14 @@ namespace PinkJson
                     list.SetValue(ConvertTo(elem.Get<Json>(), elemType), i);
                 else
                     list.SetValue(elem.Value, i);
+            }
+
+            if (asList)
+            {
+                Type genericListType = typeof(List<>);
+                Type concreteListType = genericListType.MakeGenericType(elemType);
+
+                return Activator.CreateInstance(concreteListType, new object[] { list });
             }
 
             return list;
@@ -169,13 +176,16 @@ namespace PinkJson
             return list;
         }
 
-        private static bool ImplementsGenericInterface(Type type, Type interfaceType)
-        {
-            return type
-                .GetTypeInfo()
-                .ImplementedInterfaces
-                .Any(x => x.GetTypeInfo().IsGenericType && x.GetGenericTypeDefinition() == interfaceType);
-        }
+        //private static bool ImplementsGenericInterface(Type type, Type interfaceType)
+        //{
+        //    var d = type
+        //        .GetTypeInfo()
+        //        .ImplementedInterfaces;
+        //    return type
+        //        .GetTypeInfo()
+        //        .ImplementedInterfaces
+        //        .Any(x => x.GetTypeInfo().IsGenericType && x.GetGenericTypeDefinition() == interfaceType);
+        //}
 
         public static bool TryGetAsArray(object value, out Array array)
         {

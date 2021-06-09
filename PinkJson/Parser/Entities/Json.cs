@@ -182,7 +182,7 @@ namespace PinkJson
                     || value is float
                     || value is double
                     || value is decimal)
-                return value.ToString();
+                return value.ToString().Replace(',', '.');
             else if (value is ObjectBase)
                 return (value as ObjectBase).ToString();
             //else if (value is JsonObject)

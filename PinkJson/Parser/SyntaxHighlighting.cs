@@ -405,5 +405,10 @@ namespace PinkJson
         {
             return $"<font style=\"color: rgb({R}, {G}, {B})\">{innerText}</font>";
         }
+
+        public static implicit operator Color(System.Drawing.Color color)
+        {
+            return new Color(color);
+        }
     }
 }

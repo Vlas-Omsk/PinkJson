@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if DEBUG == false
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +12,7 @@ using System.Diagnostics;
 
 namespace json
 {
-    class Program
+    static class Release
     {
         static void SerializeArray()
         {
@@ -186,3 +188,5 @@ namespace json
         }
     }
 }
+
+#endif

@@ -34,6 +34,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Numerics" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -42,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CharExtension.cs" />
     <Compile Include="Exceptions.cs" />
     <Compile Include="Impl\ElementPosition.cs" />
     <Compile Include="Impl\LexerPosition.cs" />
@@ -49,6 +51,7 @@
     <Compile Include="Lexer\Tokens\SyntaxKind.cs" />
     <Compile Include="Lexer\Tokens\SyntaxToken.cs" />
     <Compile Include="Lexer\Tokens\TokenCollection.cs" />
+    <Compile Include="MemberInfoExtension.cs" />
     <Compile Include="Parser\AnonymousConverter.cs" />
     <Compile Include="Parser\Entities\Json.cs" />
     <Compile Include="Parser\Entities\JsonArray.cs" />
@@ -56,6 +59,7 @@
     <Compile Include="Parser\Entities\JsonBase.cs" />
     <Compile Include="Parser\Entities\JsonObject.cs" />
     <Compile Include="Parser\Entities\ObjectBase.cs" />
+    <Compile Include="Parser\JsonFormatter.cs" />
     <Compile Include="StringExtension.cs" />
     <Compile Include="Parser\JsonConverter.cs" />
     <Compile Include="Parser\SyntaxHighlighting.cs" />

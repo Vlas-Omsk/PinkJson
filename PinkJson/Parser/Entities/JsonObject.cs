@@ -64,12 +64,12 @@ namespace PinkJson
 
         public override string ToString()
         {
-            return $"\"{Key.EscapeString()}\": {Json.ValueToJsonString(Value)}";
+            return $"\"{Key.EscapeString()}\":{JsonFormatter.ValueToJsonString(Value)}";
         }
 
-        public override string ToFormatString(int spacing = 4, int gen = 1)
+        public override string ToFormatString(ushort spacing = 4, uint gen = 1)
         {
-            return $"{new string(' ', spacing * (gen - 1))}\"{Key.EscapeString()}\": {Json.ValueToFormatJsonString(Value, spacing, gen)}";
+            return $"{' '.Repeat(spacing * (gen - 1))}\"{Key.EscapeString()}\": {JsonFormatter.ValueToFormatJsonString(Value, spacing, gen)}";
         }
 
         public override object Clone()

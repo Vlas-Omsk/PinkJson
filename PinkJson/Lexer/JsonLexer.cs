@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Text;
 using System.Threading;
+using System.Numerics;
 
 namespace PinkJson.Lexer
 {
@@ -38,7 +39,7 @@ namespace PinkJson.Lexer
             {
                 token = Get();
                 if (token.Kind == SyntaxKind.InvalidToken)
-                    throw new InvalidTokenException(LexerPosition.CurrentPosition);
+                    throw new InvalidTokenException(LexerPosition.CurrentPosition, Content);
                 if (token.Kind != SyntaxKind.Invisible)
                     collection.Add(token);
             }
@@ -130,8 +131,10 @@ namespace PinkJson.Lexer
                     Value = intvalue;
                 else if (long.TryParse(str, out long longvalue))
                     Value = longvalue;
+                else if (BigInteger.TryParse(str, out BigInteger bigintvalue))
+                    Value = bigintvalue;
                 else
-                    throw new Exception($"Invalid integer number {str}");
+                    throw new Exception($"Invalid or too big number {str}");
             }
             else {
                 //))))))))))

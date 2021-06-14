@@ -15,12 +15,12 @@ namespace PinkJson
     {
         public static List<JsonObject> ConvertFrom(object obj, bool usePrivateFields, string[] exclusion_fields = null)
         {
+            if (obj is null)
+                return null;
             if (TryGetAsArray(obj, out _))
                 throw new Exception("Use JsonArray.FromArray(Array array).");
             //if (!IsStructureType(structure.GetType()))
             //    throw new Exception("Unknown Structure format.");
-            if (obj is null)
-                return null;
 
             var structType = obj.GetType();
             List<MemberInfo> fields;
@@ -37,7 +37,7 @@ namespace PinkJson
 
             fields = fields.Where(m => !m.IsStatic()).ToList();
 
-            return fields.Select<MemberInfo, JsonObject>(field =>
+            return fields.Select(field =>
             {
                 string name = field.Name;
                 if (!(exclusion_fields is null) && exclusion_fields.Contains(name))
@@ -176,17 +176,6 @@ namespace PinkJson
             return list;
         }
 
-        //private static bool ImplementsGenericInterface(Type type, Type interfaceType)
-        //{
-        //    var d = type
-        //        .GetTypeInfo()
-        //        .ImplementedInterfaces;
-        //    return type
-        //        .GetTypeInfo()
-        //        .ImplementedInterfaces
-        //        .Any(x => x.GetTypeInfo().IsGenericType && x.GetGenericTypeDefinition() == interfaceType);
-        //}
-
         private static bool TryGetAsArray(object value, out Array array)
         {
             array = null;
@@ -223,51 +212,6 @@ namespace PinkJson
         private static bool IsSpecificClassType(Type type)
         {
             return type.IsClass && !type.IsValueType && !type.IsGenericType && type != typeof(string);
-        }
-    }
-
-    public static class MemberInfoExtension
-    {
-        internal static object GetValue(this MemberInfo member, object obj)
-        {
-            if (member is FieldInfo)
-                return (member as FieldInfo).GetValue(obj);
-            else if (member is PropertyInfo)
-                return (member as PropertyInfo).GetValue(obj);
-            else
-                return null;
-        }
-
-        internal static void SetValue(this MemberInfo member, object obj, object value)
-        {
-            try
-            {
-                if (member is FieldInfo)
-                    (member as FieldInfo).SetValue(obj, value);
-                else if (member is PropertyInfo)
-                    (member as PropertyInfo).SetValue(obj, value);
-            }
-            catch { }
-        }
-
-        internal static Type GetFieldType(this MemberInfo member)
-        {
-            if (member is FieldInfo)
-                return (member as FieldInfo).FieldType;
-            else if (member is PropertyInfo)
-                return (member as PropertyInfo).PropertyType;
-            else
-                return null;
-        }
-
-        internal static bool IsStatic(this MemberInfo member)
-        {
-            if (member is FieldInfo)
-                return (member as FieldInfo).Attributes.HasFlag(FieldAttributes.Static);
-            else if (member is PropertyInfo)
-                return false;
-            else
-                return false;
         }
     }
 }

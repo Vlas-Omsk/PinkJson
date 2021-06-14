@@ -8,6 +8,14 @@ namespace PinkJson
 {
     public static class StringExtension
     {
+        public static string Repeat(this string str, uint count)
+        {
+            var result = new StringBuilder();
+            for (var i = 0; i < count; i++)
+                result.Append(str);
+            return result.ToString();
+        }
+
         public static string Trim(this string str, int count)
         {
             return str.Substring(count, str.Length - (count * 2));

@@ -142,7 +142,7 @@ namespace PinkJson
 
         public override abstract string ToString();
 
-        public abstract string ToFormatString(int spacing = 4, int gen = 1);
+        public abstract string ToFormatString(ushort spacing = 4, uint gen = 1);
 
         public abstract object Clone();
         #endregion

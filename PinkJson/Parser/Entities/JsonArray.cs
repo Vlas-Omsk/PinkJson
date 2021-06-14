@@ -59,6 +59,11 @@ namespace PinkJson
             base.Add(new JsonArrayObject(item));
         }
 
+        private bool IsPrimitiveType(Type type)
+        {
+            return type.IsAssignableFrom(typeof(ObjectBase));
+        }
+
         #region Parser
         public JsonArray(TokenCollection json)
         {
@@ -149,17 +154,31 @@ namespace PinkJson
 
         public override string ToString()
         {
-            return $"[{string.Join(", ", this.Select(o => Json.ValueToJsonString(o)))}]";
+            return $"[{string.Join(",", this.Select(o => JsonFormatter.ValueToJsonString(o)))}]";
         }
 
-        public override string ToFormatString(int spacing = 4, int gen = 1)
+        public override string ToFormatString(ushort spacing = 4, uint gen = 1)
         {
             if (Count == 0)
                 return "[]";
             else
-                return $"[" + "\r\n" +
-                           $"{string.Join(", " + "\r\n", this.Select(o => new string(' ', spacing * gen) + Json.ValueToFormatJsonString(o, spacing, gen + 1)))}" +
-                       "\r\n" + $"{new string(' ', spacing * (gen - 1))}]";
+            {
+                //return $"[" + "\r\n" +
+                //           $"{string.Join(", " + "\r\n", this.Select(o => ' '.Repeat(spacing * gen) + JsonFormatter.ValueToFormatJsonString(o, spacing, gen + 1)))}" +
+                //       "\r\n" + $"{' '.Repeat(spacing * (gen - 1))}]";
+
+                var result = $"[" + (IsPrimitiveType(this[0].GetValType()) ? "\r\n" : "");
+                for (var i = 0; i < Count; i++)
+                {
+                    var o = this[i];
+                    var isprimitive = IsPrimitiveType(o.GetValType());
+                    result += (isprimitive ? "\r\n" + ' '.Repeat(spacing * gen) : "") + JsonFormatter.ValueToFormatJsonString(o, spacing, gen + (isprimitive ? 1u : 0u));
+                    if (i != Count - 1)
+                        result += ", ";
+                }
+
+                return result += $"{(IsPrimitiveType(this.Last().GetValType()) ? "\r\n" + ' '.Repeat(spacing * (gen - 1)) : "")}]";
+            }
         }
 
         public override object Clone()

@@ -20,8 +20,11 @@ namespace PinkJson
 
         public InvalidTokenException(int pos, string content) : base()
         {
+            int start = pos - borders - 1, length = borders * 2;
+            if (start < 0) start = 0;
+            if (start + length >= content.Length) length = content.Length - 1 - start;
             var result = $"Unknown element! (Position: {pos})\r\n\r\nDetails:\r\n" + 
-                content.Substring(pos - borders - 1, borders * 2)/*.Insert(borders + 1, " ")*/.Insert(borders, " ---> ");
+                content.Substring(start, length)/*.Insert(borders + 1, " ")*/.Insert(borders, " ---> ");
             typeof(Exception).GetRuntimeFields().First(fi => fi.Name == "_message").SetValue(this, result);
         }
     }

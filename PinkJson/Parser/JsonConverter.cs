@@ -39,7 +39,9 @@ namespace PinkJson
 
             return fields.Select(field =>
             {
-                string name = field.Name;
+                var jsonPropertyAttribute = field.GetCustomAttribute(typeof(JsonProperty), true) as JsonProperty;
+                var name = jsonPropertyAttribute == null ? field.Name : jsonPropertyAttribute.PropertyName;
+
                 if (!(exclusion_fields is null) && exclusion_fields.Contains(name))
                     return null;
 
@@ -98,26 +100,24 @@ namespace PinkJson
 
             fields.ForEach(field =>
             {
-                if (json.IndexByKey(field.Name) == -1)
+                var jsonPropertyAttribute = field.GetCustomAttribute(typeof(JsonProperty), true) as JsonProperty;
+                var fieldName = jsonPropertyAttribute == null ? field.Name : jsonPropertyAttribute.PropertyName;
+
+                if (json.IndexByKey(fieldName) == -1)
                     return;
 
-                object value = json[field.Name].Value;
-                var fieldType = field.GetFieldType();
+                object value = json[fieldName].Value;
+                var fieldType = jsonPropertyAttribute?.TargetType ?? field.GetFieldType();
 
-                if (value is Json)
+                if (value is Json && fieldType != typeof(Json))
                 {
                     //var fieldset = FormatterServices.GetUninitializedObject(fieldType);
                     value = ConvertTo(value as Json, fieldType);
                 }
-                else if (value is JsonArray)
+                else if (value is JsonArray && fieldType != typeof(JsonArray))
                 {
-                    //if (ImplementsGenericInterface(fieldType, typeof(IList<>)) && ImplementsGenericInterface(fieldType, typeof(IList)))
-                    //    value = ConvertListTo(value as JsonArray, fieldType);
-                    //else
-                    //    value = ConvertArrayTo(value as JsonArray, fieldType.GetElementType());
-
                     var currentType = fieldType;
-                    while (currentType != typeof(Object))
+                    while (currentType != typeof(object))
                     {
                         if (currentType.IsGenericType)
                             break;

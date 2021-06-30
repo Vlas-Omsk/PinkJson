@@ -43,7 +43,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Attributes\JsonProperty.cs" />
     <Compile Include="CharExtension.cs" />
+    <Compile Include="Color.cs" />
     <Compile Include="Exceptions.cs" />
     <Compile Include="Impl\ElementPosition.cs" />
     <Compile Include="Impl\LexerPosition.cs" />

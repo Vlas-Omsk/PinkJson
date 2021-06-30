@@ -89,7 +89,7 @@ namespace PinkJson.Lexer
                     ReadString();
                     break;
                 default:
-                    if (char.IsWhiteSpace(Current))
+                    if (char.IsWhiteSpace(Current) || Current == '\0')
                         ReadWhiteSpace();
                     else
                         ReadOther();
@@ -100,32 +100,99 @@ namespace PinkJson.Lexer
         }
         private void ReadWhiteSpace()
         {
-            while (char.IsWhiteSpace(Current))
+            while (char.IsWhiteSpace(Current) || (Current == '\0' && LexerPosition.CurrentPosition < ContentLen))
                 LexerPosition.CurrentPosition++;
             Kind = SyntaxKind.Invisible;
         }
+        private readonly static char[] numberChars =
+        {
+            '0',
+            '1',
+            '2',
+            '3',
+            '4',
+            '5',
+            '6',
+            '7',
+            '8',
+            '9',
+            '.',
+            '-',
+            '+',
+            'X',
+            'x',
+            'E',
+            'e'
+        }, hexadecimalChars = {
+            'a',
+            'b',
+            'c',
+            'd',
+            'f',
+            'A',
+            'B',
+            'C',
+            'D',
+            'F',
+        };
         private void ReadNumber()
         {
-            bool isDouble = false;
-            bool isEnumber = false;
-
-            while (char.IsDigit(Current) || (Current == 'e' || Current == 'E') || isEnumber || Current == '-' || Current == '+')
+            bool isDouble = false, isEnumber = false, isHexadecimal = false;
+            char prev = Current;
+            while (numberChars.Contains(Current) || (isHexadecimal && hexadecimalChars.Contains(Current)))
             {
-                if (isEnumber)
-                    isDouble = true;
-                isEnumber = Current == 'e' || Current == 'E';
-                
-                if (Lookahead is '.')
+                if ((Current == '.') && !isHexadecimal)
                 {
-                    LexerPosition.CurrentPosition++;
-                    isDouble = true;
+                    if (isDouble)
+                        throw new Exception("Invalid double number");
+                    else
+                        isDouble = true;
                 }
+                if ((Current == 'e' || Current == 'E') && !isHexadecimal)
+                {
+                    if (isEnumber)
+                        throw new Exception("Invalid e number");
+                    else
+                        isEnumber = true;
+                }
+                if ((Current == 'x' || Current == 'X') && prev == '0')
+                {
+                    if (isHexadecimal)
+                        throw new Exception("Invalid hexadecimal number");
+                    else
+                        isHexadecimal = true;
+                }
+
+                prev = Current;
                 LexerPosition.CurrentPosition++;
             }
 
             int len = LexerPosition.CurrentPosition - LexerPosition.StartPosition;
             string str = Content.Substring(LexerPosition.StartPosition, len);
-            if (!isDouble)
+            
+            if (isEnumber || isDouble)
+            {
+                if (!double.TryParse(str.Replace('.', ','), out double value))
+                    throw new Exception($"Invalid double number {str}");
+                Value = value;
+            } else if (isHexadecimal)
+            {
+                try
+                {
+                    Value = Convert.ToInt32(str, 16);
+                }
+                catch (Exception ex)
+                {
+                    try
+                    {
+                        Value = Convert.ToInt64(str, 16);
+                    }
+                    catch
+                    {
+                        throw new Exception($"Invalid hexadecimal number {str}", ex);
+                    }
+                }
+            } else
             {
                 if (int.TryParse(str, out int intvalue))
                     Value = intvalue;
@@ -136,12 +203,59 @@ namespace PinkJson.Lexer
                 else
                     throw new Exception($"Invalid or too big number {str}");
             }
-            else {
-                //))))))))))
-                if (!double.TryParse(str.Replace('.', ','), out double value))
-                    throw new Exception($"Invalid double number {str}");
-                Value = value;
-            }
+
+            //bool isDouble = false;
+            //bool isTempEnumber = false, isTempXnumber = false, isXnumber = false;
+
+            //while (char.IsDigit(Current) || (Current == 'e' || Current == 'E' || Current == 'x' || Current == 'X') || isTempEnumber || isTempXnumber || Current == '-' || Current == '+' ||
+            //    (isXnumber && (Current == 'A' || Current == 'a' || Current == 'B' || Current == 'b' || Current == 'C' || Current == 'c' || Current == 'D' || Current == 'd' || Current == 'e' || Current == 'E' || Current == 'F' || Current == 'f')))
+            //{
+            //    if (isTempEnumber)
+            //        isDouble = true;
+            //    if (isTempXnumber)
+            //        isXnumber = true;
+            //    //isTempEnumber = Current == 'e' || Current == 'E';
+            //    isTempXnumber = Current == 'x' || Current == 'X';
+
+            //    if (Lookahead is '.')
+            //    {
+            //        LexerPosition.CurrentPosition++;
+            //        isDouble = true;
+            //    }
+            //    LexerPosition.CurrentPosition++;
+            //}
+
+            //int len = LexerPosition.CurrentPosition - LexerPosition.StartPosition;
+            //string str = Content.Substring(LexerPosition.StartPosition, len);
+            //if (!isDouble)
+            //{
+            //    var isParsed = false;
+            //    if (isXnumber)
+            //        try
+            //        {
+            //            Value = Convert.ToInt32(str, 16);
+            //            isParsed = true;
+            //        }
+            //        catch
+            //        {
+            //            isParsed = false;
+            //        }
+            //    if (!isParsed)
+            //        if (int.TryParse(str, out int intvalue))
+            //            Value = intvalue;
+            //        else if (long.TryParse(str, out long longvalue))
+            //            Value = longvalue;
+            //        else if (BigInteger.TryParse(str, out BigInteger bigintvalue))
+            //            Value = bigintvalue;
+            //        else
+            //            throw new Exception($"Invalid or too big number {str}");
+            //}
+            //else {
+            //    //))))))))))
+            //    if (!double.TryParse(str.Replace('.', ','), out double value))
+            //        throw new Exception($"Invalid double number {str}");
+            //    Value = value;
+            //}
             Kind = SyntaxKind.NUMBER;
         }
         private void ReadString()

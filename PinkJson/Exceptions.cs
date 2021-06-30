@@ -24,7 +24,7 @@ namespace PinkJson
             if (start < 0) start = 0;
             if (start + length >= content.Length) length = content.Length - 1 - start;
             var result = $"Unknown element! (Position: {pos})\r\n\r\nDetails:\r\n" + 
-                content.Substring(start, length)/*.Insert(borders + 1, " ")*/.Insert(borders, " ---> ");
+                content.Substring(start, length)/*.Insert(borders + 1, " ")*/.Insert(pos, " ---> ");
             typeof(Exception).GetRuntimeFields().First(fi => fi.Name == "_message").SetValue(this, result);
         }
     }

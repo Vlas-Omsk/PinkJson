@@ -9,11 +9,11 @@ namespace PinkJson
 {
     public class SyntaxHighlighting
     {
-        public static Color BackgroundColor = new Color(System.Drawing.Color.White);
+        public static Color BackgroundColor = new Color(255, 255, 255);
 
-        public static Color BracketsColor = new Color(System.Drawing.Color.Black) { RtfTableIndex = 1 };
-        public static Color CommaColor = new Color(System.Drawing.Color.Black) { RtfTableIndex = 2 };
-        public static Color DoubleDotColor = new Color(System.Drawing.Color.Black) { RtfTableIndex = 3 };
+        public static Color BracketsColor = new Color(0, 0, 0) { RtfTableIndex = 1 };
+        public static Color CommaColor = new Color(0, 0, 0) { RtfTableIndex = 2 };
+        public static Color DoubleDotColor = new Color(0, 0, 0) { RtfTableIndex = 3 };
         public static Color NullValueColor = new Color(24, 175, 138) { RtfTableIndex = 4 };
         public static Color BoolValueColor = new Color(24, 175, 138) { RtfTableIndex = 5 };
         public static Color NumberValueColor = new Color(255, 128, 0) { RtfTableIndex = 6 };
@@ -363,52 +363,6 @@ namespace PinkJson
             GetConsoleMode(hOut, out dwMode);
             dwMode |= 0x0004;
             SetConsoleMode(hOut, dwMode);
-        }
-    }
-
-    public class Color
-    {
-        public byte R, G, B;
-        public int RtfTableIndex;
-
-        public Color(byte r, byte g, byte b)
-        {
-            R = r; G = g; B = b;
-        }
-
-        public Color(System.Drawing.Color color)
-        {
-            R = color.R; G = color.G; B = color.B;
-        }
-
-        public string ToAnsiForegroundEscapeCode()
-        {
-            return $"\x1b[38;2;{R};{G};{B}m";
-        }
-
-        public string ToAnsiBackgroundEscapeCode()
-        {
-            return $"\x1b[48;2;{R};{G};{B}m";
-        }
-
-        public string ToRtfTableColor()
-        {
-            return $"\\red{R}\\green{G}\\blue{B};";
-        }
-
-        public string ToRtf()
-        {
-            return $"\\cf{RtfTableIndex} ";
-        }
-
-        public string ToHtml(string innerText)
-        {
-            return $"<font style=\"color: rgb({R}, {G}, {B})\">{innerText}</font>";
-        }
-
-        public static implicit operator Color(System.Drawing.Color color)
-        {
-            return new Color(color);
         }
     }
 }

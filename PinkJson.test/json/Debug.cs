@@ -12,13 +12,21 @@ using System.Diagnostics;
 
 namespace json
 {
+    class Test
+    {
+        [JsonProperty("problems")]
+        string lol;
+    }
+
     class Debug
     {
         static void Main()
         {
-            var json = new Json(File.ReadAllText("json.txt"));
+            var json = new Json(File.ReadAllText("json.json"));
+            var test = Json.ToObject<Test>(json);
+            json = Json.FromObject(test, true);
 
-            var str = json.ToString();
+            var str = json.ToFormatString();
             Console.WriteLine(str);
 
             Console.ReadLine();

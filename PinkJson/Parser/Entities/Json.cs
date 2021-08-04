@@ -52,9 +52,9 @@ namespace PinkJson
             return new Json(JsonConverter.ConvertFrom(structure, usePrivateFields, exclusion_fields));
         }
 
-        public static T ToObject<T>(Json json)
+        public static T ToObject<T>(Json json, Func<T> initializator = null)
         {
-            return JsonConverter.ConvertTo<T>(json);
+            return JsonConverter.ConvertTo<T>(json, initializator);
         }
         #endregion
 

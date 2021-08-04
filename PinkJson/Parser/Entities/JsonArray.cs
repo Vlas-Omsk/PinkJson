@@ -38,12 +38,16 @@ namespace PinkJson
         {
         }
 
+        public JsonArray(JsonArrayObject[] json) : base(json)
+        {
+        }
+
         public static JsonArray FromAnonymous(dynamic json)
         {
             return new JsonArray(AnonymousConverter.ConvertArray(json) as List<object>);
         }
 
-        public static JsonArray FromArray(Array array, bool usePrivateFields, string[] exclusion_fields = null)
+        public static JsonArray FromArray(IEnumerable array, bool usePrivateFields, string[] exclusion_fields = null)
         {
             return new JsonArray(JsonConverter.ConvertArrayFrom(array, usePrivateFields, exclusion_fields));
         }

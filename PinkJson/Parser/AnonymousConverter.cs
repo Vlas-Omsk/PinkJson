@@ -33,11 +33,15 @@ namespace PinkJson
 
             return propertyNames.Select<string, JsonObject>(name =>
             {
-                dynamic value = type.GetProperty(name).GetValue(json, null);
-                if (!(value is null) && IsAnonymousType(value.GetType()))
+                var prop = type.GetProperty(name);
+                object value = prop.GetValue(json, null);
+                Type valtype = prop.PropertyType;
+                if (!(value is null) && IsAnonymousType(valtype))
                     value = Json.FromAnonymous(value);
                 else if (value is Array)
                     value = JsonArray.FromAnonymous(value);
+                //else if (JsonConverter.IsStructureOrSpecificClassType(valtype))
+                //    value = Json.FromObject(value, false);
 
                 return new JsonObject(name, value);
             }).OfType<JsonObject>().ToList();

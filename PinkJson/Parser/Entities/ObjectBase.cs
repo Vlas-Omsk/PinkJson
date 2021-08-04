@@ -140,6 +140,11 @@ namespace PinkJson
         /// <param name="key"></param>
         public abstract void RemoveByKey(string key);
 
+        public virtual bool ContainsKey(string key)
+        {
+            return IndexByKey(key) != -1;
+        }
+
         public override abstract string ToString();
 
         public abstract string ToFormatString(ushort spacing = 4, uint gen = 1);
@@ -172,6 +177,16 @@ namespace PinkJson
         public T Get<T>(int index)
         {
             return (T)this[index].Value;
+        }
+
+        public JsonArray AsArray()
+        {
+            return Value as JsonArray;
+        }
+
+        public Json AsJson()
+        {
+            return Value as Json;
         }
 
         public Type GetValType()

@@ -11,6 +11,7 @@ namespace PinkJson
     {
         public string PropertyName { get; set; }
         public Type TargetType { get; set; }
+        public bool Ignore { get; set; }
 
         public JsonProperty()
         {

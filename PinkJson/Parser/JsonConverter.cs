@@ -35,49 +35,65 @@ namespace PinkJson
                 fields.AddRange(structType.GetProperties().ToList<MemberInfo>());
             }
 
-            fields = fields.Where(m => !m.IsStatic()).ToList();
+            fields = fields.Where(m => !m.IsStatic() && m.Name != "Item").ToList();
 
             return fields.Select(field =>
             {
                 var jsonPropertyAttribute = field.GetCustomAttribute(typeof(JsonProperty), true) as JsonProperty;
-                var name = jsonPropertyAttribute == null ? field.Name : jsonPropertyAttribute.PropertyName;
+                var name = field.Name;
+                if (jsonPropertyAttribute != null)
+                {
+                    if (jsonPropertyAttribute.Ignore)
+                        return null;
+                    if (!string.IsNullOrEmpty(jsonPropertyAttribute.PropertyName))
+                        name = jsonPropertyAttribute.PropertyName;
+                }
 
                 if (!(exclusion_fields is null) && exclusion_fields.Contains(name))
                     return null;
 
                 object value = field.GetValue(obj);
+                var valtype = field.GetFieldType();
+                if (value != null && valtype == typeof(object))
+                    valtype = value.GetType();
 
                 if (TryGetAsArray(value, out Array arr))
                     value = JsonArray.FromArray(arr, usePrivateFields, exclusion_fields);
-                else if (IsStructureOrSpecificClassType(field.GetFieldType()))
+                else if (IsStructureOrSpecificClassType(valtype))
                     value = Json.FromObject(value, usePrivateFields, exclusion_fields);
 
                 return new JsonObject(name, value);
             }).OfType<JsonObject>().ToList();
         }
 
-        public static List<object> ConvertArrayFrom(Array array, bool usePrivateFields, string[] exclusion_fields = null)
+        public static List<object> ConvertArrayFrom(IEnumerable array, bool usePrivateFields, string[] exclusion_fields = null)
         {
             List<object> list = new List<object>();
             if (array is null)
                 return list;
             foreach (var elem in array)
             {
-                var type = elem.GetType();
-                if (TryGetAsArray(elem, out Array arr))
-                    list.Add(JsonArray.FromArray(arr, usePrivateFields, exclusion_fields));
-                else if (IsStructureOrSpecificClassType(type))
-                    list.Add(Json.FromObject(elem, usePrivateFields, exclusion_fields));
-                else
-                    list.Add(elem);
+                var value = elem;
+                if (value != null)
+                {
+                    var type = value.GetType();
+                    if (TryGetAsArray(value, out Array arr))
+                        value = JsonArray.FromArray(arr, usePrivateFields, exclusion_fields);
+                    else if (IsStructureOrSpecificClassType(type))
+                        value = Json.FromObject(value, usePrivateFields, exclusion_fields);
+                }
+                list.Add(value);
             }
 
             return list;
         }
 
-        public static T ConvertTo<T>(Json json)
+        public static T ConvertTo<T>(Json json, Func<T> initializator = null)
         {
-            return (T)ConvertTo(json, typeof(T));
+            Func<object> initializator2 = null;
+            if (initializator != null)
+                initializator2 = () => initializator.Invoke();
+            return (T)ConvertTo(json, typeof(T), initializator2);
         }
 
         public static T[] ConvertArrayTo<T>(JsonArray json)
@@ -85,12 +101,25 @@ namespace PinkJson
             return (T[])ConvertArrayTo(json, typeof(T));
         }
 
-        private static object ConvertTo(Json json, Type structType)
+        public static object ConvertTo(Json json, Type structType, Func<object> initializator = null)
         {
             if (!IsStructureOrSpecificClassType(structType))
                 throw new Exception("Unknown Structure format.");
 
-            var result = FormatterServices.GetUninitializedObject(structType);
+            //var result = FormatterServices.GetUninitializedObject(structType);
+            //var cctors = structType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            //var result = cctors[0].Invoke(null);
+            object result;
+            if (initializator == null)
+            {
+                var cctor = structType.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
+                if (cctor == null)
+                    result = FormatterServices.GetUninitializedObject(structType);
+                else
+                    result = cctor.Invoke(null);
+            }
+            else
+                result = initializator();
             List<MemberInfo> fields;
 
             fields = structType.GetRuntimeFields().ToList<MemberInfo>();
@@ -101,7 +130,13 @@ namespace PinkJson
             fields.ForEach(field =>
             {
                 var jsonPropertyAttribute = field.GetCustomAttribute(typeof(JsonProperty), true) as JsonProperty;
-                var fieldName = jsonPropertyAttribute == null ? field.Name : jsonPropertyAttribute.PropertyName;
+                var fieldName = field.Name;
+                if (jsonPropertyAttribute != null) {
+                    if (jsonPropertyAttribute.Ignore)
+                        return;
+                    if (!string.IsNullOrEmpty(jsonPropertyAttribute.PropertyName))
+                        fieldName = jsonPropertyAttribute.PropertyName;
+                }
 
                 if (json.IndexByKey(fieldName) == -1)
                     return;
@@ -109,39 +144,53 @@ namespace PinkJson
                 object value = json[fieldName].Value;
                 var fieldType = jsonPropertyAttribute?.TargetType ?? field.GetFieldType();
 
-                if (value is Json && fieldType != typeof(Json))
+                var currentType = fieldType;
+                var isJsonObjectBaseFieldType = false;
+                while (currentType != typeof(object))
                 {
-                    //var fieldset = FormatterServices.GetUninitializedObject(fieldType);
-                    value = ConvertTo(value as Json, fieldType);
-                }
-                else if (value is JsonArray && fieldType != typeof(JsonArray))
-                {
-                    var currentType = fieldType;
-                    while (currentType != typeof(object))
+                    if (currentType == typeof(ObjectBase))
                     {
-                        if (currentType.IsGenericType)
-                            break;
-                        currentType = currentType.BaseType;
+                        isJsonObjectBaseFieldType = true;
+                        break;
                     }
-
-                    if (currentType.GetInterface("IList") != null)
+                    currentType = currentType.BaseType;
+                }
+                if (!isJsonObjectBaseFieldType)
+                {
+                    if (value is Json)
                     {
-                        if (currentType != fieldType)
-                            value = ConvertListTo(value as JsonArray, fieldType);
+                        //var fieldset = FormatterServices.GetUninitializedObject(fieldType);
+                        value = ConvertTo(value as Json, fieldType);
+                    }
+                    else if (value is JsonArray)
+                    {
+                        currentType = fieldType;
+                        while (currentType != typeof(object))
+                        {
+                            if (currentType.IsGenericType)
+                                break;
+                            currentType = currentType.BaseType;
+                        }
+
+                        if (currentType.GetInterface("IList") != null)
+                        {
+                            if (currentType != fieldType)
+                                value = ConvertListTo(value as JsonArray, fieldType);
+                            else
+                                value = ConvertArrayTo(value as JsonArray, currentType.GetGenericArguments().Single(), true);
+                        }
                         else
-                            value = ConvertArrayTo(value as JsonArray, currentType.GetGenericArguments().Single(), true);
+                            value = ConvertArrayTo(value as JsonArray, fieldType.GetElementType());
                     }
-                    else
-                        value = ConvertArrayTo(value as JsonArray, fieldType.GetElementType());
+                    value = ConvertValue(value, fieldType);
                 }
-
-                field.SetValue(result, ConvertValue(value, fieldType));
+                field.SetValue(result, value);
             });
 
             return result;
         }
 
-        private static object ConvertArrayTo(JsonArray json, Type elemType, bool asList = false)
+        public static object ConvertArrayTo(JsonArray json, Type elemType, bool asList = false)
         {
             Array list = Array.CreateInstance(elemType, json.Count);
 
@@ -194,6 +243,8 @@ namespace PinkJson
                 return DateTime.Parse(value.ToString());
             else if (type == typeof(TimeSpan))
                 return TimeSpan.Parse(value.ToString());
+            else if (value != null && value.GetType() != type)
+                return Convert.ChangeType(value, type);
             else
                 return value;
         }
@@ -203,15 +254,15 @@ namespace PinkJson
             return IsStructureType(type) || IsSpecificClassType(type);
         }
 
-        private static bool IsStructureType(Type type)
+        public static bool IsStructureType(Type type)
         {
             return type.Attributes.HasFlag(TypeAttributes.SequentialLayout)
                 && type.IsValueType && !type.IsEnum && !type.IsPrimitive;
         }
 
-        private static bool IsSpecificClassType(Type type)
+        public static bool IsSpecificClassType(Type type)
         {
-            return type.IsClass && !type.IsValueType && !type.IsGenericType && type != typeof(string);
+            return type.IsClass && !type.IsValueType && /*!type.IsGenericType && */type != typeof(string);
         }
     }
 }

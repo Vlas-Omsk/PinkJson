@@ -103,7 +103,8 @@ namespace PinkJson
                         Add(new JsonArray(GetItem()));
                         break;
                     default:
-                        Add(elem.Value);
+                        if (elem.Kind != SyntaxKind.Comment)
+                            Add(elem.Value);
                         break;
                 }
             }

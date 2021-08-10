@@ -17,6 +17,7 @@
 
         //Invisible is \0, \n, any whitespaces
         Invisible,
+        Comment,
         InvalidToken
     }
 

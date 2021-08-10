@@ -21,13 +21,13 @@ namespace PinkJson.Lexer
         {
             LexerPosition = new LexerPosition(0, 0);
         }
-        private char Current { get => Peek(0); }
-        private char Lookahead { get => Peek(1); }
-        private char Peek(int offset = 0)
+        private char? Current { get => Peek(0); }
+        private char? Lookahead { get => Peek(1); }
+        private char? Peek(int offset = 0)
         {
             int index = LexerPosition.CurrentPosition + offset;
             if (index >= ContentLen)
-                return '\0';
+                return null;
             return Content[index];
         }
         public TokenCollection Tokenize(string Content)
@@ -63,6 +63,9 @@ namespace PinkJson.Lexer
                 //case '\r':
                 //    ReadWhiteSpace();
                 //    break;
+                case '/':
+                    ReadComment();
+                    break;
                 case ':':
                 case ',':
                 case '{':
@@ -89,7 +92,7 @@ namespace PinkJson.Lexer
                     ReadString();
                     break;
                 default:
-                    if (char.IsWhiteSpace(Current) || Current == '\0')
+                    if (Current == '\0' || char.IsWhiteSpace(Current.Value))
                         ReadWhiteSpace();
                     else
                         ReadOther();
@@ -100,7 +103,7 @@ namespace PinkJson.Lexer
         }
         private void ReadWhiteSpace()
         {
-            while (char.IsWhiteSpace(Current) || (Current == '\0' && LexerPosition.CurrentPosition < ContentLen))
+            while (Current.HasValue && (char.IsWhiteSpace(Current.Value) || Current == '\0'))
                 LexerPosition.CurrentPosition++;
             Kind = SyntaxKind.Invisible;
         }
@@ -138,8 +141,8 @@ namespace PinkJson.Lexer
         private void ReadNumber()
         {
             bool isDouble = false, isEnumber = false, isHexadecimal = false;
-            char prev = Current;
-            while (numberChars.Contains(Current) || (isHexadecimal && hexadecimalChars.Contains(Current)))
+            char prev = Current.Value;
+            while (Current.HasValue && (numberChars.Contains(Current.Value) || (isHexadecimal && hexadecimalChars.Contains(Current.Value))))
             {
                 if ((Current == '.') && !isHexadecimal)
                 {
@@ -163,7 +166,7 @@ namespace PinkJson.Lexer
                         isHexadecimal = true;
                 }
 
-                prev = Current;
+                prev = Current.Value;
                 LexerPosition.CurrentPosition++;
             }
 
@@ -203,59 +206,6 @@ namespace PinkJson.Lexer
                 else
                     throw new Exception($"Invalid or too big number {str}");
             }
-
-            //bool isDouble = false;
-            //bool isTempEnumber = false, isTempXnumber = false, isXnumber = false;
-
-            //while (char.IsDigit(Current) || (Current == 'e' || Current == 'E' || Current == 'x' || Current == 'X') || isTempEnumber || isTempXnumber || Current == '-' || Current == '+' ||
-            //    (isXnumber && (Current == 'A' || Current == 'a' || Current == 'B' || Current == 'b' || Current == 'C' || Current == 'c' || Current == 'D' || Current == 'd' || Current == 'e' || Current == 'E' || Current == 'F' || Current == 'f')))
-            //{
-            //    if (isTempEnumber)
-            //        isDouble = true;
-            //    if (isTempXnumber)
-            //        isXnumber = true;
-            //    //isTempEnumber = Current == 'e' || Current == 'E';
-            //    isTempXnumber = Current == 'x' || Current == 'X';
-
-            //    if (Lookahead is '.')
-            //    {
-            //        LexerPosition.CurrentPosition++;
-            //        isDouble = true;
-            //    }
-            //    LexerPosition.CurrentPosition++;
-            //}
-
-            //int len = LexerPosition.CurrentPosition - LexerPosition.StartPosition;
-            //string str = Content.Substring(LexerPosition.StartPosition, len);
-            //if (!isDouble)
-            //{
-            //    var isParsed = false;
-            //    if (isXnumber)
-            //        try
-            //        {
-            //            Value = Convert.ToInt32(str, 16);
-            //            isParsed = true;
-            //        }
-            //        catch
-            //        {
-            //            isParsed = false;
-            //        }
-            //    if (!isParsed)
-            //        if (int.TryParse(str, out int intvalue))
-            //            Value = intvalue;
-            //        else if (long.TryParse(str, out long longvalue))
-            //            Value = longvalue;
-            //        else if (BigInteger.TryParse(str, out BigInteger bigintvalue))
-            //            Value = bigintvalue;
-            //        else
-            //            throw new Exception($"Invalid or too big number {str}");
-            //}
-            //else {
-            //    //))))))))))
-            //    if (!double.TryParse(str.Replace('.', ','), out double value))
-            //        throw new Exception($"Invalid double number {str}");
-            //    Value = value;
-            //}
             Kind = SyntaxKind.NUMBER;
         }
         private void ReadString()
@@ -263,7 +213,7 @@ namespace PinkJson.Lexer
             bool escape = false;
             StringBuilder value = new StringBuilder("");
             LexerPosition.CurrentPosition++;
-            while (Current != '"' || escape == true)
+            while (Current.HasValue && (Current != '"' || escape == true))
             {
                 if (escape)
                 {
@@ -347,7 +297,7 @@ namespace PinkJson.Lexer
         }
         private void ReadOther()
         {
-            while (char.IsLetterOrDigit(Current))
+            while (Current.HasValue && char.IsLetterOrDigit(Current.Value))
                 LexerPosition.CurrentPosition++;
 
             int len = LexerPosition.CurrentPosition - LexerPosition.StartPosition;
@@ -362,6 +312,16 @@ namespace PinkJson.Lexer
             }
             else
                 Kind = SyntaxKind.InvalidToken;
+        }
+        private void ReadComment()
+        {
+            if (Lookahead != '/')
+                throw new Exception("Invalid Comment");
+            while (Current.HasValue && Current != '\n')
+                LexerPosition.CurrentPosition++;
+            int len = LexerPosition.CurrentPosition - LexerPosition.StartPosition;
+            Value = Content.Substring(LexerPosition.StartPosition, len);
+            Kind = SyntaxKind.Comment;
         }
     }
 }

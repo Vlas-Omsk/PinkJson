@@ -39,9 +39,8 @@ namespace PinkJson
 
             return fields.Select(field =>
             {
-                var jsonPropertyAttribute = field.GetCustomAttribute(typeof(JsonProperty), true) as JsonProperty;
                 var name = field.Name;
-                if (jsonPropertyAttribute != null)
+                if (field.GetCustomAttribute(typeof(JsonProperty), true) is JsonProperty jsonPropertyAttribute)
                 {
                     if (jsonPropertyAttribute.Ignore)
                         return null;
@@ -68,7 +67,7 @@ namespace PinkJson
 
         public static List<object> ConvertArrayFrom(IEnumerable array, bool usePrivateFields, string[] exclusion_fields = null)
         {
-            List<object> list = new List<object>();
+            var list = new List<object>();
             if (array is null)
                 return list;
             foreach (var elem in array)
@@ -101,91 +100,89 @@ namespace PinkJson
             return (T[])ConvertArrayTo(json, typeof(T));
         }
 
-        public static object ConvertTo(Json json, Type structType, Func<object> initializator = null)
+        public static object ConvertTo(Json json, Type type, Func<object> initializator = null)
         {
-            if (!IsStructureOrSpecificClassType(structType))
+            if (!IsStructureOrSpecificClassType(type))
                 throw new Exception("Unknown Structure format.");
 
             //var result = FormatterServices.GetUninitializedObject(structType);
             //var cctors = structType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             //var result = cctors[0].Invoke(null);
-            object result;
-            if (initializator == null)
-            {
-                var cctor = structType.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
-                if (cctor == null)
-                    result = FormatterServices.GetUninitializedObject(structType);
-                else
-                    result = cctor.Invoke(null);
-            }
+            object result = CreateInstance(type, initializator);
+            
+            if (type.GetInterface(nameof(IJsonConvertTo)) != null)
+                ((IJsonConvertTo)result).ConvertTo(json);
             else
-                result = initializator();
-            List<MemberInfo> fields;
-
-            fields = structType.GetRuntimeFields().ToList<MemberInfo>();
-            fields.AddRange(structType.GetRuntimeProperties().ToList<MemberInfo>());
-
-            fields = fields.Where(m => !m.IsStatic()).ToList();
-
-            fields.ForEach(field =>
             {
-                var jsonPropertyAttribute = field.GetCustomAttribute(typeof(JsonProperty), true) as JsonProperty;
-                var fieldName = field.Name;
-                if (jsonPropertyAttribute != null) {
-                    if (jsonPropertyAttribute.Ignore)
+                List<MemberInfo> fields;
+
+                fields = type.GetRuntimeFields().ToList<MemberInfo>();
+                fields.AddRange(type.GetRuntimeProperties().ToList<MemberInfo>());
+
+                fields = fields.Where(m => !m.IsStatic()).ToList();
+
+                fields.ForEach(field =>
+                {
+                    var jsonPropertyAttribute = field.GetCustomAttribute(typeof(JsonProperty), true) as JsonProperty;
+                    var fieldName = field.Name;
+                    if (jsonPropertyAttribute != null)
+                    {
+                        if (jsonPropertyAttribute.Ignore)
+                            return;
+                        if (!string.IsNullOrEmpty(jsonPropertyAttribute.PropertyName))
+                            fieldName = jsonPropertyAttribute.PropertyName;
+                    }
+
+                    if (json.IndexByKey(fieldName) == -1)
                         return;
-                    if (!string.IsNullOrEmpty(jsonPropertyAttribute.PropertyName))
-                        fieldName = jsonPropertyAttribute.PropertyName;
-                }
 
-                if (json.IndexByKey(fieldName) == -1)
-                    return;
+                    object value = null;
+                    var fieldType = jsonPropertyAttribute?.TargetType ?? field.GetFieldType();
+                    value = json[fieldName].Value;
 
-                object value = json[fieldName].Value;
-                var fieldType = jsonPropertyAttribute?.TargetType ?? field.GetFieldType();
-
-                var currentType = fieldType;
-                var isJsonObjectBaseFieldType = false;
-                while (currentType != typeof(object))
-                {
-                    if (currentType == typeof(ObjectBase))
+                    var currentType = fieldType;
+                    var isJsonObjectBaseFieldType = false;
+                    while (currentType != typeof(object))
                     {
-                        isJsonObjectBaseFieldType = true;
-                        break;
-                    }
-                    currentType = currentType.BaseType;
-                }
-                if (!isJsonObjectBaseFieldType)
-                {
-                    if (value is Json)
-                    {
-                        //var fieldset = FormatterServices.GetUninitializedObject(fieldType);
-                        value = ConvertTo(value as Json, fieldType);
-                    }
-                    else if (value is JsonArray)
-                    {
-                        currentType = fieldType;
-                        while (currentType != typeof(object))
+                        if (currentType == typeof(ObjectBase))
                         {
-                            if (currentType.IsGenericType)
-                                break;
-                            currentType = currentType.BaseType;
+                            isJsonObjectBaseFieldType = true;
+                            break;
                         }
-
-                        if (currentType.GetInterface("IList") != null)
+                        currentType = currentType.BaseType;
+                    }
+                    if (!isJsonObjectBaseFieldType)
+                    {
+                        if (value is Json)
                         {
-                            if (currentType != fieldType)
-                                value = ConvertListTo(value as JsonArray, fieldType);
+                            //var fieldset = FormatterServices.GetUninitializedObject(fieldType);
+                            value = ConvertTo(value as Json, fieldType);
+                        }
+                        else if (value is JsonArray)
+                        {
+                            currentType = fieldType;
+                            while (currentType != typeof(object))
+                            {
+                                if (currentType.IsGenericType)
+                                    break;
+                                currentType = currentType.BaseType;
+                            }
+
+                            if (currentType.GetInterface("IList") != null)
+                            {
+                                if (currentType != fieldType)
+                                    value = ConvertListTo(value as JsonArray, fieldType);
+                                else
+                                    value = ConvertArrayTo(value as JsonArray, currentType.GetGenericArguments().Single(), true);
+                            }
                             else
-                                value = ConvertArrayTo(value as JsonArray, currentType.GetGenericArguments().Single(), true);
+                                value = ConvertArrayTo(value as JsonArray, fieldType.GetElementType());
                         }
-                        else
-                            value = ConvertArrayTo(value as JsonArray, fieldType.GetElementType());
+                        value = ConvertValue(value, fieldType);
                     }
-                    value = ConvertValue(value, fieldType);
-                }
-                field.SetValue(result, value);
-            });
+                    field.SetValue(result, value);
+                });
+            }
 
             return result;
         }
@@ -197,10 +194,17 @@ namespace PinkJson
             for (var i = 0; i < json.Count; i++)
             {
                 var elem = json[i];
+                object value;
                 if (elem.Value is Json)
-                    list.SetValue(ConvertTo(elem.Get<Json>(), elemType), i);
+                    value = ConvertTo(elem.Get<Json>(), elemType);
+                else if (elemType.GetInterface(nameof(IJsonConvertTo)) != null)
+                {
+                    value = CreateInstance(elemType);
+                    ((IJsonConvertTo)value).ConvertTo(elem);
+                }
                 else
-                    list.SetValue(ConvertValue(elem.Value, elemType), i);
+                    value = ConvertValue(elem.Value, elemType);
+                list.SetValue(value, i);
             }
 
             if (asList)
@@ -212,6 +216,22 @@ namespace PinkJson
             }
 
             return list;
+        }
+
+        private static object CreateInstance(Type type, Func<object> initializator = null)
+        {
+            object result;
+            if (initializator == null)
+            {
+                var cctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
+                if (cctor == null)
+                    result = FormatterServices.GetUninitializedObject(type);
+                else
+                    result = cctor.Invoke(null);
+            }
+            else
+                result = initializator();
+            return result;
         }
 
         private static object ConvertListTo(JsonArray json, Type type)

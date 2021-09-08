@@ -112,7 +112,9 @@ namespace PinkJson
                             result += '\\';
                             goto end;
                         default:
-                            throw new Exception($"Unidentified escape sequence \\{value[i]} at position {i}.");
+                            result += value[i];
+                            goto end;
+                            //throw new Exception($"Unidentified escape sequence \\{value[i]} at position {i}.");
                     }
                 }
                 if (value[i] == '\\')

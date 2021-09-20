@@ -104,6 +104,8 @@ namespace PinkJson
         {
             if (!IsStructureOrSpecificClassType(type))
                 throw new Exception("Unknown Structure format.");
+            if (json == null)
+                return null;
 
             //var result = FormatterServices.GetUninitializedObject(structType);
             //var cctors = structType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
@@ -237,10 +239,21 @@ namespace PinkJson
         private static object ConvertListTo(JsonArray json, Type type)
         {
             var list = (IList)Activator.CreateInstance(type);
+            var elemType = type.GetInterface("IList`1").GetGenericArguments()[0];
             for (var i = 0; i < json.Count; i++)
             {
                 var elem = json[i];
-                list.Add(ConvertValue(elem.Value, type));
+                object value;
+                if (elem.Value is Json)
+                    value = ConvertTo(elem.Get<Json>(), elemType);
+                else if (elemType.GetInterface(nameof(IJsonConvertTo)) != null)
+                {
+                    value = CreateInstance(elemType);
+                    ((IJsonConvertTo)value).ConvertTo(elem);
+                }
+                else
+                    value = ConvertValue(elem.Value, elemType);
+                list.Add(value);
             }
             return list;
         }
@@ -259,10 +272,15 @@ namespace PinkJson
 
         private static object ConvertValue(object value, Type type)
         {
+            var nullableType = Nullable.GetUnderlyingType(type);
+            if (nullableType != null)
+                type = nullableType;
             if (type == typeof(DateTime))
                 return DateTime.Parse(value.ToString());
             else if (type == typeof(TimeSpan))
                 return TimeSpan.Parse(value.ToString());
+            else if (type.IsEnum)
+                return Enum.ToObject(type, value);
             else if (value != null && value.GetType() != type)
                 return Convert.ChangeType(value, type);
             else
@@ -271,18 +289,18 @@ namespace PinkJson
 
         public static bool IsStructureOrSpecificClassType(Type type)
         {
-            return IsStructureType(type) || IsSpecificClassType(type);
+            return (IsStructureType(type) || IsSpecificClassType(type)) && type != typeof(decimal);
         }
 
         public static bool IsStructureType(Type type)
         {
             return type.Attributes.HasFlag(TypeAttributes.SequentialLayout)
-                && type.IsValueType && !type.IsEnum && !type.IsPrimitive;
+                && type.IsValueType && !type.IsEnum && !type.IsPrimitive && Nullable.GetUnderlyingType(type) == null;
         }
 
         public static bool IsSpecificClassType(Type type)
         {
-            return type.IsClass && !type.IsValueType && /*!type.IsGenericType && */type != typeof(string);
+            return type.IsClass && !type.IsValueType && /*!type.IsGenericType && */type != typeof(string) && Nullable.GetUnderlyingType(type) == null;
         }
     }
 }

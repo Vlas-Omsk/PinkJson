@@ -265,7 +265,12 @@ namespace PinkJson
             if (value is Array)
                 array = value as Array;
             else if (value is IList)
-                array = (value as IList).OfType<object>().ToArray();
+            {
+                var list = (value as IList);
+                array = Array.CreateInstance(typeof(object), list.Count);
+                for (var i = 0; i < list.Count; i++)
+                    array.SetValue(list[i], i);
+            }
 
             return array != null;
         }

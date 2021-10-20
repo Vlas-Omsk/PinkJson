@@ -2,7 +2,7 @@
 
 namespace PinkJson2
 {
-    public class Token
+    public sealed class Token
     {
         public TokenType Type { get; set; }
         public int Position { get; set; }

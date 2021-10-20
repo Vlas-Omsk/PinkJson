@@ -48,12 +48,24 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="detectable.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PinkJson2\PinkJson2.csproj">
       <Project>{58aebfe4-90cc-421f-ab46-18d21c0608d5}</Project>
       <Name>PinkJson2</Name>
     </ProjectReference>
+    <ProjectReference Include="..\PinkJson\PinkJson.csproj">
+      <Project>{94acfcd4-6447-4b17-b1b5-ff9451cc874a}</Project>
+      <Name>PinkJson</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="json.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

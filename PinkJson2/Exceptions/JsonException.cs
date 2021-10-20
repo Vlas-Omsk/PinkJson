@@ -1,24 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PinkJson2
 {
-    public class LexerException : Exception
+    public class JsonException : Exception
     {
         public int Position { get; }
 
         private const short _range = 200;
 
-        public LexerException(string message, int position, StreamReader stream) : base(Create(message, position, stream))
+        public JsonException(string message, int position, StreamReader stream) : base(Create(message, position, stream))
         {
             Position = position;
         }
 
-        public LexerException(string message, int position, StreamReader stream, Exception innerException) : base(Create(message, position, stream), innerException)
+        public JsonException(string message, int position, StreamReader stream, Exception innerException) : base(Create(message, position, stream), innerException)
         {
             Position = position;
         }
@@ -35,14 +31,15 @@ namespace PinkJson2
             var endPos = pos + _range;
             var length = endPos - startPos;
 
-            var buffer = new char[length];
+            var buffer = new char[startPos + length];
             stream.BaseStream.Position = 0;
             stream.DiscardBufferedData();
-            length = stream.Read(buffer, 0, length);
+            length = stream.Read(buffer, 0, startPos + length);
             Array.Resize(ref buffer, length);
             var content = string.Join("", buffer);
+            var l = content.Length;
 
-            return $"{message} (Position: {pos})\r\nWhere:\r\n{content.Substring(startPos, length).Insert(arrowPos, " --->")}";
+            return $"{message} (Position: {pos})\r\nWhere:\r\n{content.Substring(startPos).Insert(arrowPos, " --->")}";
         }
     }
 }

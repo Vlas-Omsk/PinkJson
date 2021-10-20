@@ -7,7 +7,7 @@ using System.Text;
 
 namespace PinkJson2
 {
-    public class Lexer : IEnumerable<Token>
+    public sealed class JsonLexer : IEnumerable<Token>, IDisposable
     {
         public StreamReader Stream { get; }
 
@@ -19,16 +19,16 @@ namespace PinkJson2
         private readonly char[] numberChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', '.', 'x', 'o', 'b' };
         private readonly char[] hexadecimalChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
-        public Lexer(StreamReader stream)
+        public JsonLexer(StreamReader stream)
         {
             Stream = stream;
         }
 
-        public Lexer(Stream stream, Encoding encoding) : this(new StreamReader(stream, encoding))
+        public JsonLexer(Stream stream, Encoding encoding) : this(new StreamReader(stream, encoding))
         {
         }
 
-        public Lexer(string source)
+        public JsonLexer(string source)
         {
             Stream = new StreamReader(new MemoryStream(Encoding.Default.GetBytes(source)));
         }
@@ -45,6 +45,7 @@ namespace PinkJson2
         public IEnumerator<Token> GetEnumerator()
         {
             Stream.BaseStream.Position = 0;
+            Stream.DiscardBufferedData();
             _position = -1;
             _startPosition = 0;
             while (!Stream.EndOfStream)
@@ -61,6 +62,12 @@ namespace PinkJson2
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public void Dispose()
+        {
+            Stream.Dispose();
+            _buffer.Clear();
         }
 
         private void ReadNext()
@@ -148,35 +155,35 @@ namespace PinkJson2
                 if (lowerCurrent == '.' && valueBase == 10)
                 {
                     if (isDouble)
-                        throw new LexerException("Invalid double number", _position, Stream);
+                        throw new JsonException("Invalid double number", _position, Stream);
                     else
                         isDouble = true;
                 }
                 if (lowerCurrent == 'e' && valueBase == 10)
                 {
                     if (isEnumber)
-                        throw new LexerException("Invalid e number", _position, Stream);
+                        throw new JsonException("Invalid e number", _position, Stream);
                     else
                         isEnumber = true;
                 }
                 else if (lowerCurrent == 'x')
                 {
                     if (valueBase == 16 || previous != '0' || _buffer.Length > 2)
-                        throw new LexerException("Invalid hexadecimal number", _position, Stream);
+                        throw new JsonException("Invalid hexadecimal number", _position, Stream);
                     else
                         valueBase = 16;
                 }
                 else if (lowerCurrent == 'o')
                 {
                     if (valueBase == 8 || previous != '0' || _buffer.Length > 2)
-                        throw new LexerException("Invalid octal number", _position, Stream);
+                        throw new JsonException("Invalid octal number", _position, Stream);
                     else
                         valueBase = 8;
                 }
                 else if (lowerCurrent == 'b' && previous == '0' && _buffer.Length == 2)
                 {
                     if (valueBase == 2 || previous != '0' || _buffer.Length > 2)
-                        throw new LexerException("Invalid binary number", _position, Stream);
+                        throw new JsonException("Invalid binary number", _position, Stream);
                     else
                         valueBase = 2;
                 }
@@ -184,7 +191,7 @@ namespace PinkJson2
                 {
                     var index = Array.IndexOf(hexadecimalChars, lowerCurrent);
                     if (index >= valueBase)
-                        throw new LexerException($"Invalid character '{_current}' for {valueBase}-based number", _position, Stream);
+                        throw new JsonException($"Invalid character '{_current}' for {valueBase}-based number", _position, Stream);
                 }
             }
 
@@ -193,7 +200,7 @@ namespace PinkJson2
             if (isEnumber || isDouble)
             {
                 if (!double.TryParse(str.Replace('.', ','), out double value))
-                    throw new LexerException($"Invalid double number {str}", _startPosition, Stream);
+                    throw new JsonException($"Invalid double number {str}", _startPosition, Stream);
                 _token.Value = value;
             }
             else if (valueBase != 10)
@@ -212,7 +219,7 @@ namespace PinkJson2
                     }
                     catch (Exception ex)
                     {
-                        throw new LexerException($"Invalid number {prefix}{str}", _startPosition, Stream, ex);
+                        throw new JsonException($"Invalid number {prefix}{str}", _startPosition, Stream, ex);
                     }
                 }
             }
@@ -227,9 +234,9 @@ namespace PinkJson2
                 else
                 {
                     if (str.Length < 40)
-                        throw new LexerException($"Invalid or too big number {str}", _startPosition, Stream);
+                        throw new JsonException($"Invalid or too big number {str}", _startPosition, Stream);
                     else
-                        throw new LexerException($"Well.. It's seriously big number {str}. I.. I even can't imagine how to handle it. No, seriously. Maybe you know how?", _startPosition, Stream);
+                        throw new JsonException($"Well.. It's seriously big number {str}. I.. I even can't imagine how to handle it. No, seriously. Maybe you know how?", _startPosition, Stream);
                 }
             }
 
@@ -276,7 +283,7 @@ namespace PinkJson2
                             for (var i = 0; i < 4; i++)
                             {
                                 if (!Next.HasValue || !hexadecimalChars.Contains(char.ToLowerInvariant(Next.Value)))
-                                    throw new LexerException($"The Unicode value must be hexadecimal and 4 characters long", _position - i - 1, Stream);
+                                    throw new JsonException($"The Unicode value must be hexadecimal and 4 characters long", _position - i - 1, Stream);
                                 ReadNext();
                                 unicode_value += _current;
                             }
@@ -292,7 +299,7 @@ namespace PinkJson2
                             value.Append('/');
                             break;
                         default:
-                            throw new LexerException($"Unidentified escape sequence \\{_current}", _position - 1, Stream);
+                            throw new JsonException($"Unidentified escape sequence \\{_current}", _position - 1, Stream);
                     }
                 }
                 else if (_current == '\\')

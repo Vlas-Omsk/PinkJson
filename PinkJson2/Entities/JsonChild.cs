@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Dynamic;
 using System.Linq.Expressions;
-using System.Reflection;
 
 namespace PinkJson2
 {
-    public abstract class JsonChild : IJson
+    public abstract class JsonChild : IDynamicJson
     {
         public object Value { get; set; }
 
@@ -62,12 +61,12 @@ namespace PinkJson2
             return new JsonMetaObject(parameter, this);
         }
 
-        object IJson.DynamicGetValue(JsonMetaObject jsonMetaObject, string propertyName)
+        object IDynamicJson.DynamicGetValue(JsonMetaObject jsonMetaObject, string propertyName)
         {
             return jsonMetaObject.GetValue(propertyName);
         }
 
-        object IJson.DynamicSetValue(JsonMetaObject jsonMetaObject, string propertyName, object value)
+        object IDynamicJson.DynamicSetValue(JsonMetaObject jsonMetaObject, string propertyName, object value)
         {
             return jsonMetaObject.SetValue(propertyName, value);
         }

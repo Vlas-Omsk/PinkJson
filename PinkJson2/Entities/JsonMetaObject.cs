@@ -10,13 +10,13 @@ namespace PinkJson2
         private MethodInfo _getValueMethodInfo;
         private MethodInfo _setValueMethodInfo;
 
-        internal JsonMetaObject(Expression parameter, IJson value) : base(parameter, BindingRestrictions.Empty, value)
+        internal JsonMetaObject(Expression parameter, IDynamicJson value) : base(parameter, BindingRestrictions.Empty, value)
         {
-            _getValueMethodInfo = typeof(IJson).GetMethod(nameof(IJson.DynamicGetValue), BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-            _setValueMethodInfo = typeof(IJson).GetMethod(nameof(IJson.DynamicSetValue), BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+            _getValueMethodInfo = typeof(IDynamicJson).GetMethod(nameof(IDynamicJson.DynamicGetValue), BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+            _setValueMethodInfo = typeof(IDynamicJson).GetMethod(nameof(IDynamicJson.DynamicSetValue), BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
         }
 
-        public new IJson Value => (IJson)base.Value;
+        public new IDynamicJson Value => (IDynamicJson)base.Value;
 
         public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
         {

@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq.Expressions;
-using System.Reflection;
 
 namespace PinkJson2
 {
-    public abstract class JsonRoot<T> : LinkedList<T>, IJson, IList<T> where T: IJson
+    public abstract class JsonRoot<T> : LinkedList<T>, IDynamicJson, IList<T> where T: IJson
     {
         object IJson.Value { get => this; set => throw new NotSupportedException($"An object of type {GetType()} does not support set Value"); }
 
@@ -136,12 +135,12 @@ namespace PinkJson2
             return new JsonMetaObject(parameter, this);
         }
 
-        object IJson.DynamicGetValue(JsonMetaObject jsonMetaObject, string propertyName)
+        object IDynamicJson.DynamicGetValue(JsonMetaObject jsonMetaObject, string propertyName)
         {
             return jsonMetaObject.GetValue(propertyName);
         }
 
-        object IJson.DynamicSetValue(JsonMetaObject jsonMetaObject, string propertyName, object value)
+        object IDynamicJson.DynamicSetValue(JsonMetaObject jsonMetaObject, string propertyName, object value)
         {
             return jsonMetaObject.SetValue(propertyName, value);
         }

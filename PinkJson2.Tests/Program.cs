@@ -11,9 +11,9 @@ namespace PinkJson2.Tests
     {
         static void Main(string[] args)
         {
-			JsonParserPerformanceTest();
-			OldJsonParserPerformanceTest();
-			Console.ReadLine();
+            JsonParserPerformanceTest();
+            OldJsonParserPerformanceTest();
+            Console.ReadLine();
 		}
 
 		static void JsonParserPerformanceTest()

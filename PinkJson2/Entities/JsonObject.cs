@@ -1,9 +1,22 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace PinkJson2
 {
     public sealed class JsonObject : JsonRoot<JsonKeyValue>
     {
+        public JsonObject()
+        {
+        }
+
+        public JsonObject(IEnumerable<JsonKeyValue> collection) : base(collection)
+        {
+        }
+
+        public JsonObject(params JsonKeyValue[] collection) : base(collection)
+        {
+        }
+
         public override JsonKeyValue this[string key]
         {
             get

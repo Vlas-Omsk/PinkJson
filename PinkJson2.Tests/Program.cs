@@ -19,17 +19,14 @@ namespace PinkJson2.Tests
 		static void JsonParserPerformanceTest()
         {
 			var dt = DateTime.Now;
-			IJson json2;
-			using (var lexer = new JsonLexer(File.OpenText("detectable.json")))
-                json2 = JsonParser.Parse(lexer);
+			IJson json2 = Json.Parse(File.OpenText("detectable.json"));
 			Console.WriteLine((DateTime.Now - dt).TotalMilliseconds + " ms");
 		}
 
 		static void OldJsonParserPerformanceTest()
         {
 			var dt = DateTime.Now;
-			PinkJson.JsonArray json;
-			json = new PinkJson.JsonArray(File.ReadAllText("detectable.json"));
+			PinkJson.JsonArray json = new PinkJson.JsonArray(File.ReadAllText("detectable.json"));
 			Console.WriteLine((DateTime.Now - dt).TotalMilliseconds + " ms");
 		}
 

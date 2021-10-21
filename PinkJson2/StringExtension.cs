@@ -13,17 +13,6 @@ namespace PinkJson2
             return result.ToString();
         }
 
-        public static string Trim(this string str, int count)
-        {
-            return str.Substring(count, str.Length - (count * 2));
-        }
-
-        public static string Trim(this string str, int trimstart, int trimend)
-        {
-            var tmp = str.Substring(trimstart);
-            return tmp.Substring(0, tmp.Length - trimend);
-        }
-
         public static string EscapeString(this string value)
         {
             StringBuilder result = new StringBuilder();
@@ -48,6 +37,9 @@ namespace PinkJson2
                         break;
                     case '\t':
                         result.Append("\\t");
+                        break;
+                    case '\0':
+                        result.Append("\\0");
                         break;
                     case '\"':
                         result.Append("\\\"");
@@ -101,6 +93,9 @@ namespace PinkJson2
                                 unicode_value += value[i];
                             }
                             result += (char)Convert.ToInt32(unicode_value, 16);
+                            goto end;
+                        case '0':
+                            result += ("\0");
                             goto end;
                         case '"':
                             result += '\"';

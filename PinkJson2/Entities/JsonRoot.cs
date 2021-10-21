@@ -11,6 +11,14 @@ namespace PinkJson2
         {
         }
 
+        internal JsonRoot(IEnumerable<T> collection) : base(collection)
+        {
+        }
+
+        internal JsonRoot(params T[] collection) : base(collection)
+        {
+        }
+
         public virtual T this[string key]
         {
             get => throw new NotSupportedException($"An object of type {GetType()} does not support a search by key '{key}'");
@@ -117,7 +125,7 @@ namespace PinkJson2
 
         public override string ToString()
         {
-            return JsonFormatter.Minified.Format(this);
+            return new MinifiedFormatter().Format(this);
         }
     }
 }

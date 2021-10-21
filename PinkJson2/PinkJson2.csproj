@@ -49,10 +49,12 @@
     <Compile Include="Exceptions\KeyNotFoundException.cs" />
     <Compile Include="Exceptions\UnexpectedEndOfStreamException.cs" />
     <Compile Include="Exceptions\UnexpectedTokenException.cs" />
+    <Compile Include="Formatters\DefaultFormatter.cs" />
+    <Compile Include="Formatters\IFormatter.cs" />
+    <Compile Include="Formatters\MinifiedFormatter.cs" />
     <Compile Include="Json.cs" />
     <Compile Include="Entities\JsonArray.cs" />
     <Compile Include="Entities\JsonArrayValue.cs" />
-    <Compile Include="JsonFormatter.cs" />
     <Compile Include="IndentStyle.cs" />
     <Compile Include="JsonParser.cs" />
     <Compile Include="Entities\JsonKeyValue.cs" />

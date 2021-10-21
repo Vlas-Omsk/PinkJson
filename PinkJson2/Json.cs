@@ -53,7 +53,7 @@ namespace PinkJson2
             return json.IndexOfKey(key) != -1;
         }
 
-        public static string ToString(this IJson json, JsonFormatter formatter)
+        public static string ToString(this IJson json, IFormatter formatter)
         {
             return formatter.Format(json);
         }

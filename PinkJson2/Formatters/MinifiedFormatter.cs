@@ -3,18 +3,9 @@ using System.Text;
 
 namespace PinkJson2
 {
-    public class JsonFormatter
+    public sealed class MinifiedFormatter : IFormatter
     {
-        public IndentStyle IndentStyle { get; set; } = IndentStyle.Space;
-        public int IndentSize { get; set; } = 2;
-        public bool Minify { get; set; }
-
         private StringBuilder _stringBuilder = new StringBuilder();
-        private int _depth = 0;
-        private static readonly string _newLine = Environment.NewLine;
-
-        public static JsonFormatter Default => new JsonFormatter();
-        public static JsonFormatter Minified => new JsonFormatter() { Minify = true };
 
         public string Format(IJson json)
         {
@@ -25,7 +16,7 @@ namespace PinkJson2
             return str;
         }
 
-        protected void FormatJson(IJson json)
+        private void FormatJson(IJson json)
         {
             if (json is JsonObject)
                 FormatObject(json as JsonObject);
@@ -37,75 +28,44 @@ namespace PinkJson2
                 FormatValue(json.Value);
         }
 
-        protected virtual void FormatObject(JsonObject json)
+        private void FormatObject(JsonObject json)
         {
             _stringBuilder.Append('{');
             if (json.Count > 0)
             {
-                _depth++;
-                if (!Minify)
-                    _stringBuilder.Append(_newLine);
                 json.ForEach((item, i) =>
                 {
-                    if (!Minify)
-                        AddIndent();
                     FormatKeyValue(item);
                     if (i < json.Count - 1)
                         _stringBuilder.Append(',');
-                    if (!Minify)
-                        _stringBuilder.Append(_newLine);
                 });
-                _depth--;
-                if (!Minify && _depth > 0)
-                    AddIndent();
             }
             _stringBuilder.Append('}');
         }
 
-        protected virtual void FormatKeyValue(JsonKeyValue json)
+        private void FormatKeyValue(JsonKeyValue json)
         {
             _stringBuilder.Append($"\"{json.Key.EscapeString()}\"");
             _stringBuilder.Append(':');
-            if (!Minify)
-                _stringBuilder.Append(' ');
             FormatValue(json.Value);
         }
 
-        protected virtual void FormatArray(JsonArray json)
+        private void FormatArray(JsonArray json)
         {
             _stringBuilder.Append('[');
-            var isRoot = _depth == 0;
             if (json.Count > 0)
             {
-                if (isRoot)
-                {
-                    _depth++;
-                    if (!Minify)
-                    {
-                        _stringBuilder.Append(_newLine);
-                        AddIndent();
-                    }
-                }
                 json.ForEach((item, i) =>
                 {
                     FormatValue(item);
-                    if (i < json.Count - 1) {
+                    if (i < json.Count - 1)
                         _stringBuilder.Append(',');
-                        if (!Minify)
-                            _stringBuilder.Append(' ');
-                    }
                 });
-                if (isRoot)
-                {
-                    _depth--;
-                    if (!Minify)
-                        _stringBuilder.Append(_newLine);
-                }
             }
             _stringBuilder.Append(']');
         }
 
-        protected virtual void FormatValue(object value)
+        private void FormatValue(object value)
         {
             string str;
 
@@ -136,12 +96,6 @@ namespace PinkJson2
                 str = $"\"{value.ToString().EscapeString()}\"";
 
             _stringBuilder.Append(str);
-        }
-
-        protected void AddIndent()
-        {
-            var str = IndentStyle == IndentStyle.Space ? ' '.Repeat(IndentSize) : '\t'.Repeat(IndentSize);
-            _stringBuilder.Append(str.Repeat(_depth));
         }
     }
 }

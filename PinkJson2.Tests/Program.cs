@@ -11,9 +11,9 @@ namespace PinkJson2.Tests
     {
         static void Main(string[] args)
         {
-			JsonParserPerformanceTest();
-			OldJsonParserPerformanceTest();
-			Console.ReadLine();
+            JsonParserPerformanceTest();
+            OldJsonParserPerformanceTest();
+            Console.ReadLine();
 		}
 
 		static void JsonParserPerformanceTest()
@@ -28,6 +28,19 @@ namespace PinkJson2.Tests
 			var dt = DateTime.Now;
 			PinkJson.JsonArray json = new PinkJson.JsonArray(File.ReadAllText("detectable.json"));
 			Console.WriteLine((DateTime.Now - dt).TotalMilliseconds + " ms");
+		}
+
+		static void DynamicJsonTest()
+        {
+			dynamic json = Json.Parse(@"{
+                'octal': 0o52,
+				'decimal': [42, 43, { 'testKey': 'testValue' }, 45],
+				'hex': 0x2A,
+				'binary': 0b00101010
+            }".Replace('\'', '"'));
+			var b = json.@decimal._2 = new JsonArrayValue(new JsonArray(new JsonArrayValue(new JsonArray(new JsonArrayValue("hello")))));
+			var ddd = Json.Parse(json.ToString());
+			Console.WriteLine(ddd);
 		}
 
 		static void JsonLexerTest()

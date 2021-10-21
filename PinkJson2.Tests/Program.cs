@@ -11,9 +11,9 @@ namespace PinkJson2.Tests
     {
         static void Main(string[] args)
         {
-            JsonParserPerformanceTest();
-            OldJsonParserPerformanceTest();
-            Console.ReadLine();
+			JsonParserPerformanceTest();
+			OldJsonParserPerformanceTest();
+			Console.ReadLine();
 		}
 
 		static void JsonParserPerformanceTest()
@@ -39,8 +39,8 @@ namespace PinkJson2.Tests
 				'binary': 0b00101010
             }".Replace('\'', '"'));
 			var b = json.@decimal._2 = new JsonArrayValue(new JsonArray(new JsonArrayValue(new JsonArray(new JsonArrayValue("hello")))));
-			var ddd = Json.Parse(json.ToString());
-			Console.WriteLine(ddd);
+			IJson ddd = Json.Parse(json.ToString());
+			Console.WriteLine(ddd.ToString(new PrettyFormatter()));
 		}
 
 		static void JsonLexerTest()

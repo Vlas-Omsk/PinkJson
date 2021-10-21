@@ -3,7 +3,7 @@ using System.Text;
 
 namespace PinkJson2
 {
-    public sealed class DefaultFormatter : IFormatter
+    public sealed class PrettyFormatter : IFormatter
     {
         public IndentStyle IndentStyle { get; set; } = IndentStyle.Space;
         public int IndentSize { get; set; } = 2;

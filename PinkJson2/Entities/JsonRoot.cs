@@ -8,7 +8,7 @@ namespace PinkJson2
 {
     public abstract class JsonRoot<T> : LinkedList<T>, IJson, IList<T> where T: IJson
     {
-        object IJson.Value => this;
+        object IJson.Value { get => this; set => throw new NotSupportedException($"An object of type {GetType()} does not support set Value"); }
 
         internal JsonRoot()
         {
@@ -133,86 +133,17 @@ namespace PinkJson2
 
         public DynamicMetaObject GetMetaObject(Expression parameter)
         {
-            return new MetaObject(parameter, this);
+            return new JsonMetaObject(parameter, this);
         }
 
-        private object GetValue(string propertyName)
+        object IJson.DynamicGetValue(JsonMetaObject jsonMetaObject, string propertyName)
         {
-            object member;
-            if ((member = GetType().GetProperty(propertyName)) != null)
-                return ((PropertyInfo)member).GetValue(this);
-            if ((member = GetType().GetField(propertyName)) != null)
-                return ((FieldInfo)member).GetValue(this);
-
-            if (propertyName[0] == '_' && propertyName.Length > 1 && propertyName[1] != '_')
-            {
-                var index = int.Parse(propertyName.Substring(1));
-                return this[index];
-            }
-            return this[propertyName];
+            return jsonMetaObject.GetValue(propertyName);
         }
 
-        private object SetValue(string propertyName, object value)
+        object IJson.DynamicSetValue(JsonMetaObject jsonMetaObject, string propertyName, object value)
         {
-            object member;
-            if ((member = GetType().GetProperty(propertyName)) != null)
-            {
-                ((PropertyInfo)member).SetValue(this, value);
-                return value;
-            }
-            if ((member = GetType().GetField(propertyName)) != null)
-            {
-                ((FieldInfo)member).SetValue(this, value);
-                return value;
-            }
-
-            if (!(value is T))
-                throw new InvalidObjectTypeException(typeof(T));
-            if (propertyName[0] == '_' && propertyName.Length > 1 && propertyName[1] != '_')
-            {
-                var index = int.Parse(propertyName.Substring(1));
-                this[index] = (T)value;
-                return value;
-            }
-            this[propertyName] = (T)value;
-            return value;
-        }
-
-        private class MetaObject : DynamicMetaObject
-        {
-            private MethodInfo _getValueMethodInfo;
-            private MethodInfo _setValueMethodInfo;
-
-            internal MetaObject(Expression parameter, JsonRoot<T> value) : base(parameter, BindingRestrictions.Empty, value)
-            {
-                _getValueMethodInfo = typeof(JsonRoot<T>).GetMethod("GetValue", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-                _setValueMethodInfo = typeof(JsonRoot<T>).GetMethod("SetValue", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-            }
-
-            public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
-            {
-                var arguments = new Expression[]
-                {
-                    Expression.Constant(binder.Name)
-                };
-
-                Expression objectExpression = Expression.Call(Expression.Convert(Expression, LimitType), _getValueMethodInfo, arguments);
-
-                return new DynamicMetaObject(objectExpression, BindingRestrictions.GetTypeRestriction(Expression, RuntimeType));
-            }
-
-            public override DynamicMetaObject BindSetMember(SetMemberBinder binder, DynamicMetaObject value)
-            {
-                var arguments = new Expression[]
-                {
-                    Expression.Constant(binder.Name),
-                    Expression.Constant(value.Value)
-                };
-
-                Expression objectExpression = Expression.Call(Expression.Convert(Expression, LimitType), _setValueMethodInfo, arguments);
-
-                return new DynamicMetaObject(objectExpression, BindingRestrictions.GetTypeRestriction(Expression, RuntimeType));
-            }
+            return jsonMetaObject.SetValue(propertyName, value);
         }
     }
 }

@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="CharExtension.cs" />
     <Compile Include="Entities\JsonChild.cs" />
+    <Compile Include="Entities\JsonMetaObject.cs" />
     <Compile Include="Entities\JsonRoot.cs" />
     <Compile Include="Exceptions\InvalidJsonFormatException.cs" />
     <Compile Include="Exceptions\InvalidObjectTypeException.cs" />

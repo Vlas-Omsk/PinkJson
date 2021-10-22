@@ -14,7 +14,8 @@ namespace PinkJson2
         private int _position;
         private int _startPosition;
         private Token _token;
-        private StringBuilder _buffer = new StringBuilder();
+        private string _buffer;
+        private bool _useBuffer = false;
         private char? _current;
         private readonly char[] numberChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', '.', 'x', 'o', 'b' };
         private readonly char[] hexadecimalChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
@@ -67,7 +68,6 @@ namespace PinkJson2
         public void Dispose()
         {
             Stream.Dispose();
-            _buffer.Clear();
         }
 
         private void ReadNext()
@@ -75,14 +75,24 @@ namespace PinkJson2
             _position++;
             var current = Stream.Read();
             _current = current == -1 ? null : (char?)current;
-            if (_current.HasValue)
-                _buffer.Append(_current.Value);
+            if (_useBuffer && _current.HasValue)
+                _buffer += _current.Value;
+        }
+
+        private void EnableBuffer()
+        {
+            _useBuffer = true;
+            _buffer += _current.Value;
         }
 
         private void Get()
         {
+            if (_useBuffer)
+            {
+                _buffer = string.Empty;
+                _useBuffer = false;
+            }
             _token = new Token();
-            _buffer.Clear();
             ReadNext();
             _token.Position = _startPosition = _position;
 
@@ -136,13 +146,15 @@ namespace PinkJson2
 
         private void ReadWhiteSpace()
         {
-            while (Next.HasValue && (char.IsWhiteSpace(Next.Value) || Next == '\0'))
+            while (Next.HasValue && (Next == '\0' || char.IsWhiteSpace(Next.Value)))
                 ReadNext();
             _token.Type = TokenType.Invisible;
         }
 
         private void ReadNumber()
         {
+            EnableBuffer();
+
             bool isDouble = false, isEnumber = false;
             var valueBase = 10;
             while (Next.HasValue && (numberChars.Contains(char.ToLowerInvariant(Next.Value)) ||
@@ -195,48 +207,46 @@ namespace PinkJson2
                 }
             }
 
-            var str = _buffer.ToString();
-
             if (isEnumber || isDouble)
             {
-                if (!double.TryParse(str.Replace('.', ','), out double value))
-                    throw new JsonException($"Invalid double number {str}", _startPosition, Stream);
+                if (!double.TryParse(_buffer.Replace('.', ','), out double value))
+                    throw new JsonException($"Invalid double number {_buffer}", _startPosition, Stream);
                 _token.Value = value;
             }
             else if (valueBase != 10)
             {
-                var prefix = str.Substring(0, 2);
-                str = str.Substring(2);
+                var prefix = _buffer.Substring(0, 2);
+                _buffer = _buffer.Substring(2);
                 try
                 {
-                    _token.Value = Convert.ToInt32(str, valueBase);
+                    _token.Value = Convert.ToInt32(_buffer, valueBase);
                 }
                 catch
                 {
                     try
                     {
-                        _token.Value = Convert.ToInt64(str, valueBase);
+                        _token.Value = Convert.ToInt64(_buffer, valueBase);
                     }
                     catch (Exception ex)
                     {
-                        throw new JsonException($"Invalid number {prefix}{str}", _startPosition, Stream, ex);
+                        throw new JsonException($"Invalid number {prefix}{_buffer}", _startPosition, Stream, ex);
                     }
                 }
             }
             else
             {
-                if (int.TryParse(str, out int intvalue))
+                if (int.TryParse(_buffer, out int intvalue))
                     _token.Value = intvalue;
-                else if (long.TryParse(str, out long longvalue))
+                else if (long.TryParse(_buffer, out long longvalue))
                     _token.Value = longvalue;
                 //else if (BigInteger.TryParse(str, out BigInteger bigintvalue))
                 //    _token.Value = bigintvalue;
                 else
                 {
-                    if (str.Length < 40)
-                        throw new JsonException($"Invalid or too big number {str}", _startPosition, Stream);
+                    if (_buffer.Length < 40)
+                        throw new JsonException($"Invalid or too big number {_buffer}", _startPosition, Stream);
                     else
-                        throw new JsonException($"Well.. It's seriously big number {str}. I.. I even can't imagine how to handle it. No, seriously. Maybe you know how?", _startPosition, Stream);
+                        throw new JsonException($"Well.. It's seriously big number {_buffer}. I.. I even can't imagine how to handle it. No, seriously. Maybe you know how?", _startPosition, Stream);
                 }
             }
 
@@ -246,9 +256,9 @@ namespace PinkJson2
         private void ReadString()
         {
             var escape = false;
-            var value = new StringBuilder();
+            var value = string.Empty;
 
-            while (Next.HasValue && (Next != '"' || escape == true))
+            while (Next.HasValue && (escape || Next != '"'))
             {
                 ReadNext();
 
@@ -258,25 +268,25 @@ namespace PinkJson2
                     switch (_current)
                     {
                         case 'b':
-                            value.Append('\b');
+                            value += '\b';
                             break;
                         case 'a':
-                            value.Append('\a');
+                            value += '\a';
                             break;
                         case 'f':
-                            value.Append('\f');
+                            value += '\f';
                             break;
                         case 'n':
-                            value.Append('\n');
+                            value += '\n';
                             break;
                         case 'r':
-                            value.Append('\r');
+                            value += '\r';
                             break;
                         case 't':
-                            value.Append('\t');
+                            value += '\t';
                             break;
                         case '0':
-                            value.Append('\0');
+                            value += '\0';
                             break;
                         case 'u':
                             string unicode_value = "";
@@ -287,16 +297,16 @@ namespace PinkJson2
                                 ReadNext();
                                 unicode_value += _current;
                             }
-                            value.Append((char)Convert.ToInt32(unicode_value, 16));
+                            value += (char)Convert.ToInt32(unicode_value, 16);
                             break;
                         case '"':
-                            value.Append('\"');
+                            value += '\"';
                             break;
                         case '\\':
-                            value.Append('\\');
+                            value += '\\';
                             break;
                         case '/':
-                            value.Append('/');
+                            value += '/';
                             break;
                         default:
                             throw new JsonException($"Unidentified escape sequence \\{_current}", _position - 1, Stream);
@@ -308,28 +318,28 @@ namespace PinkJson2
                 }
                 else
                 {
-                    value.Append(_current);
+                    value += _current;
                 }
             }
 
             ReadNext();
 
             _token.Type = TokenType.String;
-            _token.Value = value.ToString();
+            _token.Value = value;
         }
 
         private void ReadOther()
         {
+            EnableBuffer();
+
             while (Next.HasValue && char.IsLetterOrDigit(Next.Value))
                 ReadNext();
 
-            var str = _buffer.ToString();
-
-            if (str == "null")
+            if (_buffer == "null")
             {
                 _token.Type = TokenType.Null;
             }
-            else if (bool.TryParse(str, out bool value))
+            else if (bool.TryParse(_buffer, out bool value))
             {
                 _token.Value = value;
                 _token.Type = TokenType.Boolean;

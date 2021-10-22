@@ -11,15 +11,19 @@ namespace PinkJson2.Tests
     {
         static void Main(string[] args)
         {
-            JsonParserPerformanceTest();
-            OldJsonParserPerformanceTest();
-            Console.ReadLine();
+			var dt = DateTime.Now;
+            var json = Json.Parse(File.OpenText("detectable.json"));
+            Console.WriteLine((DateTime.Now - dt).TotalMilliseconds + " ms");
+
+			//JsonParserPerformanceTest();
+			//OldJsonParserPerformanceTest();
+			Console.ReadLine();
 		}
 
 		static void JsonParserPerformanceTest()
         {
 			var dt = DateTime.Now;
-			IJson json2 = Json.Parse(File.OpenText("detectable.json"));
+			Json.Parse(File.OpenText("detectable.json"));
 			Console.WriteLine((DateTime.Now - dt).TotalMilliseconds + " ms");
 		}
 

@@ -3,18 +3,18 @@ using System.IO;
 
 namespace PinkJson2
 {
-    public class JsonException : Exception
+    public class JsonLexerException : Exception
     {
         public int Position { get; }
 
         private const short _range = 200;
 
-        public JsonException(string message, int position, StreamReader stream) : base(Create(message, position, stream))
+        public JsonLexerException(string message, int position, StreamReader stream) : base(Create(message, position, stream))
         {
             Position = position;
         }
 
-        public JsonException(string message, int position, StreamReader stream, Exception innerException) : base(Create(message, position, stream), innerException)
+        public JsonLexerException(string message, int position, StreamReader stream, Exception innerException) : base(Create(message, position, stream), innerException)
         {
             Position = position;
         }

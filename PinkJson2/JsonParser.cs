@@ -8,6 +8,7 @@ namespace PinkJson2
     {
         private JsonLexer _lexer;
         private IEnumerator<Token> _enumerator;
+        private Stack<string> _path = new Stack<string>();
 
         private JsonParser(JsonLexer lexer)
         {
@@ -23,16 +24,24 @@ namespace PinkJson2
         private IJson Parse()
         {
             TryMoveNext();
+            _path.Push("root");
+            IJson json;
 
             switch (_enumerator.Current.Type)
             {
                 case TokenType.LeftBrace:
-                    return ParseObject();
+                    json = ParseObject();
+                    break;
                 case TokenType.LeftBracket:
-                    return ParseArray();
+                    json = ParseArray();
+                    break;
                 default:
+                    _path.Pop();
                     throw new InvalidJsonFormatException();
             }
+
+            _path.Pop();
+            return json;
         }
 
         private object ParseValue()
@@ -49,7 +58,7 @@ namespace PinkJson2
                 case TokenType.String:
                     return _enumerator.Current.Value;
                 default:
-                    throw new UnexpectedTokenException(_enumerator.Current, new TokenType[] { TokenType.LeftBrace, TokenType.LeftBracket, TokenType.Boolean, TokenType.Null, TokenType.Number, TokenType.String }, _lexer.Stream);
+                    throw new UnexpectedTokenException(_enumerator.Current, new TokenType[] { TokenType.LeftBrace, TokenType.LeftBracket, TokenType.Boolean, TokenType.Null, TokenType.Number, TokenType.String }, _path);
             }
         }
 
@@ -76,10 +85,12 @@ namespace PinkJson2
         {
             CheckToken(TokenType.String);
             var key = (string)_enumerator.Current.Value;
+            _path.Push(key);
             TryMoveNext();
             CheckToken(TokenType.Colon);
             TryMoveNext();
             var value = ParseValue();
+            _path.Pop();
             return new JsonKeyValue(key, value);
         }
 
@@ -92,7 +103,9 @@ namespace PinkJson2
                 TryMoveNext();
                 if (_enumerator.Current.Type == TokenType.RightBracket)
                     break;
+                _path.Push("_" + json.Count);
                 json.AddLast(new JsonArrayValue(ParseValue()));
+                _path.Pop();
                 TryMoveNext();
                 if (_enumerator.Current.Type == TokenType.RightBracket)
                     break;
@@ -104,14 +117,23 @@ namespace PinkJson2
 
         private void TryMoveNext()
         {
-            if (!_enumerator.MoveNext())
+            bool success;
+            try
+            {
+                success = _enumerator.MoveNext();
+            }
+            catch(JsonLexerException ex)
+            {
+                throw new JsonParserException("See inner exception", _path, ex);
+            }
+            if (!success)
                 throw new UnexpectedEndOfStreamException();
         }
 
         private void CheckToken(params TokenType[] tokenTypes)
         {
             if (!tokenTypes.Contains(_enumerator.Current.Type))
-                throw new UnexpectedTokenException(_enumerator.Current, tokenTypes, _lexer.Stream);
+                throw new UnexpectedTokenException(_enumerator.Current, tokenTypes, _path);
         }
     }
 }

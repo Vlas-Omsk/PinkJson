@@ -48,6 +48,7 @@
     <Compile Include="Entities\JsonRoot.cs" />
     <Compile Include="Exceptions\InvalidJsonFormatException.cs" />
     <Compile Include="Exceptions\InvalidObjectTypeException.cs" />
+    <Compile Include="Exceptions\JsonParserException.cs" />
     <Compile Include="Exceptions\KeyNotFoundException.cs" />
     <Compile Include="Exceptions\UnexpectedEndOfStreamException.cs" />
     <Compile Include="Exceptions\UnexpectedTokenException.cs" />
@@ -61,7 +62,7 @@
     <Compile Include="JsonParser.cs" />
     <Compile Include="Entities\JsonKeyValue.cs" />
     <Compile Include="Entities\JsonObject.cs" />
-    <Compile Include="Exceptions\JsonException.cs" />
+    <Compile Include="Exceptions\JsonLexerException.cs" />
     <Compile Include="Exceptions\InvalidTokenException.cs" />
     <Compile Include="Entities\IJson.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -11,9 +11,14 @@ namespace PinkJson2.Tests
     {
         static void Main(string[] args)
         {
-			var dt = DateTime.Now;
-            var json = Json.Parse(File.OpenText("detectable.json"));
-            Console.WriteLine((DateTime.Now - dt).TotalMilliseconds + " ms");
+			var json = Json.Parse(@"{
+                'octal': 0o52,
+				'decimal': [42, 43, { 'testKey': 1x0 }, 45],
+				'hex': 0x2A,
+				'binary': 0b00101010
+            }".Replace('\'', '"'));
+
+			Console.WriteLine(json.ToString(new PrettyFormatter()));
 
 			//JsonParserPerformanceTest();
 			//OldJsonParserPerformanceTest();

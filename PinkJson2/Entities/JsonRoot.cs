@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PinkJson2.Formatters;
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq.Expressions;

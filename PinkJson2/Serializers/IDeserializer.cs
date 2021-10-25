@@ -4,6 +4,7 @@ namespace PinkJson2.Serializers
 {
     public interface IDeserializer
     {
-        object Deserialize(IJson json);
+        T Deserialize<T>(IJson json);
+        object Deserialize(IJson json, Type type);
     }
 }

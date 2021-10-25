@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace PinkJson2
+namespace PinkJson2.Formatters
 {
     public sealed class MinifiedFormatter : IFormatter
     {

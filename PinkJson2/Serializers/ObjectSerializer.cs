@@ -4,24 +4,16 @@ using System.Reflection;
 
 namespace PinkJson2.Serializers
 {
-    public partial class ObjectSerializer : ISerializer
+    public partial class ObjectConverter : ISerializer
     {
-        public BindingFlags PropertyBindingFlags { get; set; } = BindingFlags.Public | BindingFlags.Instance | (BindingFlags.GetField & BindingFlags.SetField);
-        public BindingFlags FieldBindingFlags { get; set; } = BindingFlags.Public | BindingFlags.Instance | (BindingFlags.GetField & BindingFlags.SetField);
-        public bool IgnoreMissingProperties { get; set; } = true;
-
-        public ObjectSerializer()
-        {
-        }
-
         public IJson Serialize(object obj)
         {
             var type = obj.GetType();
 
             if (HelperSerializer.IsArray(type))
-                return SerializeArray((IEnumerable)obj);
+                return SerializeArray(obj, true);
             else if (!IsValueType(type))
-                return SerializeObject(obj);
+                return SerializeObject(obj, true);
             else
                 throw new Exception($"Can't convert object of type {type} to json");
         }
@@ -31,27 +23,32 @@ namespace PinkJson2.Serializers
             if (value != null)
             {
                 if (HelperSerializer.IsArray(valueType))
-                    value = SerializeArray((IEnumerable)value);
+                    value = SerializeArray(value, false);
                 else if (!IsValueType(valueType))
-                    value = SerializeObject(value);
+                    value = SerializeObject(value, false);
             }
 
             return value;
         }
 
-        private JsonObject SerializeObject(object obj)
+        private IJson SerializeObject(object obj, bool isRoot)
         {
+            IJson jsonObject;
+
+            if (TryCustomSerialize(obj, out jsonObject, isRoot))
+                return jsonObject;
+
             var type = obj.GetType();
             var properties = type.GetProperties(PropertyBindingFlags);
             var fields = type.GetFields(FieldBindingFlags);
-            var jsonObject = new JsonObject();
+            jsonObject = new JsonObject();
 
             foreach (var property in properties)
                 if (TrySerializeMember(property, property.PropertyType, property.GetValue(obj), out JsonKeyValue jsonKeyValue))
-                    jsonObject.AddLast(jsonKeyValue);
+                    ((JsonObject)jsonObject).AddLast(jsonKeyValue);
             foreach (var field in fields)
                 if (TrySerializeMember(field, field.FieldType, field.GetValue(obj), out JsonKeyValue jsonKeyValue))
-                    jsonObject.AddLast(jsonKeyValue);
+                    ((JsonObject)jsonObject).AddLast(jsonKeyValue);
 
             return jsonObject;
         }
@@ -63,11 +60,11 @@ namespace PinkJson2.Serializers
 
             if (TryGetJsonPropertyAttribute(memberInfo, out JsonPropertyAttribute jsonPropertyAttribute))
             {
-                if (jsonPropertyAttribute.Ignore)
+                if (jsonPropertyAttribute.SerializerIgnore)
                     return false;
 
-                if (jsonPropertyAttribute.Name != null)
-                    key = jsonPropertyAttribute.Name;
+                if (jsonPropertyAttribute.SerializerName != null)
+                    key = jsonPropertyAttribute.SerializerName;
             }
 
             key = TransformKey(key);
@@ -76,30 +73,31 @@ namespace PinkJson2.Serializers
             return true;
         }
 
-        private JsonArray SerializeArray(IEnumerable enumerable)
+        private IJson SerializeArray(object obj, bool isRoot)
         {
-            var jsonArray = new JsonArray();
+            IJson jsonArray;
+
+            if (TryCustomSerialize(obj, out jsonArray, isRoot))
+                return jsonArray;
+
+            var enumerable = (IEnumerable)obj;
+            jsonArray = new JsonArray();
 
             foreach (var item in enumerable)
-                jsonArray.AddLast(new JsonArrayValue(SerializeValue(item, item.GetType())));
+                ((JsonArray)jsonArray).AddLast(new JsonArrayValue(SerializeValue(item, item.GetType())));
 
             return jsonArray;
         }
 
-        private bool TryGetJsonPropertyAttribute(MemberInfo memberInfo, out JsonPropertyAttribute jsonPropertyAttribute)
+        private bool TryCustomSerialize(object obj, out IJson json, bool isRoot)
         {
-            jsonPropertyAttribute = memberInfo.GetCustomAttribute(typeof(JsonPropertyAttribute), true) as JsonPropertyAttribute;
-            return jsonPropertyAttribute != null;
-        }
-
-        private static bool IsValueType(Type type)
-        {
-            return type.IsValueType || type == typeof(string);
-        }
-
-        protected virtual string TransformKey(string key)
-        {
-            return key;
+            if (!(IgnoreCustomSerializers || (IgnoreRootCustomSerializer && isRoot)) && obj is ICustomSerializable serializable)
+            {
+                json = serializable.Serialize(this);
+                return true;
+            }
+            json = null;
+            return false;
         }
     }
 }

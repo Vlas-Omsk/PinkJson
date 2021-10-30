@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace PinkJson2.Serializers
 {
-    [Obsolete("Use " + nameof(ObjectSerializer) + " instead")]
+    [Obsolete("Use " + nameof(ObjectConverter) + " instead")]
     public sealed class AnonymousSerializer : ISerializer
     {
         public AnonymousSerializer()
@@ -15,7 +13,7 @@ namespace PinkJson2.Serializers
 
         public IJson Serialize(object obj)
         {
-            if (!IsAnonymousType(obj.GetType()))
+            if (!HelperSerializer.IsAnonymousType(obj.GetType()))
                 throw new InvalidObjectTypeException("AnonymousType");
 
             return SerializeObject(obj);
@@ -25,7 +23,7 @@ namespace PinkJson2.Serializers
         {
             if (value != null)
             {
-                if (IsAnonymousType(valueType))
+                if (HelperSerializer.IsAnonymousType(valueType))
                     value = SerializeObject(value);
                 else if (HelperSerializer.IsArray(valueType))
                     value = SerializeArray((IEnumerable)value);
@@ -39,7 +37,7 @@ namespace PinkJson2.Serializers
             var type = obj.GetType();
             var jsonObject = new JsonObject();
 
-            if (IsEmptyAnonymousType(type))
+            if (HelperSerializer.IsEmptyAnonymousType(type))
                 return jsonObject;
 
             var genericType = type.GetGenericTypeDefinition();
@@ -68,23 +66,6 @@ namespace PinkJson2.Serializers
                 jsonArray.AddLast(new JsonArrayValue(SerializeValue(item, item.GetType())));
 
             return jsonArray;
-        }
-
-        private static bool IsAnonymousType(Type type)
-        {
-            return Attribute.IsDefined(type, typeof(CompilerGeneratedAttribute), false)
-                && (type.IsGenericType || IsEmptyAnonymousType(type))
-                && type.Name.Contains("AnonymousType")
-                && (type.Name.StartsWith("<>") || type.Name.StartsWith("VB$"))
-                && (type.Attributes & TypeAttributes.NotPublic) == TypeAttributes.NotPublic;
-        }
-
-        private static bool IsEmptyAnonymousType(Type type)
-        {
-            var name = type.Name;
-            while (char.IsDigit(name[name.Length - 1]))
-                name = name.Substring(0, name.Length - 1);
-            return name == "<>f__AnonymousType";
         }
     }
 }

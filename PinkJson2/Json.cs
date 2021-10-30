@@ -26,40 +26,6 @@ namespace PinkJson2
                 return JsonParser.Parse(lexer);
         }
 
-        public static IJson Serialize(this object obj)
-        {
-            return Serialize(obj, new ObjectSerializer());
-        }
-
-        public static IJson Serialize(this object obj, ISerializer serializer)
-        {
-            return serializer.Serialize(obj);
-        }
-
-        public static T Deserialize<T>(this IJson json)
-        {
-            return Deserialize<T>(json, new ObjectSerializer());
-        }
-
-        public static T Deserialize<T>(this IJson json, IDeserializer deserializer)
-        {
-            if (!(json.Value is IJson))
-                throw new InvalidObjectTypeException(typeof(IJson));
-            return deserializer.Deserialize<T>((IJson)json.Value);
-        }
-
-        public static object Deserialize(this IJson json, Type type)
-        {
-            return Deserialize(json, new ObjectSerializer(), type);
-        }
-
-        public static object Deserialize(this IJson json, IDeserializer deserializer, Type type)
-        {
-            if (!(json.Value is IJson))
-                throw new InvalidObjectTypeException(typeof(IJson));
-            return deserializer.Deserialize((IJson)json.Value, type);
-        }
-
         public static T Get<T>(this IJson json)
         {
             if (json.Value is null)

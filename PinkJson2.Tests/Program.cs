@@ -12,11 +12,18 @@ namespace PinkJson2.Tests
 {
     class Program
     {
-		class TestArr : List<Test>
+        class TestArr : List<Test>
         {
-        }
+			public TestArr()
+            {
+            }
 
-		class Test
+			private TestArr(IJson json)
+			{
+			}
+		}
+
+        class Test
         {
 			public Test TestObj;
 			[JsonProperty("abc")]
@@ -27,32 +34,27 @@ namespace PinkJson2.Tests
 
 			public Test()
             {
-
             }
 
 			private Test(IJson json)
             {
-
             }
         }
 
         static void Main(string[] args)
         {
-			//var json = new ObjectSerializer().Serialize(new Test() { TestObj = new Test() });
-			//Console.WriteLine(json.ToString(new PrettyFormatter()));
-
 			var anonymousObject = new[] { new
 			{
 				obj = new { test = new Test() { TestObj = new Test() { arr2 = new TestArr() { new Test() { t = 0 }, new Test() { t = 1 } } } } },
 				arr = new object[] { "str", 123 }
 			} };
-			var objectSerializer = new ObjectSerializer();
+			var objectConverter = new ObjectConverter();
 
-			var json = anonymousObject.Serialize();
+			var json = objectConverter.Serialize(anonymousObject);
 			json[0]["obj"]["test"]["abc"].Value = 456;
 			Console.WriteLine(json.ToString(new PrettyFormatter()));
 
-			var test = json[0]["obj"]["test"].Deserialize<Test>();
+			var test2 = objectConverter.Deserialize(json, anonymousObject.GetType());
 
 			//JsonParserPerformanceTest();
 			//OldJsonParserPerformanceTest();

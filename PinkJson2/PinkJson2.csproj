@@ -74,8 +74,6 @@
     <Compile Include="Serializers\HelperSerializer.cs" />
     <Compile Include="Serializers\IDeserializer.cs" />
     <Compile Include="Serializers\ISerializer.cs" />
-    <None Include="Serializers\TObjectDeserializer.cs" />
-    <None Include="Serializers\TObjectSerializer.cs" />
     <Compile Include="Serializers\ObjectConverter.cs" />
     <Compile Include="Serializers\ObjectDeserializer.cs" />
     <Compile Include="Serializers\ObjectSerializer.cs" />

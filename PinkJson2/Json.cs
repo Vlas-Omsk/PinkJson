@@ -26,6 +26,52 @@ namespace PinkJson2
                 return JsonParser.Parse(lexer);
         }
 
+        public static IJson Serialize(this object obj)
+        {
+            return Serialize(obj, new ObjectConverter());
+        }
+
+        public static IJson Serialize(this object obj, ISerializer serializer)
+        {
+            return serializer.Serialize(obj);
+        }
+
+        public static T Deserialize<T>(this IJson json)
+        {
+            return Deserialize<T>(json, new ObjectConverter());
+        }
+
+        public static T Deserialize<T>(this IJson json, IDeserializer deserializer)
+        {
+            if (!(json.Value is IJson))
+                throw new InvalidObjectTypeException(typeof(IJson));
+            return deserializer.Deserialize<T>((IJson)json.Value);
+        }
+
+        public static object Deserialize(this IJson json, Type type)
+        {
+            return Deserialize(json, type, new ObjectConverter());
+        }
+
+        public static object Deserialize(this IJson json, Type type, IDeserializer deserializer)
+        {
+            if (!(json.Value is IJson))
+                throw new InvalidObjectTypeException(typeof(IJson));
+            return deserializer.Deserialize((IJson)json.Value, type);
+        }
+
+        public static object DeserializeToObject(this IJson json, object rootObj)
+        {
+            return DeserializeToObject(json, rootObj, new ObjectConverter());
+        }
+
+        public static object DeserializeToObject(this IJson json, object rootObj, IDeserializer deserializer)
+        {
+            if (!(json.Value is IJson))
+                throw new InvalidObjectTypeException(typeof(IJson));
+            return deserializer.DeserializeToObject((IJson)json.Value, rootObj);
+        }
+
         public static T Get<T>(this IJson json)
         {
             if (json.Value is null)

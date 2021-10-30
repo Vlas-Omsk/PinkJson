@@ -45,7 +45,7 @@ namespace PinkJson2.Serializers
                     return DeserializeObject((IJson)value, type, false);
             }
 
-            return value;
+            return TransformValue(value, type);
         }
 
         private object DeserializeObject(IJson json, Type type, bool isRoot)
@@ -192,6 +192,19 @@ namespace PinkJson2.Serializers
                 return null;
 
             throw new Exception($"No matching constructors found for object of type {type}");
+        }
+
+        private object TransformValue(object value, Type type)
+        {
+            if (type == typeof(DateTime))
+            {
+                if (value is string)
+                    return DateTime.Parse((string)value);
+                else
+                    throw new Exception($"Can't convert value of type {value.GetType()} to {type}");
+            }
+
+            return value;
         }
     }
 }

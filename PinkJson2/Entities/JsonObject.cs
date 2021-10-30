@@ -38,7 +38,7 @@ namespace PinkJson2
                     }
                     current = current.Next;
                 }
-                throw new KeyNotFoundException(key);
+                AddLast(value);
             }
         }
 

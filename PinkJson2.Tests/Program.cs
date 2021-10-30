@@ -12,66 +12,68 @@ namespace PinkJson2.Tests
 {
     class Program
     {
-        class TestArr : List<Test>
-        {
-			public TestArr()
-            {
-            }
-
-			private TestArr(IJson json)
-			{
-			}
-		}
-
-        class Test
-        {
-			public Test TestObj;
-			[JsonProperty("abc")]
-			public int t = 123;
-			public int[] arr = new int[] { 12, 34 };
-			public TestArr arr2;
-			public string TestString { get; private set; } = "helllo";
-
-			public Test()
-            {
-            }
-
-			private Test(IJson json)
-            {
-            }
-        }
-
         static void Main(string[] args)
         {
-			var anonymousObject = new[] { new
-			{
-				obj = new { test = new Test() { TestObj = new Test() { arr2 = new TestArr() { new Test() { t = 0 }, new Test() { t = 1 } } } } },
-				arr = new object[] { "str", 123 }
-			} };
-			var objectConverter = new ObjectConverter();
-
-			var json = objectConverter.Serialize(anonymousObject);
-			json[0]["obj"]["test"]["abc"].Value = 456;
-			Console.WriteLine(json.ToString(new PrettyFormatter()));
-
-			var test2 = objectConverter.Deserialize(json, anonymousObject.GetType());
-
-			//JsonParserPerformanceTest();
-			//OldJsonParserPerformanceTest();
 			Console.ReadLine();
+		}
+
+		static void LinqToJson()
+        {
+			var array = new JsonArray();
+			array.AddLast(new JsonArrayValue("Manual text"));
+			array.AddLast(new JsonArrayValue(new DateTime(2000, 5, 23)));
+
+			var o = new JsonObject();
+			o["MyArray"] = new JsonKeyValue("MyArray", array);
+
+			var json = o.ToString(new PrettyFormatter());
+			Console.WriteLine(json);
+		}
+
+		class Movie
+        {
+			public string Name { get; set; }
+			public DateTime ReleaseDate { get; set; }
+			public string[] Genres { get; set; }
+		}
+
+		static void DeserializeJson()
+        {
+			var json = Json.Parse(@"{
+			  'Name': 'Bad Boys',
+			  'ReleaseDate': '1995-4-7T00:00:00',
+			  'Genres': [
+				'Action',
+				'Comedy'
+			  ]
+			}".Replace('\'', '"'));
+
+			var m = json.Deserialize<Movie>();
+			var name = m.Name;
+			Console.WriteLine(name);
+		}
+
+		class Product
+        {
+			public string Name { get; set; }
+			public DateTime Expiry { get; set; }
+			public string[] Sizes { get; set; }
+		}
+
+		static void SerializeJsonTest()
+        {
+			var product = new Product();
+			product.Name = "Apple";
+			product.Expiry = new DateTime(2008, 12, 28);
+			product.Sizes = new string[] { "Small" };
+			var json = product.Serialize();
+			Console.WriteLine(json.ToString(new PrettyFormatter()));
 		}
 
 		static void JsonParserPerformanceTest()
         {
 			var dt = DateTime.Now;
 			Json.Parse(File.OpenText("detectable.json"));
-			Console.WriteLine((DateTime.Now - dt).TotalMilliseconds + " ms");
-		}
-
-		static void OldJsonParserPerformanceTest()
-        {
-			var dt = DateTime.Now;
-			PinkJson.JsonArray json = new PinkJson.JsonArray(File.ReadAllText("detectable.json"));
 			Console.WriteLine((DateTime.Now - dt).TotalMilliseconds + " ms");
 		}
 

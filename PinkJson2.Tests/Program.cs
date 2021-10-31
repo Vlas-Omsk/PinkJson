@@ -17,14 +17,14 @@ namespace PinkJson2.Tests
 			Console.ReadLine();
 		}
 
-		static void LinqToJson()
+		static void LinqToJsonTest()
         {
 			var array = new JsonArray();
-			array.AddLast(new JsonArrayValue("Manual text"));
-			array.AddLast(new JsonArrayValue(new DateTime(2000, 5, 23)));
+			array.AddValueLast("Manual text");
+			array.AddValueLast(new DateTime(2000, 5, 23));
 
 			var o = new JsonObject();
-			o["MyArray"] = new JsonKeyValue("MyArray", array);
+			o["MyArray"] = array;
 
 			var json = o.ToString(new PrettyFormatter());
 			Console.WriteLine(json);
@@ -37,7 +37,7 @@ namespace PinkJson2.Tests
 			public string[] Genres { get; set; }
 		}
 
-		static void DeserializeJson()
+		static void DeserializeJsonTest()
         {
 			var json = Json.Parse(@"{
 			  'Name': 'Bad Boys',

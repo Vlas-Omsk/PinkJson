@@ -203,8 +203,10 @@ namespace PinkJson2.Serializers
                 else
                     throw new Exception($"Can't convert value of type {value.GetType()} to {type}");
             }
-
-            return value;
+            else if (type != value.GetType())
+                return Convert.ChangeType(value, type);
+            else
+                return value;
         }
     }
 }

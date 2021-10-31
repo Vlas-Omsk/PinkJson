@@ -22,49 +22,83 @@ namespace PinkJson2
         {
         }
 
-        public virtual T this[string key]
+        public object this[object key]
         {
-            get => throw new NotSupportedException($"An object of type {GetType()} does not support a search by key '{key}'");
-            set => throw new NotSupportedException($"An object of type {GetType()} does not support a search by key '{key}'");
+            get => this[key.ToString()];
+            set => this[key.ToString()] = value;
         }
 
-        public T this[int index]
+        public object this[string key]
         {
-            get => NodeAt(index).Value;
-            set => NodeAt(index).Value = value;
+            get => ((IJson)this)[key].Value;
+            set
+            {
+                var node = GetNodeByKey(key);
+                if (node != null)
+                    node.Value.Value = value;
+                else
+                    AddLast(CreateItemFromKeyValue(key, value));
+            }
+        }
+
+        public object this[int index]
+        {
+            get => ((IList<T>)this)[index].Value;
+            set => ((IList<T>)this)[index].Value = value;
+        }
+
+        IJson IJson.this[object key]
+        {
+            get => ((IJson)this)[key.ToString()];
+            set => ((IJson)this)[key.ToString()] = value;
         }
 
         IJson IJson.this[string key]
         {
-            get => this[key];
+            get
+            {
+                var node = GetNodeByKey(key);
+                if (node == null)
+                    throw new KeyNotFoundException(key);
+                return node.Value;
+            }
             set
             {
                 if (!(value is T))
                     throw new InvalidObjectTypeException(typeof(T));
-                this[key] = (T)value;
+                var node = GetNodeByKey(key);
+                if (node != null)
+                    node.Value = (T)value;
+                else
+                    AddLast((T)value);
             }
         }
 
         IJson IJson.this[int index]
         {
-            get => this[index];
+            get => ((IList<T>)this)[index];
             set
             {
                 if (!(value is T))
                     throw new InvalidObjectTypeException(typeof(T));
-                this[index] = (T)value;
+                ((IList<T>)this)[index] = (T)value;
             }
         }
 
         T IList<T>.this[int index]
         {
-            get => this[index];
-            set
-            {
-                if (!(value is T))
-                    throw new InvalidObjectTypeException(typeof(T));
-                this[index] = value;
-            }
+            get => NodeAt(index).Value;
+            set => NodeAt(index).Value = value;
+        }
+
+        protected virtual LinkedListNode<T> GetNodeByKey(string key)
+        {
+            throw new NotSupportedException($"An object of type {GetType()} does not support a getters and setters by key '{key}'");
+        }
+
+        protected virtual T CreateItemFromKeyValue(string key, object value)
+        {
+            throw new NotSupportedException($"An object of type {GetType()} does not support a getters and setters by key '{key}'");
         }
 
         public int IndexOf(T item)
@@ -99,6 +133,11 @@ namespace PinkJson2
                 current = current.Next;
 
             return current;
+        }
+
+        public int IndexOfKey(object key)
+        {
+            return IndexOfKey(key.ToString());
         }
 
         public virtual int IndexOfKey(string key)

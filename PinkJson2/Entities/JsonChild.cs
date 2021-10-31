@@ -9,8 +9,25 @@ namespace PinkJson2
     {
         public object Value { get; set; }
 
-        internal JsonChild()
+        internal JsonChild(object value)
         {
+            Value = value;
+        }
+
+        public IJson this[object key]
+        {
+            get
+            {
+                if (!(Value is IJson))
+                    throw new InvalidObjectTypeException(typeof(IJson));
+                return (Value as IJson)[key];
+            }
+            set
+            {
+                if (!(Value is IJson))
+                    throw new InvalidObjectTypeException(typeof(IJson));
+                (Value as IJson)[key] = value;
+            }
         }
 
         public IJson this[string key]
@@ -43,6 +60,13 @@ namespace PinkJson2
                     throw new InvalidObjectTypeException(typeof(IJson));
                 (Value as IJson)[index] = value;
             }
+        }
+
+        public int IndexOfKey(object key)
+        {
+            if (!(Value is IJson))
+                throw new InvalidObjectTypeException(typeof(IJson));
+            return (Value as IJson).IndexOfKey(key);
         }
 
         public int IndexOfKey(string key)

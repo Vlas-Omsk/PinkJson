@@ -91,7 +91,12 @@ namespace PinkJson2
             return json.Value as JsonArray;
         }
 
-        public static JsonObject AsJson(this IJson json)
+        public static JsonObject AsObject(this IJson json)
+        {
+            return json.Value as JsonObject;
+        }
+
+        public static IJson AsJson(this IJson json)
         {
             return json.Value as JsonObject;
         }

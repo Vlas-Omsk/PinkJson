@@ -6,10 +6,9 @@ namespace PinkJson2
     {
         public string Key { get; set; }
 
-        public JsonKeyValue(string key, object value)
+        public JsonKeyValue(string key, object value) : base(value)
         {
             Key = key;
-            Value = value;
         }
     }
 }

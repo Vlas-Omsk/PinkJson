@@ -17,29 +17,17 @@ namespace PinkJson2
         {
         }
 
-        public override JsonKeyValue this[string key]
+        protected override LinkedListNode<JsonKeyValue> GetNodeByKey(string key)
         {
-            get
-            {
-                foreach (var item in this)
-                    if (item.Key == key)
-                        return item;
-                throw new KeyNotFoundException(key);
-            }
-            set
-            {
-                var current = First;
-                for (var i = 0; i < Count; i++)
-                {
-                    if (current.Value.Key == key)
-                    {
-                        current.Value = value;
-                        return;
-                    }
-                    current = current.Next;
-                }
-                AddLast(value);
-            }
+            var index = IndexOfKey(key);
+            if (index == -1)
+                return null;
+            return NodeAt(index);
+        }
+
+        protected override JsonKeyValue CreateItemFromKeyValue(string key, object value)
+        {
+            return new JsonKeyValue(key, value);
         }
 
         public override int IndexOfKey(string key)

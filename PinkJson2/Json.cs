@@ -10,20 +10,20 @@ namespace PinkJson2
     {
         public static IJson Parse(StreamReader stream)
         {
-            using (var lexer = new JsonLexer(stream))
-                return JsonParser.Parse(lexer);
+            var lexer = new JsonLexer(stream);
+            return JsonParser.Parse(lexer);
         }
 
         public static IJson Parse(Stream stream, Encoding encoding)
         {
-            using (var lexer = new JsonLexer(stream, encoding))
-                return JsonParser.Parse(lexer);
+            var lexer = new JsonLexer(stream, encoding);
+            return JsonParser.Parse(lexer);
         }
 
         public static IJson Parse(string source)
         {
-            using (var lexer = new JsonLexer(source))
-                return JsonParser.Parse(lexer);
+            var lexer = new JsonLexer(source);
+            return JsonParser.Parse(lexer);
         }
 
         public static IJson Serialize(this object obj)

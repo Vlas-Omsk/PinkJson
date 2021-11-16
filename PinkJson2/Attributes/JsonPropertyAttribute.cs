@@ -9,6 +9,7 @@ namespace PinkJson2
         public string DeserializerName { get; set; }
         public bool SerializerIgnore { get; set; }
         public bool DeserializerIgnore { get; set; }
+        public bool IsValueType { get; set; }
 
         public JsonPropertyAttribute()
         {
@@ -19,7 +20,7 @@ namespace PinkJson2
             Name = name;
         }
 
-        public string Name { set => SerializerName = DeserializerName = value; }
-        public bool Ignore { set => SerializerIgnore = DeserializerIgnore = value; }
+        public string Name { get => throw new NotSupportedException(); set => SerializerName = DeserializerName = value; }
+        public bool Ignore { get => throw new NotSupportedException(); set => SerializerIgnore = DeserializerIgnore = value; }
     }
 }

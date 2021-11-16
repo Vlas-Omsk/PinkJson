@@ -65,10 +65,17 @@ namespace PinkJson2.Serializers
 
                 if (jsonPropertyAttribute.SerializerName != null)
                     key = jsonPropertyAttribute.SerializerName;
+
+                if (!jsonPropertyAttribute.IsValueType)
+                    value = SerializeValue(value, type);
+            }
+            else
+            {
+                value = SerializeValue(value, type);
             }
 
             key = TransformKey(key);
-            jsonKeyValue = new JsonKeyValue(key, SerializeValue(value, type));
+            jsonKeyValue = new JsonKeyValue(key, value);
 
             return true;
         }

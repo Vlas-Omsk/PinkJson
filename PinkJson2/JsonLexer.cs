@@ -7,7 +7,7 @@ using System.Text;
 
 namespace PinkJson2
 {
-    public sealed class JsonLexer : IEnumerable<Token>, IDisposable
+    public sealed class JsonLexer : IEnumerable<Token>
     {
         public StreamReader Stream { get; }
 
@@ -63,11 +63,6 @@ namespace PinkJson2
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
-        }
-
-        public void Dispose()
-        {
-            Stream.Dispose();
         }
 
         private void ReadNext()

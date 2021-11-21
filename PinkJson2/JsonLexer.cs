@@ -43,6 +43,11 @@ namespace PinkJson2
             }
         }
 
+        private int BufferLength
+        {
+            get => _buffer.Length;
+        }
+
         public IEnumerator<Token> GetEnumerator()
         {
             Stream.BaseStream.Position = 0;
@@ -77,16 +82,16 @@ namespace PinkJson2
         private void EnableBuffer()
         {
             _useBuffer = true;
-            _buffer += _current.Value;
+            _buffer = _current.Value.ToString();
+        }
+
+        private void DisableBuffer()
+        {
+            _useBuffer = false;
         }
 
         private void Get()
         {
-            if (_useBuffer)
-            {
-                _buffer = string.Empty;
-                _useBuffer = false;
-            }
             _token = new Token();
             ReadNext();
             _token.Position = _startPosition = _position;
@@ -175,21 +180,21 @@ namespace PinkJson2
                 }
                 else if (lowerCurrent == 'x')
                 {
-                    if (valueBase == 16 || previous != '0' || _buffer.Length > 2)
+                    if (valueBase == 16 || previous != '0' || BufferLength > 2)
                         throw new JsonLexerException("Invalid hexadecimal number", _position, Stream);
                     else
                         valueBase = 16;
                 }
                 else if (lowerCurrent == 'o')
                 {
-                    if (valueBase == 8 || previous != '0' || _buffer.Length > 2)
+                    if (valueBase == 8 || previous != '0' || BufferLength > 2)
                         throw new JsonLexerException("Invalid octal number", _position, Stream);
                     else
                         valueBase = 8;
                 }
-                else if (lowerCurrent == 'b' && previous == '0' && _buffer.Length == 2)
+                else if (lowerCurrent == 'b' && previous == '0' && BufferLength == 2)
                 {
-                    if (valueBase == 2 || previous != '0' || _buffer.Length > 2)
+                    if (valueBase == 2 || previous != '0' || BufferLength > 2)
                         throw new JsonLexerException("Invalid binary number", _position, Stream);
                     else
                         valueBase = 2;
@@ -201,6 +206,8 @@ namespace PinkJson2
                         throw new JsonLexerException($"Invalid character '{_current}' for {valueBase}-based number", _position, Stream);
                 }
             }
+
+            DisableBuffer();
 
             if (isEnumber || isDouble)
             {
@@ -238,7 +245,7 @@ namespace PinkJson2
                 //    _token.Value = bigintvalue;
                 else
                 {
-                    if (_buffer.Length < 40)
+                    if (BufferLength < 40)
                         throw new JsonLexerException($"Invalid or too big number {_buffer}", _startPosition, Stream);
                     else
                         throw new JsonLexerException($"Well.. It's seriously big number {_buffer}. I.. I even can't imagine how to handle it. No, seriously. Maybe you know how?", _startPosition, Stream);
@@ -313,6 +320,7 @@ namespace PinkJson2
                 }
                 else
                 {
+                    // UNDONE: Too slow, slower when using StringBuilder
                     value += _current;
                 }
             }
@@ -329,6 +337,8 @@ namespace PinkJson2
 
             while (Next.HasValue && char.IsLetterOrDigit(Next.Value))
                 ReadNext();
+
+            DisableBuffer();
 
             if (_buffer == "null")
             {

@@ -14,7 +14,15 @@ namespace PinkJson2.Tests
     {
         static void Main(string[] args)
         {
+			JsonParserPerformanceTest();
 			Console.ReadLine();
+		}
+
+		static void JsonParserPerformanceTest()
+		{
+			var dt = DateTime.Now;
+			Json.Parse(File.OpenText("detectable.json"));
+			Console.WriteLine((DateTime.Now - dt).TotalMilliseconds + " ms");
 		}
 
 		static void LinqToJsonTest()
@@ -68,13 +76,6 @@ namespace PinkJson2.Tests
 			product.Sizes = new string[] { "Small" };
 			var json = product.Serialize();
 			Console.WriteLine(json.ToString(new PrettyFormatter()));
-		}
-
-		static void JsonParserPerformanceTest()
-        {
-			var dt = DateTime.Now;
-			Json.Parse(File.OpenText("detectable.json"));
-			Console.WriteLine((DateTime.Now - dt).TotalMilliseconds + " ms");
 		}
 
 		static void DynamicJsonTest()

@@ -21,25 +21,30 @@ namespace PinkJson2
 
         private static string Create(string message, int pos, StreamReader stream)
         {
-            var startPos = pos - _range;
-            var arrowPos = (int)_range;
-            if (startPos < 0)
+            var content = "Impossible to seek in stream.";
+
+            if (stream.BaseStream.CanSeek)
             {
-                startPos = 0;
-                arrowPos = pos;
+                var startPos = pos - _range;
+                var arrowPos = (int)_range;
+                if (startPos < 0)
+                {
+                    startPos = 0;
+                    arrowPos = pos;
+                }
+                var endPos = pos + _range;
+                var length = endPos - startPos;
+
+                var buffer = new char[startPos + length];
+                stream.BaseStream.Position = 0;
+                stream.DiscardBufferedData();
+                length = stream.Read(buffer, 0, startPos + length);
+                Array.Resize(ref buffer, length);
+                content = string.Join("", buffer);
+                content = content.Substring(startPos).Insert(arrowPos, " --->");
             }
-            var endPos = pos + _range;
-            var length = endPos - startPos;
 
-            var buffer = new char[startPos + length];
-            stream.BaseStream.Position = 0;
-            stream.DiscardBufferedData();
-            length = stream.Read(buffer, 0, startPos + length);
-            Array.Resize(ref buffer, length);
-            var content = string.Join("", buffer);
-            var l = content.Length;
-
-            return $"{message} (Position: {pos})\r\nWhere:\r\n{content.Substring(startPos).Insert(arrowPos, " --->")}";
+            return $"{message} (Position: {pos})\r\nWhere:\r\n{content}";
         }
     }
 }

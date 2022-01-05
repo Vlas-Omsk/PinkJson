@@ -196,6 +196,7 @@ namespace PinkJson2.Serializers
 
         private object TransformValue(object value, Type type)
         {
+            var valueType = value?.GetType();
             if (type == typeof(DateTime))
             {
                 if (value is string)
@@ -203,7 +204,7 @@ namespace PinkJson2.Serializers
                 else
                     throw new Exception($"Can't convert value of type {value.GetType()} to {type}");
             }
-            else if (type != value.GetType())
+            else if (type != valueType)
                 return Convert.ChangeType(value, type);
             else
                 return value;

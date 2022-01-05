@@ -17,6 +17,7 @@ namespace PinkJson2
         private string _buffer;
         private bool _useBuffer = false;
         private char? _current;
+        private char? _next;
         private readonly char[] numberChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', '.', 'x', 'o', 'b' };
         private readonly char[] hexadecimalChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
@@ -38,8 +39,13 @@ namespace PinkJson2
         {
             get
             {
-                var next = Stream.Peek();
-                return next == -1 ? null : (char?)next;
+                // if Stream.BaseStream is ChunkedEncodingReadStream Stream.Peek return -1 if position in end of chunk
+                if (!_next.HasValue)
+                {
+                    var next = Stream.Read();
+                    _next = next == -1 ? null : (char?)next;
+                }
+                return _next;
             }
         }
 
@@ -50,11 +56,10 @@ namespace PinkJson2
 
         public IEnumerator<Token> GetEnumerator()
         {
-            Stream.BaseStream.Position = 0;
             Stream.DiscardBufferedData();
             _position = -1;
             _startPosition = 0;
-            while (!Stream.EndOfStream)
+            while (Next.HasValue)
             {
                 Get();
 
@@ -73,8 +78,16 @@ namespace PinkJson2
         private void ReadNext()
         {
             _position++;
-            var current = Stream.Read();
-            _current = current == -1 ? null : (char?)current;
+            if (_next.HasValue)
+            {
+                _current = _next;
+                _next = null;
+            }
+            else
+            {
+                var current = Stream.Read();
+                _current = current == -1 ? null : (char?)current;
+            }
             if (_useBuffer && _current.HasValue)
                 _buffer += _current.Value;
         }

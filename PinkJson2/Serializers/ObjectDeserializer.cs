@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 
 namespace PinkJson2.Serializers
@@ -39,13 +38,28 @@ namespace PinkJson2.Serializers
         {
             if (value != null)
             {
-                if (HelperSerializer.IsArray(type))
+                if (type.IsAssignableTo(typeof(IJson)))
+                    return value;
+                else if (HelperSerializer.IsArray(type))
                     return DeserializeArray((IJson)value, type, false);
                 else if (!IsValueType(type))
                     return DeserializeObject((IJson)value, type, false);
             }
 
-            return TransformValue(value, type);
+            var valueType = value?.GetType();
+            if (type == typeof(DateTime))
+            {
+                if (value is string)
+                    return DateTime.Parse((string)value);
+                else
+                    throw new Exception($"Can't convert value of type {value.GetType()} to {type}");
+            }
+            else if (type.IsEnum)
+                return Enum.Parse(type, (string)value);
+            else if (type != valueType)
+                return Convert.ChangeType(value, type);
+            else
+                return value;
         }
 
         private object DeserializeObject(IJson json, Type type, bool isRoot)
@@ -75,7 +89,7 @@ namespace PinkJson2.Serializers
             var fields = type.GetFields(FieldBindingFlags);
 
             foreach (var property in properties)
-                if (TryDeserializeMember(property, property.PropertyType, json, out object value))
+                if ((!DeserializerIgnoreReadOnlyProperty || property.SetMethod != null) && TryDeserializeMember(property, property.PropertyType, json, out object value))
                 {
                     if (!isAnonymouseType)
                         property.SetValue(obj, value);
@@ -172,12 +186,12 @@ namespace PinkJson2.Serializers
                 return enumerableType.GenericTypeArguments[0];
         }
 
-        private IList CreateArray(JsonArray json, Type type, Type elementType)
+        private IEnumerable CreateArray(JsonArray json, Type type, Type elementType)
         {
             if (type.IsArray)
                 return Array.CreateInstance(elementType, json.Count);
             else
-                return (IList)CreateObject(json, type);
+                return (IEnumerable)CreateObject(json, type);
         }
 
         private object CreateObject(IJson json, Type type)
@@ -192,22 +206,6 @@ namespace PinkJson2.Serializers
                 return null;
 
             throw new Exception($"No matching constructors found for object of type {type}");
-        }
-
-        private object TransformValue(object value, Type type)
-        {
-            var valueType = value?.GetType();
-            if (type == typeof(DateTime))
-            {
-                if (value is string)
-                    return DateTime.Parse((string)value);
-                else
-                    throw new Exception($"Can't convert value of type {value.GetType()} to {type}");
-            }
-            else if (type != valueType)
-                return Convert.ChangeType(value, type);
-            else
-                return value;
         }
     }
 }

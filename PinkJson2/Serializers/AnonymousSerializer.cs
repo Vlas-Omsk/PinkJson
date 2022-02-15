@@ -7,6 +7,9 @@ namespace PinkJson2.Serializers
     [Obsolete("Use " + nameof(ObjectConverter) + " instead")]
     public sealed class AnonymousSerializer : ISerializer
     {
+        public bool IgnoreRootCustomSerializer { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public bool IgnoreCustomSerializers { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
         public AnonymousSerializer()
         {
         }

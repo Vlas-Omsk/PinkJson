@@ -67,35 +67,9 @@ namespace PinkJson2.Formatters
 
         private void FormatValue(object value)
         {
-            string str;
-
-            if (value is null)
-                str = "null";
-            else if (value is bool)
-                str = ((bool)value) ? "true" : "false";
-            else if (value is DateTime)
-                str = '\"' + ((DateTime)value).ToString("yyyy-MM-ddTHH:mm:ss.fffZ") + '\"';
-            else if (value is sbyte
-                    || value is byte
-                    || value is short
-                    || value is ushort
-                    || value is int
-                    || value is uint
-                    || value is long
-                    || value is ulong
-                    || value is float
-                    || value is double
-                    || value is decimal)
-                str = value.ToString().Replace(',', '.');
-            else if (value is IJson)
-            {
-                FormatJson(value as IJson);
-                return;
-            }
-            else
-                str = $"\"{value.ToString().EscapeString()}\"";
-
-            _stringBuilder.Append(str);
+            var str = Formatter.FormatValue(value, FormatJson);
+            if (str != null)
+                _stringBuilder.Append(str);
         }
     }
 }

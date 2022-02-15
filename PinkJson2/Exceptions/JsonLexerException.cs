@@ -40,11 +40,11 @@ namespace PinkJson2
                 stream.DiscardBufferedData();
                 length = stream.Read(buffer, 0, startPos + length);
                 Array.Resize(ref buffer, length);
-                content = string.Join("", buffer);
+                content = "\r\n" + string.Join("", buffer);
                 content = content.Substring(startPos).Insert(arrowPos, " --->");
             }
 
-            return $"{message} (Position: {pos})\r\nWhere:\r\n{content}";
+            return $"{message} (Position: {pos})\r\nWhere: {content}";
         }
     }
 }

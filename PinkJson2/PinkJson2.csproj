@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="Attributes\JsonPropertyAttribute.cs" />
     <Compile Include="CharExtension.cs" />
+    <Compile Include="DateTimeExtension.cs" />
     <Compile Include="Entities\IDynamicJson.cs" />
     <Compile Include="Entities\JsonChild.cs" />
     <Compile Include="Entities\JsonMetaObject.cs" />
@@ -54,6 +55,7 @@
     <Compile Include="Exceptions\KeyNotFoundException.cs" />
     <Compile Include="Exceptions\UnexpectedEndOfStreamException.cs" />
     <Compile Include="Exceptions\UnexpectedTokenException.cs" />
+    <Compile Include="Formatters\Formatter.cs" />
     <Compile Include="Formatters\PrettyFormatter.cs" />
     <Compile Include="Formatters\IFormatter.cs" />
     <Compile Include="Formatters\MinifiedFormatter.cs" />
@@ -81,6 +83,7 @@
     <Compile Include="StringExtension.cs" />
     <Compile Include="Token.cs" />
     <Compile Include="TokenType.cs" />
+    <Compile Include="TypeExtension.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

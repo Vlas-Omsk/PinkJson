@@ -12,6 +12,8 @@ namespace PinkJson2.Serializers
         public bool IgnoreRootCustomDeserializer { get; set; } = false;
         public bool IgnoreCustomSerializers { get; set; } = false;
         public bool IgnoreCustomDeserializers { get; set; } = false;
+        public bool DeserializerIgnoreReadOnlyProperty { get; set; } = true;
+        public bool SerializerIgnoreWriteOnlyProperties { get; set; } = true;
 
         private bool TryGetJsonPropertyAttribute(MemberInfo memberInfo, out JsonPropertyAttribute jsonPropertyAttribute)
         {
@@ -21,7 +23,7 @@ namespace PinkJson2.Serializers
 
         private static bool IsValueType(Type type)
         {
-            return type.IsValueType || type == typeof(string) || type == typeof(object);
+            return type.IsValueType || type == typeof(string);
         }
 
         protected virtual string TransformKey(string key)

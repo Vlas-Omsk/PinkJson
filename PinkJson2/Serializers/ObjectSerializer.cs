@@ -18,13 +18,15 @@ namespace PinkJson2.Serializers
                 throw new Exception($"Can't convert object of type {type} to json");
         }
 
-        private object SerializeValue(object value, Type valueType)
+        private object SerializeValue(object value, Type type)
         {
             if (value != null)
             {
-                if (HelperSerializer.IsArray(valueType))
+                if (type.IsAssignableTo(typeof(IJson)))
+                    return value;
+                else if (HelperSerializer.IsArray(type))
                     value = SerializeArray(value, false);
-                else if (!IsValueType(valueType))
+                else if (!IsValueType(type))
                     value = SerializeObject(value, false);
             }
 
@@ -44,7 +46,9 @@ namespace PinkJson2.Serializers
             jsonObject = new JsonObject();
 
             foreach (var property in properties)
-                if (TrySerializeMember(property, property.PropertyType, property.GetValue(obj), out JsonKeyValue jsonKeyValue))
+                if ((!SerializerIgnoreWriteOnlyProperties || property.GetMethod != null) &&
+                    property.Name != "Item" &&
+                    TrySerializeMember(property, property.PropertyType, property.GetValue(obj), out JsonKeyValue jsonKeyValue))
                     ((JsonObject)jsonObject).AddLast(jsonKeyValue);
             foreach (var field in fields)
                 if (TrySerializeMember(field, field.FieldType, field.GetValue(obj), out JsonKeyValue jsonKeyValue))

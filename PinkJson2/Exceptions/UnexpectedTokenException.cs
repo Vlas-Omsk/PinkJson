@@ -7,7 +7,7 @@ namespace PinkJson2
     {
         public Token Token { get; }
 
-        public UnexpectedTokenException(Token token, TokenType[] expectedTokenTypes, Stack<string> path) :
+        public UnexpectedTokenException(Token token, TokenType[] expectedTokenTypes, IEnumerable<string> path) :
             base($"Unexpectedt token {token.Type} expected {string.Join(", ", expectedTokenTypes)} (Position: {token.Position})", path)
         {
             Token = token;

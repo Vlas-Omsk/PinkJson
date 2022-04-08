@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace PinkJson2
 {
-    public class InvalidJsonFormatException : Exception
+    public class InvalidJsonFormatException : JsonParserException
     {
-        public InvalidJsonFormatException() : base("Invalid json format")
+        public InvalidJsonFormatException(IEnumerable<string> path) : base("Invalid json format", path)
         {
         }
     }

@@ -98,7 +98,7 @@ namespace PinkJson2
 
         public static IJson AsJson(this IJson json)
         {
-            return json.Value as JsonObject;
+            return json.Value as IJson;
         }
 
         public static bool ContainsKey(this IJson json, string key)

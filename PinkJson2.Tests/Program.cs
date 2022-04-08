@@ -1,12 +1,11 @@
 ﻿using PinkJson2.Formatters;
 using PinkJson2.Serializers;
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Security.Cryptography;
 
 namespace PinkJson2.Tests
 {
@@ -14,16 +13,104 @@ namespace PinkJson2.Tests
     {
         static void Main(string[] args)
         {
-			JsonParserPerformanceTest();
+			//  ____  _       _       _                 
+			// |  _ \(_)_ __ | | __  | |___  ___  _ __  
+			// | |_) | | '_ \| |/ /  | / __|/ _ \| '_ \ 
+			// |  __/| | | | |   < |_| \__ \ (_) | | | |
+			// |_|   |_|_| |_|_|\_\___/|___/\___/|_| |_|
+
+			Console.ForegroundColor = ConsoleColor.White;
+			Console.BackgroundColor = ConsoleColor.Magenta;
+			Console.WriteLine(@" ____  _       _    ");
+			Console.WriteLine(@"|  _ \(_)_ __ | | __");
+			Console.WriteLine(@"| |_) | | '_ \| |/ /");
+			Console.WriteLine(@"|  __/| | | | |   < ");
+			Console.WriteLine(@"|_|   |_|_| |_|_|\_\");
+			Console.WriteLine(@"                    ");
+			Console.ForegroundColor = ConsoleColor.Magenta;
+			Console.BackgroundColor = ConsoleColor.White;
+			Console.SetCursorPosition(20, 0);
+			Console.WriteLine(@"   _                 ");
+			Console.SetCursorPosition(20, 1);
+			Console.WriteLine(@"  | |___  ___  _ __  ");
+			Console.SetCursorPosition(20, 2);
+			Console.WriteLine(@"  | / __|/ _ \| '_ \ ");
+			Console.SetCursorPosition(20, 3);
+			Console.WriteLine(@"|_| \__ \ (_) | | | |");
+			Console.SetCursorPosition(20, 4);
+			Console.WriteLine(@"___/|___/\___/|_| |_|");
+			Console.SetCursorPosition(20, 5);
+			Console.WriteLine(@"                     ");
+			Console.ResetColor();
+
+			Console.WriteLine();
+
+			// new: 9 ms
+			JsonParserPerformanceTest("json.txt");
+			Console.WriteLine();
+
+			// old: 157 ms
+			// new: 83 ms
+			JsonParserPerformanceTest("detectable.json");
+			Console.WriteLine();
+
+			LinqToJsonTest();
+			Console.WriteLine();
+
+			DeserializeJsonTest();
+			Console.WriteLine();
+
+			SerializeJsonTest();
+			Console.WriteLine();
+
+			DynamicJsonTest();
+			Console.WriteLine();
+
+			JsonLexerTest();
+			Console.WriteLine();
+
 			Console.ReadLine();
 		}
 
-		static void JsonParserPerformanceTest()
+		static void JsonParserPerformanceTest(string fileName)
 		{
-			var dt = DateTime.Now;
-			Json.Parse(File.OpenText("detectable.json"));
-			Console.WriteLine((DateTime.Now - dt).TotalMilliseconds + " ms");
+			using (var md5 = MD5.Create())
+			using (var stream = File.OpenRead(fileName))
+				Console.WriteLine(string.Concat(md5.ComputeHash(stream).Select(x => x.ToString("X2"))));
+
+			var sw = Stopwatch.StartNew();
+
+			using (var stream = File.OpenText(fileName))
+				Json.Parse(stream);
+
+			sw.Stop();
+
+			long objectsCount;
+
+			using (var stream = File.OpenText(fileName))
+            {
+				var json = Json.Parse(stream);
+				objectsCount = GetLength(json as IEnumerable<IJson>);
+			}
+
+			var fileInfo = new FileInfo(fileName);
+
+			Console.WriteLine("Elapsed " + sw.ElapsedMilliseconds + " ms");
+			Console.WriteLine("File length " + fileInfo.Length + " symbols");
+			Console.WriteLine("Json objects count " + objectsCount);
 		}
+
+		static long GetLength(IEnumerable<IJson> json)
+        {
+			long length = 0;
+            foreach (var item in json)
+            {
+                if (item.Value is IEnumerable<IJson> list)
+					length += GetLength(list);
+                length++;
+            }
+            return length;
+        }
 
 		static void LinqToJsonTest()
         {

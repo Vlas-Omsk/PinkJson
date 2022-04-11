@@ -21,26 +21,26 @@ namespace PinkJson2.Tests
 
 			Console.ForegroundColor = ConsoleColor.White;
 			Console.BackgroundColor = ConsoleColor.Magenta;
-			Console.WriteLine(@" ____  _       _    ");
-			Console.WriteLine(@"|  _ \(_)_ __ | | __");
-			Console.WriteLine(@"| |_) | | '_ \| |/ /");
-			Console.WriteLine(@"|  __/| | | | |   < ");
-			Console.WriteLine(@"|_|   |_|_| |_|_|\_\");
-			Console.WriteLine(@"                    ");
+			Console.WriteLine(@" ____  _       _     ");
+			Console.WriteLine(@"|  _ \(_)_ __ | | __ ");
+			Console.WriteLine(@"| |_) | | '_ \| |/ / ");
+			Console.WriteLine(@"|  __/| | | | |   <  ");
+			Console.WriteLine(@"|_|   |_|_| |_|_|\_\ ");
+			Console.WriteLine(@"                     ");
 			Console.ForegroundColor = ConsoleColor.Magenta;
 			Console.BackgroundColor = ConsoleColor.White;
-			Console.SetCursorPosition(20, 0);
-			Console.WriteLine(@"   _                 ");
-			Console.SetCursorPosition(20, 1);
-			Console.WriteLine(@"  | |___  ___  _ __  ");
-			Console.SetCursorPosition(20, 2);
-			Console.WriteLine(@"  | / __|/ _ \| '_ \ ");
-			Console.SetCursorPosition(20, 3);
-			Console.WriteLine(@"|_| \__ \ (_) | | | |");
-			Console.SetCursorPosition(20, 4);
-			Console.WriteLine(@"___/|___/\___/|_| |_|");
-			Console.SetCursorPosition(20, 5);
-			Console.WriteLine(@"                     ");
+			Console.SetCursorPosition(21, 0);
+			Console.WriteLine(@"    _                 ");
+			Console.SetCursorPosition(21, 1);
+			Console.WriteLine(@"   | |___  ___  _ __  ");
+			Console.SetCursorPosition(21, 2);
+			Console.WriteLine(@"   | / __|/ _ \| '_ \ ");
+			Console.SetCursorPosition(21, 3);
+			Console.WriteLine(@"  _| \__ \ (_) | | | |");
+			Console.SetCursorPosition(21, 4);
+			Console.WriteLine(@" \___/___/\___/|_| |_|");
+			Console.SetCursorPosition(21, 5);
+			Console.WriteLine(@"                      ");
 			Console.ResetColor();
 
 			Console.WriteLine();
@@ -119,7 +119,7 @@ namespace PinkJson2.Tests
 			array.AddValueLast(new DateTime(2000, 5, 23));
 
 			var o = new JsonObject();
-			o["MyArray"] = array;
+			o.SetKey("MyArray", "test");
 
 			var json = o.ToString(new PrettyFormatter());
 			Console.WriteLine(json);
@@ -174,6 +174,7 @@ namespace PinkJson2.Tests
 				'binary': 0b00101010
             }".Replace('\'', '"'));
 			var b = json.@decimal._2 = new JsonArrayValue(new JsonArray(new JsonArrayValue(new JsonArray(new JsonArrayValue("hello")))));
+			json.@decimal._2 = new JsonArrayValue(new JsonArray(new JsonArrayValue(new JsonArray(new JsonArrayValue("hello")))));
 			IJson ddd = Json.Parse(json.ToString());
 			Console.WriteLine(ddd.ToString(new PrettyFormatter()));
 		}

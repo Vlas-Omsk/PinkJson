@@ -74,15 +74,23 @@ namespace PinkJson2
 
         public static T Get<T>(this IJson json)
         {
-            if (json.Value is null)
+            var value = json.Value;
+            if (value is null)
                 return default;
+
+            var valueType = value.GetType();
+            var targetType = typeof(T);
+
+            if (valueType == targetType || targetType.IsAssignableFrom(valueType))
+                return (T)value;
+
             try
             {
-                return (T)Convert.ChangeType(json.Value, typeof(T));
+                return (T)Convert.ChangeType(value, targetType);
             }
-            catch
+            catch (InvalidCastException)
             {
-                return (T)json.Value;
+                return default;
             }
         }
 

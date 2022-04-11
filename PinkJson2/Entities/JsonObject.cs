@@ -17,29 +17,63 @@ namespace PinkJson2
         {
         }
 
-        protected override LinkedListNode<JsonKeyValue> GetNodeByKey(string key)
+        public override IJson this[string key]
         {
-            var index = IndexOfKey(key);
-            if (index == -1)
-                return null;
-            return NodeAt(index);
+            get => NodeAt(key).Value;
+            set
+            {
+                var child = AsChild(value);
+                if (child.Key != key)
+                    throw new KeyNotMatchException(key, child.Key);
+                NodeAt(key).Value = child;
+            }
         }
 
-        protected override JsonKeyValue CreateItemFromKeyValue(string key, object value)
+        public override int SetIndex(object value, int index = -1)
         {
-            return new JsonKeyValue(key, value);
+            throw new NotSupportedForTypeException(GetType());
         }
 
-        public override int IndexOfKey(string key)
+        public override void SetKey(string key, object value)
+        {
+            var node = NodeAtOrDefault(key);
+            if (node == null)
+                AddLast(new JsonKeyValue(key, value));
+            else
+                node.Value.Value = value;
+        }
+
+        protected override LinkedListNode<JsonKeyValue> NodeAtOrDefaultInternal(string key, out int index)
         {
             var current = First;
-            for (var i = 0; i < Count; i++)
+            for (index = 0; index < Count; index++)
             {
                 if (current.Value.Key == key)
-                    return i;
+                    return current;
                 current = current.Next;
             }
-            return -1;
+            index = -1;
+            return null;
+        }
+
+        public LinkedListNode<JsonKeyValue> AddValueAfter(LinkedListNode<JsonKeyValue> node, string key, object value)
+        {
+            return AddAfter(node, new JsonKeyValue(key, value));
+        }
+
+        public LinkedListNode<JsonKeyValue> AddValueBefore(LinkedListNode<JsonKeyValue> node, string key, object value)
+        {
+            return AddBefore(node, new JsonKeyValue(key, value));
+        }
+
+        public LinkedListNode<JsonKeyValue> AddValueFirst(string key, object value)
+        {
+            return AddFirst(new JsonKeyValue(key, value));
+        }
+
+        public LinkedListNode<JsonKeyValue> AddValueLast(string key, object value)
+        {
+            return AddLast(new JsonKeyValue(key, value));
         }
     }
 }

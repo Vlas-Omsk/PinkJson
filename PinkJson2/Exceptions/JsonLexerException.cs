@@ -3,7 +3,7 @@ using System.IO;
 
 namespace PinkJson2
 {
-    public class JsonLexerException : Exception
+    public class JsonLexerException : PinkJsonException
     {
         public int Position { get; }
 

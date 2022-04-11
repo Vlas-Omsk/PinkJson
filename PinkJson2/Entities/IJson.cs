@@ -5,11 +5,12 @@ namespace PinkJson2
     public interface IJson
     {
         object Value { get; set; }
-        IJson this[object key] { get; set; }
+        int Count { get; }
         IJson this[string key] { get; set; }
         IJson this[int index] { get; set; }
 
-        int IndexOfKey(object key);
         int IndexOfKey(string key);
+        void SetKey(string key, object value);
+        int SetIndex(object value, int index = -1);
     }
 }

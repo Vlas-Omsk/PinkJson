@@ -1,15 +1,14 @@
 ﻿using PinkJson2.Formatters;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq.Expressions;
 
 namespace PinkJson2
 {
-    public abstract class JsonRoot<T> : LinkedList<T>, IDynamicJson, IList<T> where T: IJson
+    public abstract class JsonRoot<T> : LinkedList<T>, IDynamicJson, IList<T>, IList where T: IJson
     {
-        object IJson.Value { get => this; set => throw new NotSupportedException($"An object of type {GetType()} does not support set Value"); }
-
         internal JsonRoot()
         {
         }
@@ -22,83 +21,58 @@ namespace PinkJson2
         {
         }
 
-        public object this[object key]
+        #region IJson
+
+        object IJson.Value
         {
-            get => this[key.ToString()];
-            set => this[key.ToString()] = value;
+            get => this;
+            set => throw new NotSupportedForTypeException(GetType());
         }
 
-        public object this[string key]
+        public abstract IJson this[string key] { get; set; }
+
+        public IJson this[int index]
         {
-            get => ((IJson)this)[key].Value;
-            set
-            {
-                var node = GetNodeByKey(key);
-                if (node != null)
-                    node.Value.Value = value;
-                else
-                    AddLast(CreateItemFromKeyValue(key, value));
-            }
+            get => NodeAt(index).Value;
+            set => NodeAt(index).Value = AsChild(value);
         }
 
-        public object this[int index]
+        public int IndexOfKey(string key)
         {
-            get => ((IList<T>)this)[index].Value;
-            set => ((IList<T>)this)[index].Value = value;
+            NodeAtOrDefaultInternal(key, out int index);
+            return index;
         }
 
-        IJson IJson.this[object key]
+        public abstract void SetKey(string key, object value);
+
+        public abstract int SetIndex(object value, int index = -1);
+        #endregion
+
+        #region IDynamicJson
+
+        public DynamicMetaObject GetMetaObject(Expression parameter)
         {
-            get => ((IJson)this)[key.ToString()];
-            set => ((IJson)this)[key.ToString()] = value;
+            return new JsonMetaObject(parameter, this);
         }
 
-        IJson IJson.this[string key]
+        object IDynamicJson.DynamicGetValue(JsonMetaObject jsonMetaObject, string propertyName)
         {
-            get
-            {
-                var node = GetNodeByKey(key);
-                if (node == null)
-                    throw new KeyNotFoundException(key);
-                return node.Value;
-            }
-            set
-            {
-                if (!(value is T))
-                    throw new InvalidObjectTypeException(typeof(T));
-                var node = GetNodeByKey(key);
-                if (node != null)
-                    node.Value = (T)value;
-                else
-                    AddLast((T)value);
-            }
+            return jsonMetaObject.GetValue(propertyName);
         }
 
-        IJson IJson.this[int index]
+        object IDynamicJson.DynamicSetValue(JsonMetaObject jsonMetaObject, string propertyName, object value)
         {
-            get => ((IList<T>)this)[index];
-            set
-            {
-                if (!(value is T))
-                    throw new InvalidObjectTypeException(typeof(T));
-                ((IList<T>)this)[index] = (T)value;
-            }
+            return jsonMetaObject.SetValue(propertyName, value);
         }
+
+        #endregion
+
+        #region IList<T>
 
         T IList<T>.this[int index]
         {
             get => NodeAt(index).Value;
             set => NodeAt(index).Value = value;
-        }
-
-        protected virtual LinkedListNode<T> GetNodeByKey(string key)
-        {
-            throw new NotSupportedException($"An object of type {GetType()} does not support a getters and setters by key '{key}'");
-        }
-
-        protected virtual T CreateItemFromKeyValue(string key, object value)
-        {
-            throw new NotSupportedException($"An object of type {GetType()} does not support a getters and setters by key '{key}'");
         }
 
         public int IndexOf(T item)
@@ -123,26 +97,97 @@ namespace PinkJson2
             Remove(NodeAt(index));
         }
 
+        #endregion
+
+        #region IList
+
+        bool IList.IsReadOnly => false;
+
+        bool IList.IsFixedSize => false;
+
+        object IList.this[int index] 
+        { 
+            get => this[index].Value;
+            set => SetIndex(value, index);
+        }
+
+        int IList.Add(object value)
+        {
+            if (!(value is T))
+                throw new InvalidObjectTypeException(typeof(T));
+            AddLast((T)value);
+            return IndexOf((T)value);
+        }
+
+        bool IList.Contains(object value)
+        {
+            return ((IList)this).IndexOf(value) != -1;
+        }
+
+        int IList.IndexOf(object value)
+        {
+            if (!(value is T))
+                throw new InvalidObjectTypeException(typeof(T));
+            return IndexOf((T)value);
+        }
+
+        void IList.Insert(int index, object value)
+        {
+            if (!(value is T))
+                throw new InvalidObjectTypeException(typeof(T));
+            var node = NodeAt(index);
+            AddAfter(node, (T)value);
+        }
+
+        void IList.Remove(object value)
+        {
+            if (!(value is T))
+                throw new InvalidObjectTypeException(typeof(T));
+            Remove((T)value);
+        }
+
+        #endregion
+
+        protected T AsChild(IJson value)
+        {
+            if (!(value is T child))
+                throw new InvalidObjectTypeException(typeof(T));
+            return child;
+        }
+
+        public LinkedListNode<T> NodeAt(string key)
+        {
+            var node = NodeAtOrDefault(key);
+            if (node == null)
+                throw new KeyNotFoundException(key);
+            return node;
+        }
+
+        public LinkedListNode<T> NodeAtOrDefault(string key)
+        {
+            return NodeAtOrDefaultInternal(key, out _);
+        }
+
+        protected abstract LinkedListNode<T> NodeAtOrDefaultInternal(string key, out int index);
+
         public LinkedListNode<T> NodeAt(int index)
         {
-            if (index >= Count || index < 0)
+            var node = NodeAtOrDefault(index);
+            if (node == null)
                 throw new IndexOutOfRangeException();
+            return node;
+        }
+
+        public LinkedListNode<T> NodeAtOrDefault(int index)
+        {
+            if (index >= Count || index < 0)
+                return null;
 
             var current = First;
             for (var i = 0; i < index; i++)
                 current = current.Next;
 
             return current;
-        }
-
-        public int IndexOfKey(object key)
-        {
-            return IndexOfKey(key.ToString());
-        }
-
-        public virtual int IndexOfKey(string key)
-        {
-            throw new NotSupportedException($"An object of type {GetType()} does not support a search by key '{key}'");
         }
 
         public void ForEach(Action<T> action)
@@ -168,21 +213,6 @@ namespace PinkJson2
         public override string ToString()
         {
             return new MinifiedFormatter().Format(this);
-        }
-
-        public DynamicMetaObject GetMetaObject(Expression parameter)
-        {
-            return new JsonMetaObject(parameter, this);
-        }
-
-        object IDynamicJson.DynamicGetValue(JsonMetaObject jsonMetaObject, string propertyName)
-        {
-            return jsonMetaObject.GetValue(propertyName);
-        }
-
-        object IDynamicJson.DynamicSetValue(JsonMetaObject jsonMetaObject, string propertyName, object value)
-        {
-            return jsonMetaObject.SetValue(propertyName, value);
         }
     }
 }

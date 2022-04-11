@@ -14,72 +14,40 @@ namespace PinkJson2
             Value = value;
         }
 
-        public IJson this[object key]
-        {
-            get
-            {
-                if (!(Value is IJson))
-                    throw new InvalidObjectTypeException(typeof(IJson));
-                return (Value as IJson)[key];
-            }
-            set
-            {
-                if (!(Value is IJson))
-                    throw new InvalidObjectTypeException(typeof(IJson));
-                (Value as IJson)[key] = value;
-            }
-        }
+        #region IJson
+
+        public int Count => ValueAsJson().Count;
 
         public IJson this[string key]
         {
-            get
-            {
-                if (!(Value is IJson))
-                    throw new InvalidObjectTypeException(typeof(IJson));
-                return (Value as IJson)[key];
-            }
-            set
-            {
-                if (!(Value is IJson))
-                    throw new InvalidObjectTypeException(typeof(IJson));
-                (Value as IJson)[key] = value;
-            }
+            get => ValueAsJson()[key];
+            set => ValueAsJson()[key] = value;
         }
 
         public IJson this[int index]
         {
-            get
-            {
-                if (!(Value is IJson))
-                    throw new InvalidObjectTypeException(typeof(IJson));
-                return (Value as IJson)[index];
-            }
-            set
-            {
-                if (!(Value is IJson))
-                    throw new InvalidObjectTypeException(typeof(IJson));
-                (Value as IJson)[index] = value;
-            }
-        }
-
-        public int IndexOfKey(object key)
-        {
-            if (!(Value is IJson))
-                throw new InvalidObjectTypeException(typeof(IJson));
-            return (Value as IJson).IndexOfKey(key);
+            get => ValueAsJson()[index];
+            set => ValueAsJson()[index] = value;
         }
 
         public int IndexOfKey(string key)
         {
-            if (!(Value is IJson))
-                throw new InvalidObjectTypeException(typeof(IJson));
-            return (Value as IJson).IndexOfKey(key);
+            return ValueAsJson().IndexOfKey(key);
         }
 
-        public override string ToString()
+        public void SetKey(string key, object value)
         {
-            return new MinifiedFormatter().Format(this);
+            ValueAsJson().SetKey(key, value);
         }
+
+        public int SetIndex(object value, int index = -1)
+        {
+            return ValueAsJson().SetIndex(value, index);
+        }
+
+        #endregion
+
+        #region IDynamicJson
 
         public DynamicMetaObject GetMetaObject(Expression parameter)
         {
@@ -94,6 +62,20 @@ namespace PinkJson2
         object IDynamicJson.DynamicSetValue(JsonMetaObject jsonMetaObject, string propertyName, object value)
         {
             return jsonMetaObject.SetValue(propertyName, value);
+        }
+
+        #endregion
+
+        private IJson ValueAsJson()
+        {
+            if (!(Value is IJson json))
+                throw new InvalidObjectTypeException(typeof(IJson));
+            return json;
+        }
+
+        public override string ToString()
+        {
+            return new MinifiedFormatter().Format(this);
         }
     }
 }

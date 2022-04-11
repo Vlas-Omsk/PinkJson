@@ -17,24 +17,55 @@ namespace PinkJson2
         {
         }
 
+        public override IJson this[string key]
+        {
+            get => throw new NotSupportedForTypeException(GetType());
+            set => throw new NotSupportedForTypeException(GetType());
+        }
+
+        public override int SetIndex(object value, int index = -1)
+        {
+            var node = NodeAtOrDefault(index);
+            if (node == null)
+            {
+                AddLast(new JsonArrayValue(value));
+                return Count - 1;
+            }
+            else
+            {
+                node.Value.Value = value;
+                return index;
+            }
+        }
+
+        public override void SetKey(string key, object value)
+        {
+            throw new NotSupportedForTypeException(GetType());
+        }
+
+        protected override LinkedListNode<JsonArrayValue> NodeAtOrDefaultInternal(string key, out int index)
+        {
+            throw new NotSupportedForTypeException(GetType());
+        }
+
         public LinkedListNode<JsonArrayValue> AddValueAfter(LinkedListNode<JsonArrayValue> node, object value)
         {
-            return base.AddAfter(node, new JsonArrayValue(value));
+            return AddAfter(node, new JsonArrayValue(value));
         }
 
         public LinkedListNode<JsonArrayValue> AddValueBefore(LinkedListNode<JsonArrayValue> node, object value)
         {
-            return base.AddBefore(node, new JsonArrayValue(value));
+            return AddBefore(node, new JsonArrayValue(value));
         }
 
         public LinkedListNode<JsonArrayValue> AddValueFirst(object value)
         {
-            return base.AddFirst(new JsonArrayValue(value));
+            return AddFirst(new JsonArrayValue(value));
         }
 
         public LinkedListNode<JsonArrayValue> AddValueLast(object value)
         {
-            return base.AddLast(new JsonArrayValue(value));
+            return AddLast(new JsonArrayValue(value));
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace PinkJson2
 {
-    public class InvalidObjectTypeException : Exception
+    public class InvalidObjectTypeException : PinkJsonException
     {
         public InvalidObjectTypeException(Type type) : this(type.ToString())
         {

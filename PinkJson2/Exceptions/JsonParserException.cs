@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace PinkJson2
 {
-    public class JsonParserException : Exception
+    public class JsonParserException : PinkJsonException
     {
         public IEnumerable<string> Path { get; }
         public new JsonLexerException InnerException { get; }

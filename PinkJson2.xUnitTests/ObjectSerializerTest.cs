@@ -155,5 +155,21 @@ namespace PinkJson2.xUnitTests
             Assert.Equal(product.Sizes, newProduct.Sizes);
             Assert.Equal(newProduct, newProduct.MetaProduct);
         }
+
+        [Fact]
+        public void ValueTypeSerialize()
+        {
+            var dict = new List<DictionaryEntry>();
+            dict.Add(new DictionaryEntry("test1", "test1_value"));
+            dict.Add(new DictionaryEntry("test2", "test2_value"));
+            dict.Add(new DictionaryEntry("test3", "test3_value"));
+
+            var json = dict.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true });
+            var dict2 = json.Deserialize<DictionaryEntry[]>();
+
+            Assert.Equal(dict[0], dict2[0]);
+            Assert.Equal(dict[1], dict2[1]);
+            Assert.Equal(dict[2], dict2[2]);
+        }
     }
 }

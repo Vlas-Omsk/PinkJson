@@ -39,8 +39,8 @@ namespace PinkJson2.Serializers
             try
             {
                 if (type.IsArrayType())
-                    instance = DeserializeArray(json, type, instance, GetElementType(type), useJsonDeserialize);
-                else if (!type.IsValueType())
+                    instance = DeserializeArray(json, type, instance, createObject, useJsonDeserialize);
+                else if (!type.IsPrimitiveType())
                     DeserializeObject(json, type, instance, createObject, value => instance = value, useJsonDeserialize);
                 else
                     throw new Exception($"Can't convert json of type {json.GetType()} to an object of type {type}");
@@ -69,12 +69,19 @@ namespace PinkJson2.Serializers
         private void DeserializeValue(object value, Type type, Action<object> setValue)
         {
             if (value == null)
+            {
                 setValue(null);
-            else if (type.IsAssignableTo(typeof(IJson)))
+                return;
+            }
+
+            if (value.GetType().IsAssignableTo(type))
+                type = value.GetType();
+
+            if (type.IsAssignableTo(typeof(IJson)))
                 setValue(value);
             else if (type.IsArrayType())
-                setValue(DeserializeArray((IJson)value, type, true));
-            else if (!type.IsValueType())
+                setValue(DeserializeArray((IJson)value, type, null, true, true));
+            else if (!type.IsPrimitiveType())
                 DeserializeObject((IJson)value, type, null, true, setValue, true);
             else
                 setValue(TypeHelper.ChangeType(type, value));
@@ -207,16 +214,13 @@ namespace PinkJson2.Serializers
             });
         }
 
-        private object DeserializeArray(IJson json, Type type, bool useJsonDeserialize)
+        private object DeserializeArray(IJson json, Type type, object obj, bool createObject, bool useJsonDeserialize)
         {
             var elementType = GetElementType(type);
-            var obj = CreateArray(json, type, elementType);
 
-            return DeserializeArray(json, type, obj, elementType, useJsonDeserialize);
-        }
+            if (createObject)
+                obj = CreateArray(json, type, elementType);
 
-        private object DeserializeArray(IJson json, Type type, object obj, Type elementType, bool useJsonDeserialize)
-        {
             if (useJsonDeserialize && TryJsonDeserialize(obj, json))
                 return obj;
 

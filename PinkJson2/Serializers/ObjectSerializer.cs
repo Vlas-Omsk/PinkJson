@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace PinkJson2.Serializers
 {
@@ -35,7 +36,7 @@ namespace PinkJson2.Serializers
 
                 if (type.IsArrayType())
                     return SerializeArray(instance, useJsonSerialize);
-                else if (!type.IsValueType())
+                else if (!type.IsPrimitiveType())
                     return SerializeObject(instance, useJsonSerialize);
                 else
                     throw new Exception($"Can't convert object of type {type} to json");
@@ -51,11 +52,14 @@ namespace PinkJson2.Serializers
             if (value == null)
                 return null;
 
+            if (value.GetType().IsAssignableTo(type))
+                type = value.GetType();
+
             if (type.IsAssignableTo(typeof(IJson)))
                 return value;
             else if (type.IsArrayType())
                 return SerializeArray(value, true);
-            else if (!type.IsValueType())
+            else if (!type.IsPrimitiveType())
                 return SerializeObject(value, true);
 
             return TypeHelper.ChangeType(type, value);
@@ -107,6 +111,22 @@ namespace PinkJson2.Serializers
 
                 _ids.Add(obj);
                 jsonObject = new JsonObject();
+            }
+
+            if (obj is ISerializable serializable)
+            {
+                var formatter = new FormatterConverter();
+                var info = new SerializationInfo(obj.GetType(), formatter);
+                serializable.GetObjectData(info, new StreamingContext());
+
+                foreach (var prop in info)
+                {
+                    var key = TransformKey(prop.Name);
+                    var jsonKeyValue = new JsonKeyValue(key, SerializeValue(prop.Value, prop.ObjectType));
+                    ((JsonObject)jsonObject).AddLast(jsonKeyValue);
+                }
+
+                return jsonObject;
             }
 
             var type = obj.GetType();

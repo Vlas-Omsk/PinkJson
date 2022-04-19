@@ -6,8 +6,8 @@ namespace PinkJson2
 {
     public sealed class JsonParser
     {
-        private IEnumerator<Token> _enumerator;
-        private Stack<string> _path = new Stack<string>();
+        private readonly IEnumerator<Token> _enumerator;
+        private readonly Stack<string> _path = new Stack<string>();
 
         private const string _rootObjectName = "root";
 

@@ -2,7 +2,7 @@
 
 namespace PinkJson2.Serializers
 {
-    public interface ICustomDeserializable
+    public interface IJsonDeserializable
     {
         void Deserialize(IDeserializer deserializer, IJson json);
     }

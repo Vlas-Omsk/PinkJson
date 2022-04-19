@@ -26,19 +26,33 @@ namespace PinkJson2
             return JsonParser.Parse(lexer);
         }
 
-        public static IJson Serialize(this object obj)
+        public static IJson Serialize(this object instance)
         {
-            return Serialize(obj, new ObjectConverter());
+            var serializer = new ObjectSerializer();
+            return Serialize(instance, serializer);
         }
 
-        public static IJson Serialize(this object obj, ISerializer serializer)
+        public static IJson Serialize(this object instance, ObjectSerializerOptions options)
         {
-            return serializer.Serialize(obj);
+            var serializer = new ObjectSerializer(options);
+            return Serialize(instance, serializer);
+        }
+
+        public static IJson Serialize(this object instance, ISerializer serializer)
+        {
+            return serializer.Serialize(instance);
         }
 
         public static T Deserialize<T>(this IJson json)
         {
-            return Deserialize<T>(json, new ObjectConverter());
+            var deserializer = new ObjectDeserializer();
+            return Deserialize<T>(json, deserializer);
+        }
+
+        public static T Deserialize<T>(this IJson json, ObjectSerializerOptions options)
+        {
+            var deserializer = new ObjectDeserializer(options);
+            return Deserialize<T>(json, deserializer);
         }
 
         public static T Deserialize<T>(this IJson json, IDeserializer deserializer)
@@ -50,7 +64,14 @@ namespace PinkJson2
 
         public static object Deserialize(this IJson json, Type type)
         {
-            return Deserialize(json, type, new ObjectConverter());
+            var deserializer = new ObjectDeserializer();
+            return Deserialize((IJson)json.Value, type, deserializer);
+        }
+
+        public static object Deserialize(this IJson json, Type type, ObjectSerializerOptions options)
+        {
+            var deserializer = new ObjectDeserializer(options);
+            return Deserialize((IJson)json.Value, type, deserializer);
         }
 
         public static object Deserialize(this IJson json, Type type, IDeserializer deserializer)
@@ -60,38 +81,13 @@ namespace PinkJson2
             return deserializer.Deserialize((IJson)json.Value, type);
         }
 
-        public static object DeserializeToObject(this IJson json, object rootObj)
-        {
-            return DeserializeToObject(json, rootObj, new ObjectConverter());
-        }
-
-        public static object DeserializeToObject(this IJson json, object rootObj, IDeserializer deserializer)
-        {
-            if (!(json.Value is IJson))
-                throw new InvalidObjectTypeException(typeof(IJson));
-            return deserializer.DeserializeToObject((IJson)json.Value, rootObj);
-        }
-
         public static T Get<T>(this IJson json)
         {
             var value = json.Value;
             if (value is null)
                 return default;
 
-            var valueType = value.GetType();
-            var targetType = typeof(T);
-
-            if (valueType == targetType || targetType.IsAssignableFrom(valueType))
-                return (T)value;
-
-            try
-            {
-                return (T)Convert.ChangeType(value, targetType);
-            }
-            catch (InvalidCastException)
-            {
-                return default;
-            }
+            return (T)TypeHelper.ChangeType(typeof(T), value);
         }
 
         public static JsonArray AsArray(this IJson json)

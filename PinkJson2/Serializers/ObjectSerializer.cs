@@ -1,53 +1,121 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace PinkJson2.Serializers
 {
-    public partial class ObjectConverter : ISerializer
+    public class ObjectSerializer : ISerializer
     {
-        public IJson Serialize(object obj)
-        {
-            var type = obj.GetType();
+        public ObjectSerializerOptions Options { get; set; }
 
-            if (HelperSerializer.IsArray(type))
-                return SerializeArray(obj, true);
-            else if (!IsValueType(type))
-                return SerializeObject(obj, true);
-            else
-                throw new Exception($"Can't convert object of type {type} to json");
+        private const string _indexerPropertyName = "Item";
+        private readonly List<object> _ids = new List<object>();
+
+        public ObjectSerializer()
+        {
+            Options = ObjectSerializerOptions.Default;
+        }
+
+        public ObjectSerializer(ObjectSerializerOptions options)
+        {
+            Options = options ?? throw new ArgumentNullException(nameof(options));
+        }
+
+        public IJson Serialize(object instance)
+        {
+            return Serialize(instance, true);
+        }
+
+        public IJson Serialize(object instance, bool useJsonSerialize)
+        {
+            try
+            {
+                var type = instance.GetType();
+
+                if (type.IsArrayType())
+                    return SerializeArray(instance, useJsonSerialize);
+                else if (!type.IsValueType())
+                    return SerializeObject(instance, useJsonSerialize);
+                else
+                    throw new Exception($"Can't convert object of type {type} to json");
+            }
+            finally
+            {
+                _ids.Clear();
+            }
         }
 
         private object SerializeValue(object value, Type type)
         {
-            if (value != null)
-            {
-                if (type.IsAssignableTo(typeof(IJson)))
-                    return value;
-                else if (HelperSerializer.IsArray(type))
-                    value = SerializeArray(value, false);
-                else if (!IsValueType(type))
-                    value = SerializeObject(value, false);
-            }
+            if (value == null)
+                return null;
 
-            return value;
+            if (type.IsAssignableTo(typeof(IJson)))
+                return value;
+            else if (type.IsArrayType())
+                return SerializeArray(value, true);
+            else if (!type.IsValueType())
+                return SerializeObject(value, true);
+
+            return TypeHelper.ChangeType(type, value);
         }
 
-        private IJson SerializeObject(object obj, bool isRoot)
+        private IJson SerializeObject(object obj, bool useJsonSerialize)
         {
             IJson jsonObject;
 
-            if (TryCustomSerialize(obj, out jsonObject, isRoot))
-                return jsonObject;
+            var id = _ids.IndexOf(obj);
+
+            if (Options.PreserveObjectsReferences)
+            {
+                if (id != -1)
+                    return new JsonObject(new JsonKeyValue("$ref", id));
+
+                if (useJsonSerialize && TryJsonSerialize(obj, out jsonObject))
+                {
+                    id = _ids.IndexOf(obj);
+
+                    if (id == -1)
+                    {
+                        id = _ids.Count;
+                        _ids.Add(obj);
+                    }
+
+                    if (!jsonObject.ContainsKey("$id"))
+                        ((JsonObject)jsonObject).AddLast(new JsonKeyValue("$id", id));
+
+                    return jsonObject;
+                }
+
+                id = _ids.Count;
+                _ids.Add(obj);
+                jsonObject = new JsonObject(new JsonKeyValue("$id", id));
+            }
+            else
+            {
+                if (id != -1)
+                    throw new JsonSerializationException($"Self referencing loop detected");
+
+                if (useJsonSerialize && TryJsonSerialize(obj, out jsonObject))
+                {
+                    if (!_ids.Contains(obj))
+                        _ids.Add(obj);
+
+                    return jsonObject;
+                }
+
+                _ids.Add(obj);
+                jsonObject = new JsonObject();
+            }
 
             var type = obj.GetType();
-            var properties = type.GetProperties(PropertyBindingFlags);
-            var fields = type.GetFields(FieldBindingFlags);
-            jsonObject = new JsonObject();
+            var properties = type.GetProperties(Options.PropertyBindingFlags);
+            var fields = type.GetFields(Options.FieldBindingFlags);
 
             foreach (var property in properties)
-                if ((!SerializerIgnoreWriteOnlyProperties || property.GetMethod != null) &&
-                    property.Name != "Item" &&
+                if (property.GetMethod != null &&
+                    property.Name != _indexerPropertyName &&
                     TrySerializeMember(property, property.PropertyType, property.GetValue(obj), out JsonKeyValue jsonKeyValue))
                     ((JsonObject)jsonObject).AddLast(jsonKeyValue);
             foreach (var field in fields)
@@ -62,7 +130,7 @@ namespace PinkJson2.Serializers
             jsonKeyValue = null;
             var key = memberInfo.Name;
 
-            if (TryGetJsonPropertyAttribute(memberInfo, out JsonPropertyAttribute jsonPropertyAttribute))
+            if (memberInfo.TryGetCustomAttribute(out JsonPropertyAttribute jsonPropertyAttribute))
             {
                 if (jsonPropertyAttribute.SerializerIgnore)
                     return false;
@@ -84,11 +152,9 @@ namespace PinkJson2.Serializers
             return true;
         }
 
-        private IJson SerializeArray(object obj, bool isRoot)
+        private IJson SerializeArray(object obj, bool useJsonSerialize)
         {
-            IJson jsonArray;
-
-            if (TryCustomSerialize(obj, out jsonArray, isRoot))
+            if (useJsonSerialize && TryJsonSerialize(obj, out IJson jsonArray))
                 return jsonArray;
 
             var enumerable = (IEnumerable)obj;
@@ -100,15 +166,20 @@ namespace PinkJson2.Serializers
             return jsonArray;
         }
 
-        private bool TryCustomSerialize(object obj, out IJson json, bool isRoot)
+        private bool TryJsonSerialize(object obj, out IJson json)
         {
-            if (!(IgnoreCustomSerializers || (IgnoreRootCustomSerializer && isRoot)) && obj is ICustomSerializable serializable)
+            if (obj is IJsonSerializable serializable)
             {
                 json = serializable.Serialize(this);
                 return true;
             }
             json = null;
             return false;
+        }
+
+        protected virtual string TransformKey(string key)
+        {
+            return key;
         }
     }
 }

@@ -8,7 +8,7 @@ namespace PinkJson2.Formatters
         public IndentStyle IndentStyle { get; set; } = IndentStyle.Space;
         public int IndentSize { get; set; } = 2;
 
-        private StringBuilder _stringBuilder = new StringBuilder();
+        private readonly StringBuilder _stringBuilder = new StringBuilder();
         private int _depth = 0;
         private static readonly string _newLine = Environment.NewLine;
 

@@ -10,10 +10,10 @@ namespace PinkJson2.Formatters
 
             if (value is null)
                 str = "null";
-            else if (value is bool)
-                str = ((bool)value) ? "true" : "false";
-            else if (value is DateTime)
-                str = '\"' + ((DateTime)value).ToISO8601String() + '\"';
+            else if (value is bool b)
+                str = b ? "true" : "false";
+            else if (value is DateTime dt)
+                str = '\"' + dt.ToISO8601String() + '\"';
             else if (value is sbyte
                     || value is byte
                     || value is short

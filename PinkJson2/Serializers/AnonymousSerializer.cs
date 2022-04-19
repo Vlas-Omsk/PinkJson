@@ -4,31 +4,35 @@ using System.Linq;
 
 namespace PinkJson2.Serializers
 {
-    [Obsolete("Use " + nameof(ObjectConverter) + " instead")]
+    [Obsolete("Use " + nameof(ObjectSerializer) + " instead")]
     public sealed class AnonymousSerializer : ISerializer
     {
-        public bool IgnoreRootCustomSerializer { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
-        public bool IgnoreCustomSerializers { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
-
         public AnonymousSerializer()
         {
         }
 
         public IJson Serialize(object obj)
         {
-            if (!HelperSerializer.IsAnonymousType(obj.GetType()))
+            return Serialize(obj, true);
+        }
+
+        public IJson Serialize(object obj, bool useJsonSerialize)
+        {
+            var type = obj.GetType();
+
+            if (!type.IsAnonymousType())
                 throw new InvalidObjectTypeException("AnonymousType");
 
             return SerializeObject(obj);
         }
 
-        private object SerializeValue(object value, Type valueType)
+        private object SerializeValue(object value, Type type)
         {
             if (value != null)
             {
-                if (HelperSerializer.IsAnonymousType(valueType))
+                if (type.IsAnonymousType())
                     value = SerializeObject(value);
-                else if (HelperSerializer.IsArray(valueType))
+                else if (type.IsArrayType())
                     value = SerializeArray((IEnumerable)value);
             }
 
@@ -40,7 +44,7 @@ namespace PinkJson2.Serializers
             var type = obj.GetType();
             var jsonObject = new JsonObject();
 
-            if (HelperSerializer.IsEmptyAnonymousType(type))
+            if (type.IsEmptyAnonymousType())
                 return jsonObject;
 
             var genericType = type.GetGenericTypeDefinition();

@@ -133,5 +133,3 @@ $RECYCLE.BIN/
 .DS_Store
 
 _NCrunch*
-PinkJson2.Tests/json.txt
-PinkJson2.Tests/detectable.json

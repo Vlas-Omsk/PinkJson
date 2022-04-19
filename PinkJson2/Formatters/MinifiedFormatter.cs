@@ -5,7 +5,7 @@ namespace PinkJson2.Formatters
 {
     public sealed class MinifiedFormatter : IFormatter
     {
-        private StringBuilder _stringBuilder = new StringBuilder();
+        private readonly StringBuilder _stringBuilder = new StringBuilder();
 
         public string Format(IJson json)
         {

@@ -9,6 +9,7 @@ namespace PinkJson2
         public string DeserializerName { get; set; }
         public bool SerializerIgnore { get; set; }
         public bool DeserializerIgnore { get; set; }
+        public Type DeserializeToType { get; set; }
         public bool IsValueType { get; set; }
 
         public JsonPropertyAttribute()

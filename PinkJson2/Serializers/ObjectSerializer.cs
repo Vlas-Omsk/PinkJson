@@ -148,6 +148,10 @@ namespace PinkJson2.Serializers
         private bool TrySerializeMember(MemberInfo memberInfo, Type type, object value, out JsonKeyValue jsonKeyValue)
         {
             jsonKeyValue = null;
+
+            if (memberInfo.TryGetCustomAttribute<NonSerializedAttribute>(out _))
+                return false;
+
             var key = memberInfo.Name;
 
             if (memberInfo.TryGetCustomAttribute(out JsonPropertyAttribute jsonPropertyAttribute))

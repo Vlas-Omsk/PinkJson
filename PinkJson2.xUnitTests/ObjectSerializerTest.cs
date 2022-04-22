@@ -4,6 +4,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Runtime.Serialization;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -135,7 +137,7 @@ namespace PinkJson2.xUnitTests
         }
 
         [Fact]
-        public void CustomSerialize()
+        public void CustomSerializeTest()
         {
             var product = new Product2();
             product.Name = "Apple";
@@ -157,7 +159,7 @@ namespace PinkJson2.xUnitTests
         }
 
         [Fact]
-        public void ValueTypeSerialize()
+        public void ValueTypeSerializeTest()
         {
             var dict = new List<DictionaryEntry>();
             dict.Add(new DictionaryEntry("test1", "test1_value"));
@@ -170,6 +172,32 @@ namespace PinkJson2.xUnitTests
             Assert.Equal(dict[0], dict2[0]);
             Assert.Equal(dict[1], dict2[1]);
             Assert.Equal(dict[2], dict2[2]);
+        }
+
+        private class Config : IDeserializationCallback
+        {
+            [JsonProperty(IsValueType = true, DeserializerIgnore = true)]
+            public IPAddress IPAddress { get; set; }
+            public int Port { get; set; }
+
+            public void OnDeserialization(object sender)
+            {
+                IPAddress = IPAddress.Parse("127.0.0.1");
+            }
+        }
+
+        [Fact]
+        public void DeserializationCallbackTest()
+        {
+            var config = new Config();
+            config.IPAddress = IPAddress.Parse("127.0.0.1");
+            config.Port = 1234;
+
+            var json = config.Serialize(new ObjectSerializerOptions()).ToString();
+            var newConfig = Json.Parse(json).Deserialize<Config>();
+
+            Assert.Equal(config.IPAddress, newConfig.IPAddress);
+            Assert.Equal(config.Port, newConfig.Port);
         }
     }
 }

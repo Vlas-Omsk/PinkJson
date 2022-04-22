@@ -135,19 +135,8 @@ namespace PinkJson2.Serializers
             foreach (var field in fields)
                 TryDeserializeMember(field, field.FieldType, json, value => field.SetValue(obj, value));
 
+            NotifyDeserialized(obj);
             setValue(obj);
-        }
-
-        private void TryAddToCache(JsonObject json, object obj, bool canReplace = false)
-        {
-            if (json.ContainsKey("$id"))
-            {
-                var id = json["$id"].Get<int>();
-                if (canReplace)
-                    _ids[id] = obj;
-                else
-                    _ids.Add(id, obj);
-            }
         }
 
         private void DeserializeAnonymouseObject(IJson json, Type type, Action<object> setValue)
@@ -172,6 +161,7 @@ namespace PinkJson2.Serializers
                     {
                         var obj = constructor.Invoke(constructorParameters.Select(x => x.Value).ToArray());
                         TryAddToCache((JsonObject)json, obj);
+                        NotifyDeserialized(obj);
                         setValue(obj);
                     }
                 });
@@ -180,8 +170,29 @@ namespace PinkJson2.Serializers
             }
         }
 
+        private void TryAddToCache(JsonObject json, object obj, bool canReplace = false)
+        {
+            if (json.ContainsKey("$id"))
+            {
+                var id = json["$id"].Get<int>();
+                if (canReplace)
+                    _ids[id] = obj;
+                else
+                    _ids.Add(id, obj);
+            }
+        }
+
+        private void NotifyDeserialized(object obj)
+        {
+            if (obj is IDeserializationCallback deserializationCallback)
+                deserializationCallback.OnDeserialization(this);
+        }
+
         private void TryDeserializeMember(MemberInfo memberInfo, Type type, IJson json, Action<object> setValue)
         {
+            if (memberInfo.TryGetCustomAttribute<NonSerializedAttribute>(out _))
+                return;
+
             var key = memberInfo.Name;
 
             if (memberInfo.TryGetCustomAttribute(out JsonPropertyAttribute jsonPropertyAttribute))
@@ -208,10 +219,7 @@ namespace PinkJson2.Serializers
 
             var jsonValue = json[key].Value;
 
-            DeserializeValue(jsonValue, type, value =>
-            {
-                setValue(value);
-            });
+            DeserializeValue(jsonValue, type, value => setValue(value));
         }
 
         private object DeserializeArray(IJson json, Type type, object obj, bool createObject, bool useJsonDeserialize)

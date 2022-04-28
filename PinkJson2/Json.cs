@@ -87,7 +87,7 @@ namespace PinkJson2
             if (value is null)
                 return default;
 
-            return (T)TypeHelper.ChangeType(typeof(T), value);
+            return (T)TypeConverter.ChangeType(value, typeof(T));
         }
 
         public static JsonArray AsArray(this IJson json)

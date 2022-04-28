@@ -19,7 +19,13 @@ namespace PinkJson2
 
         public static bool IsPrimitiveType(this Type type)
         {
-            return type.IsPrimitive || type == typeof(string) || type == typeof(DateTime) || type == typeof(TimeSpan) || type == typeof(Guid);
+            return 
+                type.IsPrimitive || 
+                type.IsEnum || 
+                type == typeof(string) || 
+                type == typeof(DateTime) || 
+                type == typeof(TimeSpan) || 
+                type == typeof(Guid);
         }
 
         public static bool IsAnonymousType(this Type type)

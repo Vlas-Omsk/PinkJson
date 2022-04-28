@@ -84,7 +84,7 @@ namespace PinkJson2.Serializers
             else if (!type.IsPrimitiveType())
                 DeserializeObject((IJson)value, type, null, true, setValue, true);
             else
-                setValue(TypeHelper.ChangeType(type, value));
+                setValue(TypeConverter.ChangeType(value, type));
         }
 
         private void DeserializeObject(IJson json, Type type, object obj, bool createObject, Action<object> setValue, bool useJsonDeserialize)

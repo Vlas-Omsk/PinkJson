@@ -91,9 +91,12 @@ namespace PinkJson2.Formatters
 
         private void FormatValue(object value)
         {
-            var str = Formatter.FormatValue(value, FormatJson);
-            if (str != null)
-                _stringBuilder.Append(str);
+            if (value is IJson json)
+            {
+                FormatJson(json);
+                return;
+            }
+            _stringBuilder.Append(Formatter.FormatValue(value));
         }
 
         private void AddIndent()

@@ -4,7 +4,7 @@ namespace PinkJson2.Formatters
 {
     public static class Formatter
     {
-        public static string FormatValue(object value, Action<IJson> formatJson)
+        public static string FormatValue(object value)
         {
             string str;
 
@@ -26,11 +26,6 @@ namespace PinkJson2.Formatters
                     || value is double
                     || value is decimal)
                 str = value.ToString().Replace(',', '.');
-            else if (value is IJson)
-            {
-                formatJson(value as IJson);
-                return null;
-            }
             else
                 str = $"\"{value.ToString().EscapeString()}\"";
 

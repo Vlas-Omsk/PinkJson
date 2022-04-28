@@ -85,7 +85,8 @@
     <Compile Include="Serializers\ObjectDeserializer.cs" />
     <Compile Include="Serializers\ObjectSerializerOptions.cs" />
     <Compile Include="Extensions\SerializerExtension.cs" />
-    <Compile Include="TypeHelper.cs" />
+    <Compile Include="TypeConversion.cs" />
+    <Compile Include="TypeConverter.cs" />
     <Compile Include="Serializers\ObjectSerializer.cs" />
     <Compile Include="Extensions\StringExtension.cs" />
     <Compile Include="Token.cs" />

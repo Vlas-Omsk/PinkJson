@@ -114,7 +114,32 @@ namespace PinkJson2.Serializers
             }
 
             if (createObject)
+            {
+                var cctor = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                    .FirstOrDefault(x =>
+                    {
+                        var parameters = x.GetParameters();
+
+                        return parameters.Length == 2 &&
+                            parameters[0].ParameterType == typeof(SerializationInfo) &&
+                            parameters[1].ParameterType == typeof(StreamingContext);
+                    });
+
+                if (cctor != null)
+                {
+                    var formatter = new FormatterConverter();
+                    var info = new SerializationInfo(type, formatter);
+
+                    foreach (var keyValue in json.AsObject())
+                        info.AddValue(TransformKey(keyValue.Key), keyValue.Value);
+
+                    obj = cctor.Invoke(new object[] { info, new StreamingContext() });
+                    setValue(obj);
+                    return;
+                }
+
                 obj = CreateObject(json, type);
+            }
 
             if (useJsonDeserialize && TryJsonDeserialize(obj, json))
             {
@@ -261,7 +286,10 @@ namespace PinkJson2.Serializers
 
         private Type GetElementType(Type type)
         {
-            var enumerableType = type.GetInterface("IEnumerable`1");
+            var enumerableType = type;
+            if (type.Name != "IEnumerable`1")
+                enumerableType = type.GetInterface("IEnumerable`1");
+
             if (enumerableType == null)
                 return typeof(object);
             else

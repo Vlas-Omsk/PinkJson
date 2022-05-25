@@ -7,12 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "json.test", "PinkJson.Tests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PinkJson", "PinkJson\PinkJson.csproj", "{94ACFCD4-6447-4B17-B1B5-FF9451CC874A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PinkJson2", "PinkJson2\PinkJson2.csproj", "{58AEBFE4-90CC-421F-AB46-18D21C0608D5}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PinkJson2.Tests", "PinkJson2.Tests\PinkJson2.Tests.csproj", "{531262D0-D679-4A6A-8D6B-6A77483297FC}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PinkJson2.xUnitTests", "PinkJson2.xUnitTests\PinkJson2.xUnitTests.csproj", "{98015CF3-D7DD-4CF6-B944-848507051E57}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

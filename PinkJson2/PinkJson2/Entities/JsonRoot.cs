@@ -126,9 +126,12 @@ namespace PinkJson2
 
         int IList.IndexOf(object value)
         {
-            if (!(value is T))
+            if (value is int)
+                return (int)value;
+            else if (value is T)
+                return IndexOf((T)value);
+            else
                 throw new InvalidObjectTypeException(typeof(T));
-            return IndexOf((T)value);
         }
 
         void IList.Insert(int index, object value)

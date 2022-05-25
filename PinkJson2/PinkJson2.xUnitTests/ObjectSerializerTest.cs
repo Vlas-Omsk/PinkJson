@@ -169,9 +169,17 @@ namespace PinkJson2.xUnitTests
             var json = dict.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true });
             var dict2 = json.Deserialize<DictionaryEntry[]>();
 
-            Assert.Equal(dict[0], dict2[0]);
-            Assert.Equal(dict[1], dict2[1]);
-            Assert.Equal(dict[2], dict2[2]);
+            _output.WriteLine(json.ToString(new PrettyFormatter()));
+            _output.WriteLine(dict[0].Key.ToString());
+            _output.WriteLine(dict2[0].Key.ToString());
+
+            Assert.Equal(dict[0].Key, dict2[0].Key);
+            Assert.Equal(dict[1].Key, dict2[1].Key);
+            Assert.Equal(dict[2].Key, dict2[2].Key);
+
+            Assert.Equal(dict[0].Value, dict2[0].Value);
+            Assert.Equal(dict[1].Value, dict2[1].Value);
+            Assert.Equal(dict[2].Value, dict2[2].Value);
         }
 
         private class Config : IDeserializationCallback
@@ -198,6 +206,14 @@ namespace PinkJson2.xUnitTests
 
             Assert.Equal(config.IPAddress, newConfig.IPAddress);
             Assert.Equal(config.Port, newConfig.Port);
+        }
+
+        [Fact]
+        public void SerializationConstructorTest()
+        {
+            var myReq = new Exception("1", new Exception("2"));
+            var json = myReq.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true });
+            var myReq2 = json.Deserialize<Exception>();
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -22,10 +23,7 @@ namespace PinkJson2
             return 
                 type.IsPrimitive || 
                 type.IsEnum || 
-                type == typeof(string) || 
-                type == typeof(DateTime) || 
-                type == typeof(TimeSpan) || 
-                type == typeof(Guid);
+                TypeConverter.PrimitiveTypes.Any(x => x == type);
         }
 
         public static bool IsAnonymousType(this Type type)

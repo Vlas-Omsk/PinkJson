@@ -6,7 +6,7 @@ namespace PinkJson2
     {
         public static string ToISO8601String(this DateTime self)
         {
-            return self.ToString("yyyy-MM-ddTHH:mm:ss.fffzzzZ");
+            return self.ToString("yyyy-MM-ddTHH:mm:ss.fffzzz");
         }
     }
 }

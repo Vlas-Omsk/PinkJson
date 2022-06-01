@@ -208,12 +208,78 @@ namespace PinkJson2.xUnitTests
             Assert.Equal(config.Port, newConfig.Port);
         }
 
-        [Fact]
-        public void SerializationConstructorTest()
+        // Not supported
+        //[Fact]
+        //public void SerializationConstructorTest()
+        //{
+        //    var myReq = new Exception("1", new Exception("2"));
+        //    var json = myReq.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true });
+        //    var myReq2 = json.Deserialize<Exception>();
+        //}
+
+#nullable enable
+
+        private class NullableTest1
         {
-            var myReq = new Exception("1", new Exception("2"));
-            var json = myReq.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true });
-            var myReq2 = json.Deserialize<Exception>();
+            public int? Nullable1 { get; set; }
+            public string? Nullable2 { get; set; }
+            public Guid? Nullable3 { get; set; }
+            public int? Nullable4 { get; set; }
+            public Guid? Nullable5 { get; set; }
+            public NullableTest2? Nullable6 { get; set; }
+            public NullableTest2? Nullable7 { get; set; }
         }
+
+        private class NullableTest2
+        {
+            public double? Nullable1 { get; set; }
+        }
+
+        [Fact]
+        public void NullableTypeSerializeTest()
+        {
+            var obj2 = new NullableTest2()
+            {
+                Nullable1 = 12.43
+            };
+            var obj1 = new NullableTest1()
+            {
+                Nullable1 = 231,
+                Nullable2 = "test_str",
+                Nullable3 = Guid.NewGuid(),
+                Nullable4 = null,
+                Nullable5 = null,
+                Nullable6 = obj2,
+                Nullable7 = null
+            };
+
+            var json = Json.Parse(obj1.Serialize().ToString());
+            var obj1_copy = json.Deserialize<NullableTest1>();
+
+            Assert.Equal(obj1.Nullable1, obj1_copy.Nullable1);
+            Assert.Equal(obj1.Nullable2, obj1_copy.Nullable2);
+            Assert.Equal(obj1.Nullable3, obj1_copy.Nullable3);
+            Assert.Equal(obj1.Nullable4, obj1_copy.Nullable4);
+            Assert.Equal(obj1.Nullable5, obj1_copy.Nullable5);
+            Assert.Equal(obj1.Nullable6?.Nullable1, obj1_copy.Nullable6?.Nullable1);
+            Assert.Equal(obj1.Nullable7?.Nullable1, obj1_copy.Nullable7?.Nullable1);
+        }
+
+        [Fact]
+        public void JsonKeyValueDeserializeTest()
+        {
+            var json = new JsonKeyValue("key_test", "29e4796c-8afb-45a1-abff-35782faed48d");
+            var guid = json.Deserialize<Guid?>();
+            var json2 = new JsonKeyValue("key_test", null);
+            var guid2 = json2.Deserialize<Guid?>();
+
+            Assert.NotNull(guid);
+#pragma warning disable CS8629 // Nullable value type may be null.
+            Assert.Equal(guid.Value, Guid.Parse("29e4796c-8afb-45a1-abff-35782faed48d"));
+#pragma warning restore CS8629 // Nullable value type may be null.
+            Assert.Null(guid2);
+        }
+
+#nullable restore
     }
 }

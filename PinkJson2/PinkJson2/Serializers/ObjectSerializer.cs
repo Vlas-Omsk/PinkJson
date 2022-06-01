@@ -62,7 +62,7 @@ namespace PinkJson2.Serializers
             else if (!type.IsPrimitiveType())
                 return SerializeObject(value, true);
 
-            return TypeConverter.ChangeType(value, type);
+            return TypeConverter.ChangeType(value, typeof(object));
         }
 
         private IJson SerializeObject(object obj, bool useJsonSerialize)

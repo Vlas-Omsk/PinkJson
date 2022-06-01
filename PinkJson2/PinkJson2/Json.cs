@@ -57,9 +57,7 @@ namespace PinkJson2
 
         public static T Deserialize<T>(this IJson json, IDeserializer deserializer)
         {
-            if (!(json.Value is IJson))
-                throw new InvalidObjectTypeException(typeof(IJson));
-            return deserializer.Deserialize<T>((IJson)json.Value);
+            return deserializer.Deserialize<T>(json);
         }
 
         public static object Deserialize(this IJson json, Type type)
@@ -76,9 +74,7 @@ namespace PinkJson2
 
         public static object Deserialize(this IJson json, Type type, IDeserializer deserializer)
         {
-            if (!(json.Value is IJson))
-                throw new InvalidObjectTypeException(typeof(IJson));
-            return deserializer.Deserialize((IJson)json.Value, type);
+            return deserializer.Deserialize(json, type);
         }
 
         public static T Get<T>(this IJson json)

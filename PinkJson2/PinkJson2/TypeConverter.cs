@@ -7,8 +7,16 @@ namespace PinkJson2
 {
     public static class TypeConverter
     {
-        private static Dictionary<Type, List<TypeConversion>> _registeredTypes = new Dictionary<Type, List<TypeConversion>>();
-        private static MethodInfo _enumTryParseMethodInfo;
+        internal static List<Type> PrimitiveTypes { get; } = new List<Type>()
+        {
+            typeof(string),
+            typeof(DateTime),
+            typeof(TimeSpan),
+            typeof(Guid)
+        };
+
+        private readonly static Dictionary<Type, List<TypeConversion>> _registeredTypes = new Dictionary<Type, List<TypeConversion>>();
+        private readonly static MethodInfo _enumTryParseMethodInfo;
 
         static TypeConverter()
         {
@@ -53,6 +61,16 @@ namespace PinkJson2
 
                 return null;
             }));
+            Register(typeof(Guid), new TypeConversion((object obj, Type targetType, ref bool handled) =>
+            {
+                if (obj is string value)
+                {
+                    handled = true;
+                    return Guid.Parse(value);
+                }
+
+                return null;
+            }));
         }
 
         public static object ChangeType(object value, Type type)
@@ -64,19 +82,19 @@ namespace PinkJson2
 
             var valueType = value.GetType();
 
-            if (valueType == type || type.IsAssignableFrom(valueType))
-                return value;
-
             if (TryConvert(value, type, out var targetObj))
                 return targetObj;
+
+            if (valueType == type || type.IsAssignableFrom(valueType))
+                return value;
 
             try
             {
                 return Convert.ChangeType(value, type);
             }
-            catch
+            catch (Exception ex)
             {
-                throw new ArgumentException($"Cannot convert value of type {value.GetType()} to type {type}");
+                throw new ArgumentException($"Cannot convert value of type {value.GetType()} to type {type}", ex);
             }
         }
 
@@ -111,8 +129,7 @@ namespace PinkJson2
                 targetObj = typeConversion.TypeConversionCallback.Invoke(obj, targetType, ref handled);
                 if (handled)
                 {
-                    if (targetObj.GetType() != targetType)
-                        throw new InvalidObjectTypeException(targetType);
+                    CompareObjectToType(targetObj, targetType);
                     return true;
                 }
             }
@@ -127,13 +144,24 @@ namespace PinkJson2
                 targetObj = typeConversion.TypeConversionBackCallback.Invoke(obj, targetType, ref handled);
                 if (handled)
                 {
-                    if (targetObj.GetType() != targetType)
-                        throw new InvalidObjectTypeException(targetType);
+                    CompareObjectToType(targetObj, targetType);
                     return true;
                 }
             }
 
             return false;
+        }
+
+        private static void CompareObjectToType(object obj, Type targetType)
+        {
+            if (obj != null)
+                return;
+
+            var objType = obj.GetType();
+
+            if (objType != targetType &&
+                !objType.IsAssignableTo(targetType))
+                throw new InvalidObjectTypeException(targetType);
         }
 
         public static void Register(Type type, TypeConversion typeConversion)
@@ -142,6 +170,16 @@ namespace PinkJson2
                 _registeredTypes[type] = typeConversions = new List<TypeConversion>();
 
             typeConversions.Add(typeConversion);
+        }
+
+        public static void AddPrimitiveType(Type type)
+        {
+            PrimitiveTypes.Add(type);
+        }
+
+        public static void RemovePrimitiveType(Type type)
+        {
+            PrimitiveTypes.Remove(type);
         }
     }
 }

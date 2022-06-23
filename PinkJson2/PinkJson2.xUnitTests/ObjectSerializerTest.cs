@@ -71,7 +71,9 @@ namespace PinkJson2.xUnitTests
         {
             var root = new { Name = "Root" };
             var file = new { Name = "ImportantLegalDocument.docx", Root = root };
-            var documents = new { Name = "My Documents", Parent = root, Files = new[] { file, file } };
+            var documents = new { Name = "My Documents", Parent = root, Files = new[] { file, file, file } };
+
+            documents.Files[0] = new { Name = "ImportantLegalDocument2.docx", Root = root };
 
             ObjectSerializerOptions.Default.PreserveObjectsReferences = true;
 
@@ -80,11 +82,11 @@ namespace PinkJson2.xUnitTests
             _output.WriteLine(json.ToString(new PrettyFormatter()));
 
             var obj = json.Deserialize(documents.GetType());
-
             var files = ((IEnumerable)obj.GetType().GetProperty("Files").GetValue(obj)).Cast<object>();
 
-            Assert.Equal(files.ElementAt(0).GetType().GetProperty("Name").GetValue(files.ElementAt(1)), file.Name);
-            Assert.Equal(files.ElementAt(1).GetType().GetProperty("Name").GetValue(files.ElementAt(1)), file.Name);
+            Assert.Equal(documents.Files[0].Name, (string)files.ElementAt(0).GetType().GetProperty("Name").GetValue(files.ElementAt(0)));
+            Assert.Equal(documents.Files[1].Name, (string)files.ElementAt(1).GetType().GetProperty("Name").GetValue(files.ElementAt(1)));
+            Assert.Equal(documents.Files[2].Name, (string)files.ElementAt(2).GetType().GetProperty("Name").GetValue(files.ElementAt(2)));
         }
 
         private class Product
@@ -122,14 +124,14 @@ namespace PinkJson2.xUnitTests
             {
                 if (!json.ContainsKey("id"))
                     throw new Exception("id is gone");
-                deserializer.Deserialize(json, this, false);
+                deserializer.Deserialize(json, this);
                 DeserializeCallsCount++;
 
             }
 
             public IJson Serialize(ISerializer serializer)
             {
-                var json = serializer.Serialize(this, false);
+                var json = serializer.Serialize(this);
                 json.SetKey("id", Guid.NewGuid());
                 SerializeCallsCount++;
                 return json;
@@ -151,7 +153,8 @@ namespace PinkJson2.xUnitTests
             var json = product.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true });
             var newProduct = json.Deserialize<Product2>();
 
-            Assert.Equal(Product2.SerializeCallsCount, Product2.DeserializeCallsCount);
+            Assert.Equal(1, Product2.SerializeCallsCount);
+            Assert.Equal(1, Product2.DeserializeCallsCount);
             Assert.Equal(product.Name, newProduct.Name);
             Assert.Equal(product.Expiry, newProduct.Expiry);
             Assert.Equal(product.Sizes, newProduct.Sizes);
@@ -208,14 +211,22 @@ namespace PinkJson2.xUnitTests
             Assert.Equal(config.Port, newConfig.Port);
         }
 
-        // Not supported
-        //[Fact]
-        //public void SerializationConstructorTest()
-        //{
-        //    var myReq = new Exception("1", new Exception("2"));
-        //    var json = myReq.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true });
-        //    var myReq2 = json.Deserialize<Exception>();
-        //}
+        [Fact]
+        public void SerializationConstructorWithSelfReferencesTest()
+        {
+            var ex2 = new Exception("2");
+            var ex1 = new Exception("1", ex2);
+            ex2.GetType()
+                .GetField("_innerException", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                .SetValue(ex2, ex1);
+
+            var json = ex1.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true }).ToString();
+            var ex1_clone = Json.Parse(json).Deserialize<Exception>();
+
+            Assert.Equal(ex1.Message, ex1_clone.Message);
+            Assert.True(ex1.InnerException.InnerException == ex1);
+            Assert.True(ex1.InnerException.InnerException.InnerException.InnerException == ex1);
+        }
 
 #nullable enable
 

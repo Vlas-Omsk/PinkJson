@@ -91,8 +91,9 @@ namespace PinkJson2
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
+
             if (value == null)
-                throw new ArgumentNullException(nameof(value));
+                return value;
 
             var valueType = value.GetType();
 

@@ -12,6 +12,7 @@ namespace PinkJson2.Serializers
 
         private const string _indexerPropertyName = "Item";
         private readonly List<object> _ids = new List<object>();
+        private bool _running;
 
         public ObjectSerializer()
         {
@@ -25,11 +26,14 @@ namespace PinkJson2.Serializers
 
         public IJson Serialize(object instance)
         {
-            return Serialize(instance, true);
+            return Serialize(instance, !_running);
         }
 
         public IJson Serialize(object instance, bool useJsonSerialize)
         {
+            var isCaller = !_running;
+            _running = true;
+
             try
             {
                 var type = instance.GetType();
@@ -43,7 +47,11 @@ namespace PinkJson2.Serializers
             }
             finally
             {
-                _ids.Clear();
+                if (isCaller)
+                {
+                    _ids.Clear();
+                    _running = false;
+                }
             }
         }
 

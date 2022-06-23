@@ -6,7 +6,7 @@ using System.Runtime.Serialization;
 
 namespace PinkJson2.Serializers
 {
-    public class ObjectSerializer : ISerializer
+    public sealed class ObjectSerializer : ISerializer
     {
         public ObjectSerializerOptions Options { get; set; }
 
@@ -36,7 +36,7 @@ namespace PinkJson2.Serializers
 
                 if (type.IsArrayType())
                     return SerializeArray(instance, useJsonSerialize);
-                else if (!type.IsPrimitiveType())
+                else if (!type.IsPrimitiveType(Options.TypeConverter))
                     return SerializeObject(instance, useJsonSerialize);
                 else
                     throw new Exception($"Can't convert object of type {type} to json");
@@ -59,10 +59,10 @@ namespace PinkJson2.Serializers
                 return value;
             else if (type.IsArrayType())
                 return SerializeArray(value, true);
-            else if (!type.IsPrimitiveType())
+            else if (!type.IsPrimitiveType(Options.TypeConverter))
                 return SerializeObject(value, true);
 
-            return TypeConverter.ChangeType(value, typeof(object));
+            return Options.TypeConverter.ChangeType(value, typeof(object));
         }
 
         private IJson SerializeObject(object obj, bool useJsonSerialize)
@@ -121,7 +121,7 @@ namespace PinkJson2.Serializers
 
                 foreach (var prop in info)
                 {
-                    var key = TransformKey(prop.Name);
+                    var key = Options.KeyTransformer.TransformKey(prop.Name);
                     var jsonKeyValue = new JsonKeyValue(key, SerializeValue(prop.Value, prop.ObjectType));
                     ((JsonObject)jsonObject).AddLast(jsonKeyValue);
                 }
@@ -170,7 +170,7 @@ namespace PinkJson2.Serializers
                 value = SerializeValue(value, type);
             }
 
-            key = TransformKey(key);
+            key = Options.KeyTransformer.TransformKey(key);
             jsonKeyValue = new JsonKeyValue(key, value);
 
             return true;
@@ -199,11 +199,6 @@ namespace PinkJson2.Serializers
             }
             json = null;
             return false;
-        }
-
-        protected virtual string TransformKey(string key)
-        {
-            return key;
         }
     }
 }

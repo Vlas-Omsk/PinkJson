@@ -7,7 +7,7 @@ using System.Runtime.Serialization;
 
 namespace PinkJson2.Serializers
 {
-    public class ObjectDeserializer : IDeserializer
+    public sealed class ObjectDeserializer : IDeserializer
     {
         public ObjectSerializerOptions Options { get; set; }
 
@@ -72,9 +72,12 @@ namespace PinkJson2.Serializers
 
         private void DeserializeValue(IJson json, Type type, Action<object> setValue, object instance, bool createObject, bool useJsonDeserialize)
         {
-            if (type == typeof(IJson) || type.IsAssignableTo(typeof(IJson)))
+            type = TryGetUnderlayingType(type);
+
+            if (type != typeof(object) && 
+                (type == typeof(IJson) || type.IsAssignableTo(typeof(IJson))))
             {
-                setValue(json);
+                setValue(json.Value);
                 return;
             }
 
@@ -86,19 +89,17 @@ namespace PinkJson2.Serializers
                 return;
             }
 
-            var underlayingType = Nullable.GetUnderlyingType(type);
-            if (underlayingType != null)
-                type = underlayingType;
+            var valueType = value.GetType();
 
-            if (value.GetType().IsAssignableTo(type))
+            if (valueType != type && valueType.IsAssignableTo(type))
                 type = value.GetType();
 
             if (type.IsArrayType())
                 setValue(DeserializeArray((IJson)value, type, instance, createObject, useJsonDeserialize));
-            else if (!type.IsPrimitiveType())
+            else if (!type.IsPrimitiveType(Options.TypeConverter))
                 DeserializeObject((IJson)value, type, instance, createObject, setValue, useJsonDeserialize);
             else
-                setValue(TypeConverter.ChangeType(value, type));
+                setValue(Options.TypeConverter.ChangeType(value, type));
         }
 
         private void DeserializeObject(IJson json, Type type, object obj, bool createObject, Action<object> setValue, bool useJsonDeserialize)
@@ -248,7 +249,7 @@ namespace PinkJson2.Serializers
                     type = jsonPropertyAttribute.DeserializeToType;
             }
 
-            key = TransformKey(key);
+            key = Options.KeyTransformer.TransformKey(key);
 
             if (!json.ContainsKey(key))
             {
@@ -312,7 +313,7 @@ namespace PinkJson2.Serializers
 
         private IEnumerable CreateArray(IJson json, Type type, Type elementType)
         {
-            if (type.IsArray)
+            if (type.IsArray || type == typeof(IEnumerable) || type.Name == "IEnumerable`1")
                 return Array.CreateInstance(elementType, json.Count);
             else
                 return (IEnumerable)CreateObject(json, type);
@@ -332,17 +333,12 @@ namespace PinkJson2.Serializers
             throw new Exception($"No matching constructors found for object of type {type}");
         }
 
-        private Type TryGetUnderlayingType(Type type)
+        private static Type TryGetUnderlayingType(Type type)
         {
             var underlayingType = Nullable.GetUnderlyingType(type);
             if (underlayingType != null)
                 type = underlayingType;
             return type;
-        }
-
-        protected virtual string TransformKey(string key)
-        {
-            return key;
         }
     }
 }

@@ -72,7 +72,7 @@ namespace PinkJson2.xUnitTests
         [Fact]
         public void RegisterConversionsTest()
         {
-            TypeConverter.Register(typeof(TestType), new TypeConversion((object obj, Type targetType, ref bool handled) =>
+            TypeConverter.Default.Register(typeof(TestType), new TypeConversion((object obj, Type targetType, ref bool handled) =>
             {
                 if (obj is string @string)
                 {
@@ -107,7 +107,7 @@ namespace PinkJson2.xUnitTests
         [Fact]
         public void RegisterConversions2Test()
         {
-            TypeConverter.Register(typeof(string), new TypeConversion(null, (object obj, Type targetType, ref bool handled) =>
+            TypeConverter.Default.Register(typeof(string), new TypeConversion(null, (object obj, Type targetType, ref bool handled) =>
             {
                 if (targetType != typeof(TestType))
                     return null;

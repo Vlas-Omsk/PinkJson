@@ -63,13 +63,13 @@ namespace PinkJson2
         public static object Deserialize(this IJson json, Type type)
         {
             var deserializer = new ObjectDeserializer();
-            return Deserialize((IJson)json.Value, type, deserializer);
+            return Deserialize(json, type, deserializer);
         }
 
         public static object Deserialize(this IJson json, Type type, ObjectSerializerOptions options)
         {
             var deserializer = new ObjectDeserializer(options);
-            return Deserialize((IJson)json.Value, type, deserializer);
+            return Deserialize(json, type, deserializer);
         }
 
         public static object Deserialize(this IJson json, Type type, IDeserializer deserializer)
@@ -79,11 +79,16 @@ namespace PinkJson2
 
         public static T Get<T>(this IJson json)
         {
+            return Get<T>(json, TypeConverter.Default);
+        }
+
+        public static T Get<T>(this IJson json, TypeConverter typeConverter)
+        {
             var value = json.Value;
             if (value is null)
                 return default;
 
-            return (T)TypeConverter.ChangeType(value, typeof(T));
+            return (T)typeConverter.ChangeType(value, typeof(T));
         }
 
         public static JsonArray AsArray(this IJson json)

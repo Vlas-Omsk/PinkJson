@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-	<ProjectReference Include="..\PinkJson2\PinkJson2.csproj"/>
+    <ProjectReference Include="..\PinkJson2\PinkJson2.csproj" />
   </ItemGroup>
 
 </Project>

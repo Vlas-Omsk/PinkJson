@@ -193,7 +193,7 @@ namespace PinkJson2.Serializers
             jsonArray = new JsonArray();
 
             foreach (var item in enumerable)
-                ((JsonArray)jsonArray).AddLast(new JsonArrayValue(SerializeValue(item, item.GetType())));
+                ((JsonArray)jsonArray).AddLast(new JsonArrayValue(SerializeValue(item, item?.GetType())));
 
             return jsonArray;
         }

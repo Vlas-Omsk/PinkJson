@@ -28,6 +28,10 @@ namespace PinkJson2
             Stream = stream;
         }
 
+        public JsonLexer(Stream stream) : this(new StreamReader(stream))
+        {
+        }
+
         public JsonLexer(Stream stream, Encoding encoding) : this(new StreamReader(stream, encoding))
         {
         }

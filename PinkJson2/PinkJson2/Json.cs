@@ -14,6 +14,12 @@ namespace PinkJson2
             return JsonParser.Parse(lexer);
         }
 
+        public static IJson Parse(Stream stream)
+        {
+            var lexer = new JsonLexer(stream);
+            return JsonParser.Parse(lexer);
+        }
+
         public static IJson Parse(Stream stream, Encoding encoding)
         {
             var lexer = new JsonLexer(stream, encoding);

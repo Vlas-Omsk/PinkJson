@@ -45,6 +45,16 @@ namespace PinkJson2
             return ValueAsJson().SetIndex(value, index);
         }
 
+        public bool TryGetValue(string key, out IJson value)
+        {
+            return ValueAsJson().TryGetValue(key, out value);
+        }
+
+        public bool TryGetValue(int index, out IJson value)
+        {
+            return ValueAsJson().TryGetValue(index, out value);
+        }
+
         #endregion
 
         #region IDynamicJson

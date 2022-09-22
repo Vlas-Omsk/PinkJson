@@ -46,6 +46,39 @@ namespace PinkJson2
         public abstract void SetKey(string key, object value);
 
         public abstract int SetIndex(object value, int index = -1);
+
+        public bool TryGetValue(string key, out IJson value)
+        {
+            var node = NodeAtOrDefault(key);
+
+            if (node == null)
+            {
+                value = null;
+                return false;
+            }
+            else
+            {
+                value = node.Value;
+                return true;
+            }
+        }
+
+        public bool TryGetValue(int index, out IJson value)
+        {
+            var node = NodeAtOrDefault(index);
+
+            if (node == null)
+            {
+                value = null;
+                return false;
+            }
+            else
+            {
+                value = node.Value;
+                return true;
+            }
+        }
+
         #endregion
 
         #region IDynamicJson

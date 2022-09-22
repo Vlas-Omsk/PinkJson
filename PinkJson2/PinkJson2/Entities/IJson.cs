@@ -12,5 +12,7 @@ namespace PinkJson2
         int IndexOfKey(string key);
         void SetKey(string key, object value);
         int SetIndex(object value, int index = -1);
+        bool TryGetValue(string key, out IJson value);
+        bool TryGetValue(int index, out IJson value);
     }
 }

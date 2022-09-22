@@ -264,7 +264,7 @@ namespace PinkJson2.Serializers
 
             if (createObject)
             {
-                var cctor = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                var ctor = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                     .FirstOrDefault(x =>
                     {
                         var parameters = x.GetParameters();
@@ -274,19 +274,19 @@ namespace PinkJson2.Serializers
                             parameters[1].ParameterType == typeof(StreamingContext);
                     });
 
-                if (cctor != null)
+                if (ctor != null)
                 {
                     var formatter = new DeserializerFormatterConverter(this);
                     var info = new SerializationInfo(type, formatter);
 
-                    obj = FormatterServices.GetUninitializedObject(typeof(Exception));
+                    obj = FormatterServices.GetUninitializedObject(type);
 
                     TryAddRef(json, obj);
 
                     foreach (var keyValue in json.AsObject())
                         info.AddValue(Options.KeyTransformer.TransformKey(keyValue.Key), keyValue.Value);
 
-                    cctor.Invoke(obj, new object[] { info, new StreamingContext() });
+                    ctor.Invoke(obj, new object[] { info, new StreamingContext() });
                     return obj;
                 }
 
@@ -441,12 +441,12 @@ namespace PinkJson2.Serializers
 
         private object CreateObject(IJson json, Type type)
         {
-            var cctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, Type.DefaultBinder, new Type[] { typeof(IJson) }, null);
-            if (cctor != null)
-                return cctor.Invoke(new object[] { json });
-            cctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, Type.DefaultBinder, Type.EmptyTypes, null);
-            if (cctor != null)
-                return cctor.Invoke(Array.Empty<object>());
+            var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, Type.DefaultBinder, new Type[] { typeof(IJson) }, null);
+            if (ctor != null)
+                return ctor.Invoke(new object[] { json });
+            ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, Type.DefaultBinder, Type.EmptyTypes, null);
+            if (ctor != null)
+                return ctor.Invoke(Array.Empty<object>());
             if (type.IsValueType())
                 return FormatterServices.GetUninitializedObject(type);
 

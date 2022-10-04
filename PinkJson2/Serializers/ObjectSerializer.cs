@@ -38,12 +38,7 @@ namespace PinkJson2.Serializers
             {
                 var type = instance.GetType();
 
-                if (type.IsArrayType())
-                    return SerializeArray(instance, useJsonSerialize);
-                else if (!type.IsPrimitiveType(Options.TypeConverter))
-                    return SerializeObject(instance, useJsonSerialize);
-                else
-                    throw new Exception($"Can't convert object of type {type} to json");
+                return (IJson)SerializeValue(instance, type, useJsonSerialize);
             }
             finally
             {
@@ -57,6 +52,11 @@ namespace PinkJson2.Serializers
 
         private object SerializeValue(object value, Type type)
         {
+            return SerializeValue(value, type, true);
+        }
+
+        private object SerializeValue(object value, Type type, bool useJsonDeserialize)
+        {
             if (value == null)
                 return null;
 
@@ -66,9 +66,9 @@ namespace PinkJson2.Serializers
             if (type.IsAssignableTo(typeof(IJson)))
                 return value;
             else if (type.IsArrayType())
-                return SerializeArray(value, true);
+                return SerializeArray(value, useJsonDeserialize);
             else if (!type.IsPrimitiveType(Options.TypeConverter))
-                return SerializeObject(value, true);
+                return SerializeObject(value, useJsonDeserialize);
 
             return Options.TypeConverter.ChangeType(value, typeof(object));
         }

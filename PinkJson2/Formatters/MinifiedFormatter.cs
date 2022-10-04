@@ -1,19 +1,17 @@
 ﻿using System;
-using System.Text;
+using System.IO;
 
 namespace PinkJson2.Formatters
 {
     public sealed class MinifiedFormatter : IFormatter
     {
-        private readonly StringBuilder _stringBuilder = new StringBuilder();
+        private StreamWriter _stream;
 
-        public string Format(IJson json)
+        public void Format(IJson json, StreamWriter stream)
         {
-            FormatJson(json);
+            _stream = stream;
 
-            var str = _stringBuilder.ToString();
-            _stringBuilder.Clear();
-            return str;
+            FormatJson(json);
         }
 
         private void FormatJson(IJson json)
@@ -30,39 +28,39 @@ namespace PinkJson2.Formatters
 
         private void FormatObject(JsonObject json)
         {
-            _stringBuilder.Append('{');
+            _stream.Write('{');
             if (json.Count > 0)
             {
                 json.ForEach((item, i) =>
                 {
                     FormatKeyValue(item);
                     if (i < json.Count - 1)
-                        _stringBuilder.Append(',');
+                        _stream.Write(',');
                 });
             }
-            _stringBuilder.Append('}');
+            _stream.Write('}');
         }
 
         private void FormatKeyValue(JsonKeyValue json)
         {
-            _stringBuilder.Append($"\"{json.Key.EscapeString()}\"");
-            _stringBuilder.Append(':');
+            _stream.Write($"\"{json.Key.EscapeString()}\"");
+            _stream.Write(':');
             FormatValue(json.Value);
         }
 
         private void FormatArray(JsonArray json)
         {
-            _stringBuilder.Append('[');
+            _stream.Write('[');
             if (json.Count > 0)
             {
                 json.ForEach((item, i) =>
                 {
                     FormatValue(item);
                     if (i < json.Count - 1)
-                        _stringBuilder.Append(',');
+                        _stream.Write(',');
                 });
             }
-            _stringBuilder.Append(']');
+            _stream.Write(']');
         }
 
         private void FormatValue(object value)
@@ -72,7 +70,7 @@ namespace PinkJson2.Formatters
                 FormatJson(json);
                 return;
             }
-            _stringBuilder.Append(Formatter.FormatValue(value));
+            _stream.Write(Formatter.FormatValue(value));
         }
     }
 }

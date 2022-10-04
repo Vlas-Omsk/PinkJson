@@ -119,7 +119,17 @@ namespace PinkJson2
 
         public static string ToString(this IJson json, IFormatter formatter)
         {
-            return formatter.Format(json);
+            return formatter.FormatToString(json);
+        }
+
+        public static void ToStream(this IJson json, StreamWriter stream)
+        {
+            json.ToStream(new MinifiedFormatter(), stream);
+        }
+
+        public static void ToStream(this IJson json, IFormatter formatter, StreamWriter stream)
+        {
+            formatter.Format(json, stream);
         }
     }
 }

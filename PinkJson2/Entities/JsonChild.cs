@@ -85,7 +85,7 @@ namespace PinkJson2
 
         public override string ToString()
         {
-            return new MinifiedFormatter().Format(this);
+            return new MinifiedFormatter().FormatToString(this);
         }
     }
 }

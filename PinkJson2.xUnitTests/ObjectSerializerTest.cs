@@ -292,5 +292,54 @@ namespace PinkJson2.xUnitTests
         }
 
 #nullable restore
+
+        [Fact]
+        public void JsonArrayWithNullValueTest()
+        {
+            var json = new object[]
+            {
+                1,
+                "2",
+                null,
+                3.3,
+                null
+            }.Serialize();
+
+            Assert.Equal(1, json[0].Get<int>());
+            Assert.Equal("2", json[1].Get<string>());
+            Assert.Null(json[2].Value);
+            Assert.Equal(3.3, json[3].Get<double>());
+            Assert.Null(json[4].Value);
+        }
+
+        [Fact]
+        public void SerializeJsonObjectToJsonTest()
+        {
+            var json = new JsonObject()
+            {
+                new JsonKeyValue("testKey1", "testValue1"),
+                new JsonKeyValue("testKey2", "testValue2"),
+                new JsonKeyValue("testKey3", "testValue3"),
+            };
+
+            var serializedJson = json.Serialize();
+
+            Assert.Equal(json, serializedJson);
+        }
+
+        [Fact]
+        public void SerializeJsonArrayToJsonTest()
+        {
+            var json = new JsonArray()
+            {
+                new JsonArrayValue("testValue1"),
+                new JsonArrayValue("testValue2"),
+                new JsonArrayValue("testValue3"),
+            };
+
+            var serializedJson = json.Serialize();
+
+            Assert.Equal(json, serializedJson);
+        }
     }
 }

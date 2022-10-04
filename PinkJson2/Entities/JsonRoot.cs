@@ -191,6 +191,11 @@ namespace PinkJson2
             return child;
         }
 
+        public void Add(T value)
+        {
+            AddLast(value);
+        }
+
         public LinkedListNode<T> NodeAt(string key)
         {
             var node = NodeAtOrDefault(key);
@@ -248,7 +253,7 @@ namespace PinkJson2
 
         public override string ToString()
         {
-            return new MinifiedFormatter().Format(this);
+            return new MinifiedFormatter().FormatToString(this);
         }
     }
 }

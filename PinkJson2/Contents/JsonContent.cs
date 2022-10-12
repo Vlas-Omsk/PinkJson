@@ -11,7 +11,7 @@ namespace PinkJson2.Contents
     public sealed class JsonContent : HttpContent
     {
         private const string _defaultMediaType = "application/json";
-        private static readonly Encoding _defaultEncoding = Encoding.UTF8;
+        private static readonly Encoding _defaultEncoding = new UTF8Encoding(false);
         private readonly IJson _data;
         private readonly Encoding _encoding;
 
@@ -42,7 +42,7 @@ namespace PinkJson2.Contents
         {
             return Task.Run(() =>
             {
-                using (var streamWriter = new StreamWriter(stream, _encoding, -1, true))
+                using (var streamWriter = new StreamWriter(stream, _encoding, 1024, true))
                     _data.ToStream(streamWriter);
             });
         }

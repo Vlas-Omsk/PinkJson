@@ -125,12 +125,12 @@
         {
         "name":"Chest X-Ray",
         "time":"Today",
-        "location":"Main Hospital Radiology"    
+        "location":"Primary Care Radiology"    
         },
         {
         "name":"Chest X-Ray",
         "time":"Today",
-        "location":"Main Hospital Radiology"    
+        "location":"Coumadin Radiology"    
         }
     ]
 }

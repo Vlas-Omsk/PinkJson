@@ -1,5 +1,9 @@
 ﻿using PinkJson2.Formatters;
+using PinkJson2.Linq;
 using System;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 
 namespace PinkJson2.Tests
 {
@@ -7,7 +11,10 @@ namespace PinkJson2.Tests
     {
 		public static void Start()
         {
-			LinqToJsonTest();
+			LinqTest();
+            Console.WriteLine();
+
+            CreateJsonTest();
 			Console.WriteLine();
 
 			DeserializeJsonTest();
@@ -23,14 +30,59 @@ namespace PinkJson2.Tests
 			Console.WriteLine();
 		}
 
-		private static void LinqToJsonTest()
+		private static void LinqTest()
+		{
+            using var fileReader = File.OpenRead("Json/test1.json");
+
+            var stopwatch = Stopwatch.StartNew();
+
+            using var lexer = new JsonLexer(fileReader);
+            var parser = new JsonParser(lexer);
+
+            var medications = parser
+                .SelectPath(new JsonPath(new IJsonPathSegment[]
+                {
+                    new JsonPathObjectSegment("medications"),
+                    new JsonPathArraySegment(1),
+                }));
+
+            var names = medications
+                .WhereObjects(x =>
+                {
+                    return x
+                        .SelectPath(new JsonPath(new IJsonPathSegment[]
+                        {
+                            new JsonPathArraySegment(0),
+                            new JsonPathObjectSegment("refills")
+                        }))
+                        .Single()
+                        .Get<string>() == "Refill 3";
+                })
+                .SelectObjects(x => x
+                    .SelectPath(new JsonPath(new IJsonPathSegment[]
+                    {
+                        new JsonPathArraySegment(0),
+                        new JsonPathObjectSegment("name")
+                    }))
+                    .Single()
+                    .Get<string>()
+                );
+
+            stopwatch.Stop();
+
+            Console.WriteLine(medications.ToString(new PrettyFormatter()));
+            Console.WriteLine(string.Join(", ", names));
+            Console.WriteLine(stopwatch.ElapsedMilliseconds + "ms");
+        }
+
+		private static void CreateJsonTest()
 		{
 			var array = new JsonArray();
 			array.AddValueLast("Manual text");
 			array.AddValueLast(new DateTime(2000, 5, 23));
 
 			var o = new JsonObject();
-			o.SetKey("MyArray", "test");
+			o.SetKey("MyArray", array);
 
 			var json = o.ToString(new PrettyFormatter());
 			Console.WriteLine(json);
@@ -52,7 +104,7 @@ namespace PinkJson2.Tests
 				'Action',
 				'Comedy'
 			  ]
-			}".Replace('\'', '"'));
+			}".Replace('\'', '"')).ToJson();
 
 			var m = json.Deserialize<Movie>();
 			var name = m.Name;
@@ -83,11 +135,11 @@ namespace PinkJson2.Tests
 				'decimal': [42, 43, { 'testKey': 'testValue' }, 45],
 				'hex': 0x2A,
 				'binary': 0b00101010
-            }".Replace('\'', '"'));
+            }".Replace('\'', '"')).ToJson();
 
 			json.@decimal[2] = new JsonArrayValue(new JsonArray(new JsonArrayValue(new JsonArray(new JsonArrayValue("hello")))));
 
-			IJson newJson = Json.Parse(json.ToString());
+			var newJson = Json.Parse(((IJson)json).ToString()).ToJson();
 
 			Console.WriteLine(newJson.ToString(new PrettyFormatter()));
 		}

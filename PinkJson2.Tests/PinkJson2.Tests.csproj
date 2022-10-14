@@ -8,14 +8,20 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="Json\discord_detectable.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Json\test1.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\PinkJson2\PinkJson2.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Json\large-file.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

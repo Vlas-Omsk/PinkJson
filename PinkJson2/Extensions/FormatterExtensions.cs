@@ -1,5 +1,6 @@
 ﻿using PinkJson2.Formatters;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -7,7 +8,7 @@ namespace PinkJson2
 {
     public static class FormatterExtensions
     {
-        public static string FormatToString(this IFormatter self, IJson json)
+        public static string FormatToString(this IFormatter self, IEnumerable<JsonEnumerableItem> json)
         {
             using (var memoryStream = new MemoryStream())
             {

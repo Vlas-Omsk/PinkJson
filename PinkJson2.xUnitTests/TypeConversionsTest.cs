@@ -18,7 +18,7 @@ namespace PinkJson2.xUnitTests
 
             var json = Json.Parse(str);
 
-            Assert.Equal(json[0].Get<DateTime>(), new DateTime(2000, 5, 23));
+            Assert.Equal(json.ToJson()[0].Get<DateTime>(), new DateTime(2000, 5, 23));
         }
 
         private class Movie
@@ -41,7 +41,7 @@ namespace PinkJson2.xUnitTests
 				'Action',
 				'Comedy'
 			  ]
-			}".Replace('\'', '"'));
+			}".Replace('\'', '"')).ToJson();
 
             var m = json.Deserialize<Movie>();
 

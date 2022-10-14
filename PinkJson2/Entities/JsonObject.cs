@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace PinkJson2
 {
+    [DebuggerDisplay("\\{JsonObject: Count = {Count}, Value = {ToString(),nq}}")]
     public sealed class JsonObject : JsonRoot<JsonKeyValue>
     {
         public JsonObject()
@@ -27,6 +29,22 @@ namespace PinkJson2
                     throw new KeyNotMatchException(key, child.Key);
                 NodeAt(key).Value = child;
             }
+        }
+
+        public override IEnumerable<JsonEnumerableItem> GetJsonEnumerable()
+        {
+            yield return new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
+
+            foreach (var item in this)
+                foreach (var item2 in item.GetJsonEnumerable())
+                    yield return item2;
+
+            yield return new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
+        }
+
+        public void Add(string key, object value)
+        {
+            AddLast(new JsonKeyValue(key, value));
         }
 
         public override int SetIndex(object value, int index = -1)

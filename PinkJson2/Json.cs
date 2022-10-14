@@ -1,6 +1,8 @@
 ﻿using PinkJson2.Formatters;
 using PinkJson2.Serializers;
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Text;
 
@@ -8,28 +10,24 @@ namespace PinkJson2
 {
     public static class Json
     {
-        public static IJson Parse(StreamReader stream)
+        public static IEnumerable<JsonEnumerableItem> Parse(StreamReader stream)
         {
-            var lexer = new JsonLexer(stream);
-            return JsonParser.Parse(lexer);
+            return new JsonParser(new JsonLexer(stream));
         }
 
-        public static IJson Parse(Stream stream)
+        public static IEnumerable<JsonEnumerableItem> Parse(Stream stream)
         {
-            var lexer = new JsonLexer(stream);
-            return JsonParser.Parse(lexer);
+            return new JsonParser(new JsonLexer(stream));
         }
 
-        public static IJson Parse(Stream stream, Encoding encoding)
+        public static IEnumerable<JsonEnumerableItem> Parse(Stream stream, Encoding encoding)
         {
-            var lexer = new JsonLexer(stream, encoding);
-            return JsonParser.Parse(lexer);
+            return new JsonParser(new JsonLexer(stream, encoding));
         }
 
-        public static IJson Parse(string source)
+        public static IEnumerable<JsonEnumerableItem> Parse(string source)
         {
-            var lexer = new JsonLexer(source);
-            return JsonParser.Parse(lexer);
+            return new JsonParser(new JsonLexer(source));
         }
 
         public static IJson Serialize(this object instance)
@@ -90,11 +88,17 @@ namespace PinkJson2
 
         public static T Get<T>(this IJson json, TypeConverter typeConverter)
         {
-            var value = json.Value;
-            if (value is null)
-                return default;
+            return (T)typeConverter.ChangeType(json.Value, typeof(T));
+        }
 
-            return (T)typeConverter.ChangeType(value, typeof(T));
+        public static T Get<T>(this JsonEnumerableItem item)
+        {
+            return Get<T>(item, TypeConverter.Default);
+        }
+
+        public static T Get<T>(this JsonEnumerableItem item, TypeConverter typeConverter)
+        {
+            return (T)typeConverter.ChangeType(item.Value, typeof(T));
         }
 
         public static JsonArray AsArray(this IJson json)
@@ -117,19 +121,41 @@ namespace PinkJson2
             return json.IndexOfKey(key) != -1;
         }
 
-        public static string ToString(this IJson json, IFormatter formatter)
+        public static string ToString(this IJson self, IFormatter formatter)
         {
-            return formatter.FormatToString(json);
+            return ToString(self.GetJsonEnumerable(), formatter);
         }
 
-        public static void ToStream(this IJson json, StreamWriter stream)
+        public static string ToString(this IEnumerable<JsonEnumerableItem> self, IFormatter formatter)
         {
-            json.ToStream(new MinifiedFormatter(), stream);
+            return formatter.FormatToString(self);
         }
 
-        public static void ToStream(this IJson json, IFormatter formatter, StreamWriter stream)
+        public static void ToStream(this IJson self, StreamWriter stream)
         {
-            formatter.Format(json, stream);
+            ToStream(self.GetJsonEnumerable(), stream);
+        }
+
+        public static void ToStream(this IEnumerable<JsonEnumerableItem> self, StreamWriter stream)
+        {
+            self.ToStream(new MinifiedFormatter(), stream);
+        }
+
+        public static void ToStream(this IJson self, IFormatter formatter, StreamWriter stream)
+        {
+            ToStream(self.GetJsonEnumerable(), formatter, stream);
+        }
+
+        public static void ToStream(this IEnumerable<JsonEnumerableItem> self, IFormatter formatter, StreamWriter stream)
+        {
+            formatter.Format(self, stream);
+        }
+
+        public static IJson ToJson(this IEnumerable<JsonEnumerableItem> self)
+        {
+            var converter = new JsonEnumerableToJsonConverter();
+
+            return converter.Convert(self);
         }
     }
 }

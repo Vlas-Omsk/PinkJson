@@ -1,139 +1,195 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace PinkJson2
 {
-    public sealed class JsonParser
+    public sealed class JsonParser : IEnumerable<JsonEnumerableItem>
     {
-        private readonly IEnumerator<Token> _enumerator;
-        private readonly Stack<string> _path = new Stack<string>();
+        private readonly IEnumerable<Token> _lexer;
 
-        private const string _rootObjectName = "root";
-
-        private JsonParser(JsonLexer lexer)
+        private sealed class JsonParserEnumerator : IEnumerator<JsonEnumerableItem>
         {
-            _enumerator = lexer.GetEnumerator();
-        }
+            private readonly IEnumerator<Token> _enumerator;
+            private readonly Stack<IJsonPathSegment> _path = new Stack<IJsonPathSegment>();
+            private IEnumerator<JsonEnumerableItem> _jsonEnumerator;
 
-        public static IJson Parse(JsonLexer lexer)
-        {
-            return new JsonParser(lexer).Parse();
-        }
-
-        private IJson Parse()
-        {
-            _path.Push(_rootObjectName);
-            TryMoveNext(TokenType.LeftBrace, TokenType.LeftBracket);
-            IJson json;
-
-            switch (_enumerator.Current.Type)
+            public JsonParserEnumerator(IEnumerator<Token> enumerator)
             {
-                case TokenType.LeftBrace:
-                    json = ParseObject();
-                    break;
-                case TokenType.LeftBracket:
-                    json = ParseArray();
-                    break;
-                default:
-                    _path.Pop();
-                    throw new InvalidJsonFormatException(new string[] { _rootObjectName });
+                _enumerator = enumerator;
+                _jsonEnumerator = GetJsonEnumerable().GetEnumerator();
             }
 
-            _path.Pop();
-            return json;
-        }
+            public JsonEnumerableItem Current => _jsonEnumerator.Current;
+            object IEnumerator.Current => Current;
 
-        private object ParseValue()
-        {
-            switch (_enumerator.Current.Type)
+            private JsonPath Path => new JsonPath(_path.Reverse().ToArray());
+
+            public bool MoveNext()
             {
-                case TokenType.LeftBrace:
-                    return ParseObject();
-                case TokenType.LeftBracket:
-                    return ParseArray();
-                case TokenType.Boolean:
-                case TokenType.Null:
-                case TokenType.Number:
-                case TokenType.String:
-                    return _enumerator.Current.Value;
-                default:
-                    throw new UnexpectedTokenException(_enumerator.Current, new TokenType[] { TokenType.LeftBrace, TokenType.LeftBracket, TokenType.Boolean, TokenType.Null, TokenType.Number, TokenType.String }, _path);
-            }
-        }
-
-        private JsonObject ParseObject()
-        {
-            var json = new JsonObject();
-
-            while (true)
-            {
-                TryMoveNext(TokenType.RightBrace, TokenType.String);
-                if (_enumerator.Current.Type == TokenType.RightBrace)
-                    break;
-                json.AddLast(ParseKeyValue());
-                TryMoveNext(TokenType.RightBrace, TokenType.Comma);
-                if (_enumerator.Current.Type == TokenType.RightBrace)
-                    break;
-                CheckToken(TokenType.Comma);
+                return _jsonEnumerator.MoveNext();
             }
 
-            return json;
-        }
-
-        private JsonKeyValue ParseKeyValue()
-        {
-            CheckToken(TokenType.String);
-            var key = (string)_enumerator.Current.Value;
-            _path.Push(key);
-            TryMoveNext(TokenType.Colon);
-            CheckToken(TokenType.Colon);
-            TryMoveNext(TokenType.LeftBrace, TokenType.LeftBracket, TokenType.Boolean, TokenType.Null, TokenType.Number, TokenType.String);
-            var value = ParseValue();
-            _path.Pop();
-            return new JsonKeyValue(key, value);
-        }
-
-        private JsonArray ParseArray()
-        {
-            var json = new JsonArray();
-
-            while (true)
+            public void Reset()
             {
-                TryMoveNext(TokenType.RightBracket, TokenType.LeftBrace, TokenType.LeftBracket, TokenType.Boolean, TokenType.Null, TokenType.Number, TokenType.String);
-                if (_enumerator.Current.Type == TokenType.RightBracket)
-                    break;
-                _path.Push("_" + json.Count);
-                json.AddLast(new JsonArrayValue(ParseValue()));
+                _path.Clear();
+                _jsonEnumerator = GetJsonEnumerable().GetEnumerator();
+            }
+
+            public void Dispose()
+            {
+                _jsonEnumerator.Dispose();
+                _enumerator.Dispose();
+            }
+
+            private IEnumerable<JsonEnumerableItem> GetJsonEnumerable()
+            {
+                TryMoveNext(TokenType.LeftBrace, TokenType.LeftBracket);
+                IEnumerable<JsonEnumerableItem> enumerable;
+
+                switch (_enumerator.Current.Type)
+                {
+                    case TokenType.LeftBrace:
+                        enumerable = ParseObject();
+                        break;
+                    case TokenType.LeftBracket:
+                        enumerable = ParseArray();
+                        break;
+                    default:
+                        throw new InvalidJsonFormatException(Path);
+                }
+
+                return enumerable;
+            }
+
+            private IEnumerable<JsonEnumerableItem> ParseValue()
+            {
+                switch (_enumerator.Current.Type)
+                {
+                    case TokenType.LeftBrace:
+                        foreach (var item in ParseObject())
+                            yield return item;
+                        break;
+                    case TokenType.LeftBracket:
+                        foreach (var item in ParseArray())
+                            yield return item;
+                        break;
+                    case TokenType.Boolean:
+                    case TokenType.Null:
+                    case TokenType.Number:
+                    case TokenType.String:
+                        yield return new JsonEnumerableItem(JsonEnumerableItemType.Value, _enumerator.Current.Value);
+                        break;
+                    default:
+                        throw new UnexpectedTokenException(
+                            _enumerator.Current,
+                            new TokenType[]
+                            {
+                            TokenType.LeftBrace,
+                            TokenType.LeftBracket,
+                            TokenType.Boolean,
+                            TokenType.Null,
+                            TokenType.Number,
+                            TokenType.String
+                            },
+                            Path
+                        );
+                }
+            }
+
+            private IEnumerable<JsonEnumerableItem> ParseObject()
+            {
+                yield return new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
+
+                while (true)
+                {
+                    TryMoveNext(TokenType.RightBrace, TokenType.String);
+                    if (_enumerator.Current.Type == TokenType.RightBrace)
+                        break;
+                    foreach (var item in ParseKeyValue())
+                        yield return item;
+                    TryMoveNext(TokenType.RightBrace, TokenType.Comma);
+                    if (_enumerator.Current.Type == TokenType.RightBrace)
+                        break;
+                    CheckToken(TokenType.Comma);
+                }
+
+                yield return new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
+            }
+
+            private IEnumerable<JsonEnumerableItem> ParseKeyValue()
+            {
+                CheckToken(TokenType.String);
+                var key = (string)_enumerator.Current.Value;
+                _path.Push(new JsonPathObjectSegment(key));
+                yield return new JsonEnumerableItem(JsonEnumerableItemType.Key, key);
+                TryMoveNext(TokenType.Colon);
+                CheckToken(TokenType.Colon);
+                TryMoveNext(TokenType.LeftBrace, TokenType.LeftBracket, TokenType.Boolean, TokenType.Null, TokenType.Number, TokenType.String);
+                foreach (var item in ParseValue())
+                    yield return item;
                 _path.Pop();
-                TryMoveNext(TokenType.RightBracket, TokenType.Comma);
-                if (_enumerator.Current.Type == TokenType.RightBracket)
-                    break;
-                CheckToken(TokenType.Comma);
             }
 
-            return json;
+            private IEnumerable<JsonEnumerableItem> ParseArray()
+            {
+                yield return new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
+
+                var i = 0;
+                while (true)
+                {
+                    TryMoveNext(TokenType.RightBracket, TokenType.LeftBrace, TokenType.LeftBracket, TokenType.Boolean, TokenType.Null, TokenType.Number, TokenType.String);
+                    if (_enumerator.Current.Type == TokenType.RightBracket)
+                        break;
+                    _path.Push(new JsonPathArraySegment(i++));
+                    foreach (var item in ParseValue())
+                        yield return item;
+                    _path.Pop();
+                    TryMoveNext(TokenType.RightBracket, TokenType.Comma);
+                    if (_enumerator.Current.Type == TokenType.RightBracket)
+                        break;
+                    CheckToken(TokenType.Comma);
+                }
+
+                yield return new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
+            }
+
+            private void TryMoveNext(params TokenType[] expectedTokenTypes)
+            {
+                bool success;
+                try
+                {
+                    success = _enumerator.MoveNext();
+                }
+                catch (JsonLexerException ex)
+                {
+                    throw new JsonParserException("See inner exception", Path, ex);
+                }
+                if (!success)
+                    throw new UnexpectedEndOfStreamException(expectedTokenTypes, Path);
+            }
+
+            private void CheckToken(params TokenType[] expectedTokenTypes)
+            {
+                if (!expectedTokenTypes.Contains(_enumerator.Current.Type))
+                    throw new UnexpectedTokenException(_enumerator.Current, expectedTokenTypes, Path);
+            }
         }
 
-        private void TryMoveNext(params TokenType[] expectedTokenTypes)
+        public JsonParser(IEnumerable<Token> lexer)
         {
-            bool success;
-            try
-            {
-                success = _enumerator.MoveNext();
-            }
-            catch(JsonLexerException ex)
-            {
-                throw new JsonParserException("See inner exception", _path, ex);
-            }
-            if (!success)
-                throw new UnexpectedEndOfStreamException(expectedTokenTypes, _path);
+            _lexer = lexer;
         }
 
-        private void CheckToken(params TokenType[] expectedTokenTypes)
+        public IEnumerator<JsonEnumerableItem> GetEnumerator()
         {
-            if (!expectedTokenTypes.Contains(_enumerator.Current.Type))
-                throw new UnexpectedTokenException(_enumerator.Current, expectedTokenTypes, _path);
+            return new JsonParserEnumerator(_lexer.GetEnumerator());
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

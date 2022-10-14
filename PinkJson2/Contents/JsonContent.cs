@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -12,26 +13,26 @@ namespace PinkJson2.Contents
     {
         private const string _defaultMediaType = "application/json";
         private static readonly Encoding _defaultEncoding = Encoding.UTF8;
-        private readonly IJson _data;
+        private readonly IEnumerable<JsonEnumerableItem> _data;
         private readonly Encoding _encoding;
 
-        public JsonContent(IJson data) : this(data, _defaultEncoding, _defaultMediaType)
+        public JsonContent(IEnumerable<JsonEnumerableItem> data) : this(data, _defaultEncoding, _defaultMediaType)
         {
         }
 
-        public JsonContent(IJson data, Encoding encoding) : this(data, encoding, _defaultMediaType)
+        public JsonContent(IEnumerable<JsonEnumerableItem> data, Encoding encoding) : this(data, encoding, _defaultMediaType)
         {
         }
 
-        public JsonContent(IJson data, string mediaType) : this(data, _defaultEncoding, mediaType)
+        public JsonContent(IEnumerable<JsonEnumerableItem> data, string mediaType) : this(data, _defaultEncoding, mediaType)
         {
         }
 
-        public JsonContent(IJson data, Encoding encoding, string mediaType) : this(data, encoding, new MediaTypeHeaderValue(mediaType) { CharSet = encoding.WebName })
+        public JsonContent(IEnumerable<JsonEnumerableItem> data, Encoding encoding, string mediaType) : this(data, encoding, new MediaTypeHeaderValue(mediaType) { CharSet = encoding.WebName })
         {
         }
 
-        public JsonContent(IJson data, Encoding encoding, MediaTypeHeaderValue mediaType)
+        public JsonContent(IEnumerable<JsonEnumerableItem> data, Encoding encoding, MediaTypeHeaderValue mediaType)
         {
             _data = data;
             _encoding = encoding;

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace PinkJson2
 {
@@ -7,7 +6,7 @@ namespace PinkJson2
     {
         public Token Token { get; }
 
-        public UnexpectedTokenException(Token token, TokenType[] expectedTokenTypes, IEnumerable<string> path) :
+        public UnexpectedTokenException(Token token, TokenType[] expectedTokenTypes, JsonPath path) :
             base($"Unexpectedt token {token.Type} expected {string.Join(", ", expectedTokenTypes)} (Position: {token.Position})", path)
         {
             Token = token;

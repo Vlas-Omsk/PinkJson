@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace PinkJson2
 {
+    [DebuggerDisplay("\\{JsonArray: Count = {Count}, Value = {ToString(),nq}}")]
     public sealed class JsonArray : JsonRoot<JsonArrayValue>
     {
         public JsonArray()
@@ -21,6 +23,17 @@ namespace PinkJson2
         {
             get => throw new NotSupportedForTypeException(GetType());
             set => throw new NotSupportedForTypeException(GetType());
+        }
+
+        public override IEnumerable<JsonEnumerableItem> GetJsonEnumerable()
+        {
+            yield return new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
+
+            foreach (var item in this)
+                foreach (var item2 in item.GetJsonEnumerable())
+                    yield return item2;
+
+            yield return new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
         }
 
         public override int SetIndex(object value, int index = -1)

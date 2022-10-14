@@ -1,5 +1,6 @@
 ﻿using PinkJson2.Formatters;
 using System;
+using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq.Expressions;
 
@@ -76,6 +77,8 @@ namespace PinkJson2
 
         #endregion
 
+        public abstract IEnumerable<JsonEnumerableItem> GetJsonEnumerable();
+
         private IJson ValueAsJson()
         {
             if (!(Value is IJson json))
@@ -85,7 +88,7 @@ namespace PinkJson2
 
         public override string ToString()
         {
-            return new MinifiedFormatter().FormatToString(this);
+            return new MinifiedFormatter().FormatToString(this.GetJsonEnumerable());
         }
     }
 }

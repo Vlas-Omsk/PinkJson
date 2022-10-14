@@ -1,76 +1,118 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace PinkJson2.Formatters
 {
     public sealed class MinifiedFormatter : IFormatter
     {
         private StreamWriter _stream;
+        private IEnumerator<JsonEnumerableItem> _enumerator;
+        private JsonEnumerableItem _current;
 
-        public void Format(IJson json, StreamWriter stream)
+        private void MoveNext()
+        {
+            if (_enumerator.MoveNext())
+            {
+                _current = _enumerator.Current;
+                return;
+            }
+
+            throw new Exception();
+        }
+
+        public void Format(IEnumerable<JsonEnumerableItem> json, StreamWriter stream)
         {
             _stream = stream;
+            _enumerator = json.GetEnumerator();
 
-            FormatJson(json);
+            MoveNext();
+
+            FormatJson();
+
+            _enumerator.Dispose();
         }
 
-        private void FormatJson(IJson json)
+        private void FormatJson()
         {
-            if (json is JsonObject)
-                FormatObject(json as JsonObject);
-            else if (json is JsonArray)
-                FormatArray(json as JsonArray);
-            else if (json is JsonKeyValue)
-                FormatKeyValue(json as JsonKeyValue);
-            else if (json is JsonArrayValue)
-                FormatValue(json.Value);
+            switch (_current.Type)
+            {
+                case JsonEnumerableItemType.ObjectBegin:
+                    FormatObject();
+                    break;
+                case JsonEnumerableItemType.ArrayBegin:
+                    FormatArray();
+                    break;
+                case JsonEnumerableItemType.Key:
+                    FormatKeyValue();
+                    break;
+                case JsonEnumerableItemType.Value:
+                    FormatValue();
+                    break;
+                default:
+                    throw new Exception();
+            }
         }
 
-        private void FormatObject(JsonObject json)
+        private void FormatObject()
         {
             _stream.Write('{');
-            if (json.Count > 0)
+            if (_current.Type != JsonEnumerableItemType.ObjectEnd)
             {
-                json.ForEach((item, i) =>
+                MoveNext();
+                do
                 {
-                    FormatKeyValue(item);
-                    if (i < json.Count - 1)
-                        _stream.Write(',');
-                });
+                    if (_current.Type != JsonEnumerableItemType.ObjectEnd)
+                    {
+                        FormatKeyValue();
+                        MoveNext();
+                        if (_current.Type != JsonEnumerableItemType.ObjectEnd)
+                            _stream.Write(',');
+                    }
+                }
+                while (_current.Type != JsonEnumerableItemType.ObjectEnd);
             }
             _stream.Write('}');
         }
 
-        private void FormatKeyValue(JsonKeyValue json)
+        private void FormatKeyValue()
         {
-            _stream.Write($"\"{json.Key.EscapeString()}\"");
+            _stream.Write($"\"{((string)_current.Value).EscapeString()}\"");
             _stream.Write(':');
-            FormatValue(json.Value);
+            MoveNext();
+            FormatValue();
         }
 
-        private void FormatArray(JsonArray json)
+        private void FormatArray()
         {
             _stream.Write('[');
-            if (json.Count > 0)
+            if (_current.Type != JsonEnumerableItemType.ArrayEnd)
             {
-                json.ForEach((item, i) =>
+                MoveNext();
+                do
                 {
-                    FormatValue(item);
-                    if (i < json.Count - 1)
-                        _stream.Write(',');
-                });
+                    if (_current.Type != JsonEnumerableItemType.ArrayEnd)
+                    {
+                        FormatValue();
+                        MoveNext();
+                        if (_current.Type != JsonEnumerableItemType.ArrayEnd)
+                            _stream.Write(',');
+                    }
+                }
+                while (_current.Type != JsonEnumerableItemType.ArrayEnd);
             }
             _stream.Write(']');
         }
 
-        private void FormatValue(object value)
+        private void FormatValue()
         {
-            if (value is IJson json)
+            if (new JsonEnumerableItemType[] { JsonEnumerableItemType.ObjectBegin, JsonEnumerableItemType.ArrayBegin }.Contains(_current.Type))
             {
-                FormatJson(json);
+                FormatJson();
                 return;
             }
-            _stream.Write(Formatter.FormatValue(value));
+            _stream.Write(Formatter.FormatValue(_current.Value));
         }
     }
 }

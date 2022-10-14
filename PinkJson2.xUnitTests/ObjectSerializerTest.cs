@@ -205,7 +205,7 @@ namespace PinkJson2.xUnitTests
             config.Port = 1234;
 
             var json = config.Serialize(new ObjectSerializerOptions()).ToString();
-            var newConfig = Json.Parse(json).Deserialize<Config>();
+            var newConfig = Json.Parse(json).ToJson().Deserialize<Config>();
 
             Assert.Equal(config.IPAddress, newConfig.IPAddress);
             Assert.Equal(config.Port, newConfig.Port);
@@ -220,8 +220,9 @@ namespace PinkJson2.xUnitTests
                 .GetField("_innerException", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 .SetValue(ex2, ex1);
 
-            var json = ex1.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true }).ToString();
-            var ex1_clone = Json.Parse(json).Deserialize<Exception>();
+            var jsonj = ex1.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true });
+            var json = jsonj.ToString();
+            var ex1_clone = Json.Parse(json).ToJson().Deserialize<Exception>();
 
             Assert.Equal(ex1.Message, ex1_clone.Message);
             Assert.True(ex1.InnerException.InnerException == ex1);
@@ -264,7 +265,7 @@ namespace PinkJson2.xUnitTests
                 Nullable7 = null
             };
 
-            var json = Json.Parse(obj1.Serialize().ToString());
+            var json = Json.Parse(obj1.Serialize().ToString()).ToJson();
             var obj1_copy = json.Deserialize<NullableTest1>();
 
             Assert.Equal(obj1.Nullable1, obj1_copy.Nullable1);

@@ -1,7 +1,12 @@
-﻿using System;
+﻿using PinkJson2.Formatters;
+using PinkJson2.Linq;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace PinkJson2.Tests
 {
@@ -19,10 +24,8 @@ namespace PinkJson2.Tests
 
             //ShowTypeComparsion();
 
-            ParserBenchmark.Start();
+            //ParserBenchmark.Start();
             Examples.Start();
-
-            Console.ReadLine();
         }
 
 		private static void ShowLogo()

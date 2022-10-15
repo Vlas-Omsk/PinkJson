@@ -9,8 +9,10 @@ namespace PinkJson2.Serializers
 {
     public sealed class ObjectDeserializer : IDeserializer
     {
-        public ObjectSerializerOptions Options { get; set; }
-
+        private const string _idField = "$id";
+        private const string _refField = "$ref";
+        private const string _keyPropertyName = "Key";
+        private const string _valuePropertyName = "Value";
         private readonly Dictionary<int, JsonId> _ids = new Dictionary<int, JsonId>();
         private bool _running;
 
@@ -23,11 +25,11 @@ namespace PinkJson2.Serializers
 
         private class DeserializerFormatterConverter : IFormatterConverter
         {
-            private readonly ObjectDeserializer _typeConverter;
+            private readonly ObjectDeserializer _deserializer;
 
-            public DeserializerFormatterConverter(ObjectDeserializer typeConverter)
+            public DeserializerFormatterConverter(ObjectDeserializer deserializer)
             {
-                _typeConverter = typeConverter;
+                _deserializer = deserializer;
             }
 
             public T Convert<T>(object value)
@@ -38,9 +40,9 @@ namespace PinkJson2.Serializers
             public object Convert(object value, Type type)
             {
                 if (value is IJson json)
-                    return _typeConverter.Deserialize(json, type);
+                    return _deserializer.Deserialize(json, type);
                 else
-                    return _typeConverter.Options.TypeConverter.ChangeType(value, type);
+                    return _deserializer.Options.TypeConverter.ChangeType(value, type);
             }
 
             public object Convert(object value, TypeCode typeCode)
@@ -131,8 +133,10 @@ namespace PinkJson2.Serializers
 
         public ObjectDeserializer(ObjectSerializerOptions options)
         {
-            Options = options ?? throw new ArgumentNullException(nameof(options));
+            Options = options;
         }
+
+        public ObjectSerializerOptions Options { get; set; }
 
         public object Deserialize(IJson json, Type type)
         {
@@ -175,8 +179,8 @@ namespace PinkJson2.Serializers
         {
             if (obj is JsonObject jsonObject)
             {
-                if (jsonObject.ContainsKey("$id"))
-                    _ids.Add(jsonObject["$id"].Get<int>(Options.TypeConverter), new JsonId() { Json = jsonObject });
+                if (jsonObject.ContainsKey(_idField))
+                    _ids.Add(jsonObject[_idField].Get<int>(Options.TypeConverter), new JsonId() { Json = jsonObject });
 
                 foreach (var item in jsonObject)
                     AggregateIds(item.Value);
@@ -203,26 +207,25 @@ namespace PinkJson2.Serializers
 
         private void TryAddRef(IJson json, object obj)
         {
-            if (!json.ContainsKey("$id"))
+            if (!json.ContainsKey(_idField))
                 return;
 
-            var id = json["$id"].Get<int>();
+            var id = json[_idField].Get<int>();
             var jsonId = _ids[id];
             jsonId.Obj = obj;
             jsonId.HasObj = true;
         }
 
-        private object DeserializeValue(IJson jsonValue, Type type)
+        private object DeserializeValue(IJson json, Type type)
         {
-            return DeserializeValue(jsonValue, type, null, true, true);
+            return DeserializeValue(json, type, null, true, true);
         }
 
         private object DeserializeValue(IJson json, Type type, object instance, bool createObject, bool useJsonDeserialize)
         {
             type = TryGetUnderlayingType(type);
 
-            if (type != typeof(object) && 
-                (type == typeof(IJson) || type.IsAssignableTo(typeof(IJson))))
+            if (type != typeof(object) && type.IsJsonType())
                 return json.Value;
 
             var value = json.Value;
@@ -235,7 +238,7 @@ namespace PinkJson2.Serializers
             if (valueType != type && valueType.IsAssignableTo(type))
                 type = value.GetType();
 
-            if (type.IsArrayType())
+            if (type.IsArrayType() && (!type.IsDictionaryType() || value is JsonArray))
                 return DeserializeArray((IJson)value, type, instance, createObject, useJsonDeserialize);
             else if (!type.IsPrimitiveType(Options.TypeConverter))
                 return DeserializeObject((IJson)value, type, instance, createObject, useJsonDeserialize);
@@ -251,11 +254,11 @@ namespace PinkJson2.Serializers
             if (!(json is JsonObject))
                 throw new Exception($"Json of type {json.GetType()} cannot be converted to an object of type {type}");
 
-            if (json.ContainsKey("$ref"))
-                return ResolveRef(json["$ref"].Get<int>(), type);
+            if (json.ContainsKey(_refField))
+                return ResolveRef(json[_refField].Get<int>(), type);
 
-            if (json.ContainsKey("$id") && 
-                _ids.TryGetValue(json["$id"].Get<int>(), out JsonId jsonId) && 
+            if (json.ContainsKey(_idField) && 
+                _ids.TryGetValue(json[_idField].Get<int>(), out JsonId jsonId) && 
                 jsonId.HasObj)
                 return jsonId.Obj;
 
@@ -264,30 +267,35 @@ namespace PinkJson2.Serializers
 
             if (createObject)
             {
-                var ctor = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                    .FirstOrDefault(x =>
-                    {
-                        var parameters = x.GetParameters();
-
-                        return parameters.Length == 2 &&
-                            parameters[0].ParameterType == typeof(SerializationInfo) &&
-                            parameters[1].ParameterType == typeof(StreamingContext);
-                    });
-
-                if (ctor != null)
+                if (type.Name != "Dictionary`2")
                 {
-                    var formatter = new DeserializerFormatterConverter(this);
-                    var info = new SerializationInfo(type, formatter);
+                    var ctor = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                        .FirstOrDefault(x =>
+                        {
+                            var parameters = x.GetParameters();
 
-                    obj = FormatterServices.GetUninitializedObject(type);
+                            return parameters.Length == 2 &&
+                                parameters[0].ParameterType == typeof(SerializationInfo) &&
+                                parameters[1].ParameterType == typeof(StreamingContext);
+                        });
 
-                    TryAddRef(json, obj);
+                    if (ctor != null)
+                    {
+                        var formatter = new DeserializerFormatterConverter(this);
+                        var info = new SerializationInfo(type, formatter);
 
-                    foreach (var keyValue in json.AsObject())
-                        info.AddValue(Options.KeyTransformer.TransformKey(keyValue.Key), keyValue.Value);
+                        obj = FormatterServices.GetUninitializedObject(type);
 
-                    ctor.Invoke(obj, new object[] { info, new StreamingContext() });
-                    return obj;
+                        TryAddRef(json, obj);
+
+                        foreach (var keyValue in json.AsObject())
+                            info.AddValue(Options.KeyTransformer.TransformKey(keyValue.Key), keyValue.Value);
+
+                        ctor.Invoke(obj, new object[] { info, new StreamingContext() });
+
+                        NotifyDeserialized(obj);
+                        return obj;
+                    }
                 }
 
                 obj = CreateObject(json, type);
@@ -298,17 +306,37 @@ namespace PinkJson2.Serializers
 
             TryAddRef(json, obj);
 
-            var properties = type.GetProperties(Options.PropertyBindingFlags);
-            var fields = type.GetFields(Options.FieldBindingFlags);
+            if (type.IsDictionaryType())
+            {
+                var genericDictionaryType = type.GetInterface("IDictionary`2");
 
-            foreach (var property in properties)
-                if (property.SetMethod != null)
-                    if (TryDeserializeMember(property, property.PropertyType, json, out object value))
-                        property.SetValue(obj, value);
+                if (genericDictionaryType == null)
+                    throw new Exception();
 
-            foreach (var field in fields)
-                if (TryDeserializeMember(field, field.FieldType, json, out object value))
-                    field.SetValue(obj, value);
+                var keyType = genericDictionaryType.GetGenericArguments()[0];
+                var valueType = genericDictionaryType.GetGenericArguments()[1];
+                var dictionary = (IDictionary)obj;
+
+                foreach (var keyValue in json.AsObject())
+                    dictionary.Add(
+                        Options.TypeConverter.ChangeType(keyValue.Key, keyType),
+                        DeserializeValue(keyValue, valueType)
+                    );
+            }
+            else
+            {
+                var properties = type.GetProperties(Options.PropertyBindingFlags);
+                var fields = type.GetFields(Options.FieldBindingFlags);
+
+                foreach (var property in properties)
+                    if (property.SetMethod != null)
+                        if (TryDeserializeMember(property, property.PropertyType, json, out object value))
+                            property.SetValue(obj, value);
+
+                foreach (var field in fields)
+                    if (TryDeserializeMember(field, field.FieldType, json, out object value))
+                        field.SetValue(obj, value);
+            }
 
             NotifyDeserialized(obj);
             return obj;
@@ -395,18 +423,40 @@ namespace PinkJson2.Serializers
             if (!(json is JsonArray))
                 throw new Exception($"Json of type {json.GetType()} cannot be converted to an object of type {type}");
 
-            var array = (IList)obj;
-
-            for (var i = 0; i < json.Count; i++)
+            if (type.IsDictionaryType())
             {
-                if (!array.IsFixedSize)
-                    array.Add(null);
+                var genericDictionaryType = type.GetInterface("IDictionary`2");
 
-                var localIndex = i;
-                array[localIndex] = DeserializeValue(json[i], elementType);
+                if (genericDictionaryType == null)
+                    throw new Exception();
+
+                var keyType = genericDictionaryType.GetGenericArguments()[0];
+                var valueType = genericDictionaryType.GetGenericArguments()[1];
+                var dictionary = (IDictionary)obj;
+
+                foreach (var arrayValue in json.AsArray())
+                    dictionary.Add(
+                        DeserializeValue(arrayValue[_keyPropertyName], keyType),
+                        DeserializeValue(arrayValue[_valuePropertyName], valueType)
+                    );
+
+                return dictionary;
             }
+            else
+            {
+                var array = (IList)obj;
 
-            return array;
+                for (var i = 0; i < json.Count; i++)
+                {
+                    if (!array.IsFixedSize)
+                        array.Add(null);
+
+                    var localIndex = i;
+                    array[localIndex] = DeserializeValue(json[i], elementType);
+                }
+
+                return array;
+            }
         }
 
         private bool TryJsonDeserialize(object obj, IJson json)

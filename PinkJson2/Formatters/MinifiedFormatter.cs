@@ -1,30 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
 namespace PinkJson2.Formatters
 {
     public sealed class MinifiedFormatter : IFormatter
     {
-        private StreamWriter _stream;
+        private ITextWriter _writer;
         private IEnumerator<JsonEnumerableItem> _enumerator;
         private JsonEnumerableItem _current;
 
-        private void MoveNext()
+        public void Format(IEnumerable<JsonEnumerableItem> json, ITextWriter writer)
         {
-            if (_enumerator.MoveNext())
-            {
-                _current = _enumerator.Current;
-                return;
-            }
-
-            throw new Exception();
-        }
-
-        public void Format(IEnumerable<JsonEnumerableItem> json, StreamWriter stream)
-        {
-            _stream = stream;
+            _writer = writer;
             _enumerator = json.GetEnumerator();
 
             MoveNext();
@@ -57,7 +45,7 @@ namespace PinkJson2.Formatters
 
         private void FormatObject()
         {
-            _stream.Write('{');
+            _writer.Write('{');
             if (_current.Type != JsonEnumerableItemType.ObjectEnd)
             {
                 MoveNext();
@@ -68,25 +56,24 @@ namespace PinkJson2.Formatters
                         FormatKeyValue();
                         MoveNext();
                         if (_current.Type != JsonEnumerableItemType.ObjectEnd)
-                            _stream.Write(',');
+                            _writer.Write(',');
                     }
                 }
                 while (_current.Type != JsonEnumerableItemType.ObjectEnd);
             }
-            _stream.Write('}');
+            _writer.Write('}');
         }
 
         private void FormatKeyValue()
         {
-            _stream.Write($"\"{((string)_current.Value).EscapeString()}\"");
-            _stream.Write(':');
+            _writer.Write($"\"{((string)_current.Value).EscapeString()}\":");
             MoveNext();
             FormatValue();
         }
 
         private void FormatArray()
         {
-            _stream.Write('[');
+            _writer.Write('[');
             if (_current.Type != JsonEnumerableItemType.ArrayEnd)
             {
                 MoveNext();
@@ -97,12 +84,12 @@ namespace PinkJson2.Formatters
                         FormatValue();
                         MoveNext();
                         if (_current.Type != JsonEnumerableItemType.ArrayEnd)
-                            _stream.Write(',');
+                            _writer.Write(',');
                     }
                 }
                 while (_current.Type != JsonEnumerableItemType.ArrayEnd);
             }
-            _stream.Write(']');
+            _writer.Write(']');
         }
 
         private void FormatValue()
@@ -112,7 +99,18 @@ namespace PinkJson2.Formatters
                 FormatJson();
                 return;
             }
-            _stream.Write(Formatter.FormatValue(_current.Value));
+            _writer.Write(Formatter.FormatValue(_current.Value));
+        }
+
+        private void MoveNext()
+        {
+            if (_enumerator.MoveNext())
+            {
+                _current = _enumerator.Current;
+                return;
+            }
+
+            throw new Exception();
         }
     }
 }

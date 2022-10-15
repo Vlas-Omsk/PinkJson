@@ -342,5 +342,43 @@ namespace PinkJson2.xUnitTests
 
             Assert.Equal(json, serializedJson);
         }
+
+        [Fact]
+        public void SerializeStringsDictionaryTest()
+        {
+            var dict = new Dictionary<string, string>()
+            {
+                { "testKey1", "testValue1" },
+                { "testKey2", "testValue2" },
+                { "testKey3", "testValue3" },
+            };
+
+            var json = dict.Serialize();
+
+            Assert.IsType<JsonObject>(json);
+
+            var dict2 = json.Deserialize<Dictionary<string, string>>();
+
+            Assert.Equal(dict, dict2);
+        }
+
+        [Fact]
+        public void SerializeDictionaryTest()
+        {
+            var dict = new Dictionary<int, string>()
+            {
+                { 1, "testValue1" },
+                { 2, "testValue2" },
+                { 3, "testValue3" },
+            };
+
+            var json = dict.Serialize();
+
+            Assert.IsType<JsonArray>(json);
+
+            var dict2 = json.Deserialize<Dictionary<int, string>>();
+
+            Assert.Equal(dict, dict2);
+        }
     }
 }

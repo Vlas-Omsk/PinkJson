@@ -32,7 +32,7 @@ namespace PinkJson2.Tests
 
 		private static void LinqTest()
 		{
-            using var fileReader = File.OpenRead("Json/test1.json");
+            using var fileReader = File.OpenRead("Json/small.json");
 
             var stopwatch = Stopwatch.StartNew();
 

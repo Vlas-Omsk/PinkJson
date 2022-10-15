@@ -9,10 +9,6 @@ namespace PinkJson2.Linq
         private readonly int _threadId;
         private readonly bool _leaveOpen;
 
-        protected IEnumerable<TSource> Source { get; }
-        protected IEnumerator<TSource> Enumerator { get; set; }
-        protected int State { get; set; }
-
         protected Iterator(IEnumerable<TSource> source, IEnumerator<TSource> enumerator) : this(source, enumerator, enumerator != null)
         {
         }
@@ -26,6 +22,11 @@ namespace PinkJson2.Linq
         }
 
         public TResult Current { get; protected set; }
+
+        protected IEnumerable<TSource> Source { get; }
+        protected IEnumerator<TSource> Enumerator { get; set; }
+        protected int State { get; set; }
+
         object IEnumerator.Current => throw new NotImplementedException();
 
         public abstract Iterator<TSource, TResult> Clone();

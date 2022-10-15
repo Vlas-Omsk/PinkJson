@@ -4,9 +4,6 @@ namespace PinkJson2
 {
     public class JsonParserException : PinkJsonException
     {
-        public JsonPath Path { get; }
-        public new JsonLexerException InnerException { get; }
-
         public JsonParserException(string message, JsonPath path) : base(Create(message, path))
         {
             Path = path;
@@ -17,6 +14,9 @@ namespace PinkJson2
             Path = path;
             InnerException = innerException;
         }
+
+        public JsonPath Path { get; }
+        public new JsonLexerException InnerException { get; }
 
         private static string Create(string message, JsonPath path)
         {

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace PinkJson2
 {
@@ -15,6 +14,5 @@ namespace PinkJson2
         int SetIndex(object value, int index = -1);
         bool TryGetValue(string key, out IJson value);
         bool TryGetValue(int index, out IJson value);
-        IEnumerable<JsonEnumerableItem> GetJsonEnumerable();
     }
 }

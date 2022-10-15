@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace PinkJson2
@@ -9,19 +8,6 @@ namespace PinkJson2
     {
         public JsonArrayValue(object value) : base(value)
         {
-        }
-
-        public override IEnumerable<JsonEnumerableItem> GetJsonEnumerable()
-        {
-            if (Value is IJson json)
-            {
-                foreach (var item in json.GetJsonEnumerable())
-                    yield return item;
-            }
-            else
-            {
-                yield return new JsonEnumerableItem(JsonEnumerableItemType.Value, Value);
-            }
         }
     }
 }

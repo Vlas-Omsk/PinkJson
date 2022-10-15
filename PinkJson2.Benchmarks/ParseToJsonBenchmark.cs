@@ -7,11 +7,11 @@ namespace PinkJson2.Benchmarks
 	[MemoryDiagnoser]
     public class ParseToJsonBenchmark
     {
-		[Params("Json\\test1.json", "Json\\discord_detectable.json", "Json\\large-file.json")]
-		public string FilePath;
+		[Params("Json\\small.json", "Json\\medium.json", "Json\\large.json")]
+		public string FilePath { get; set; }
 
         [Benchmark(Baseline = true)]
-        public void PinkJsonFast()
+        public void PinkJson()
         {
             using (var streamReader = new StreamReader(FilePath))
                 Json.Parse(streamReader).ToJson();

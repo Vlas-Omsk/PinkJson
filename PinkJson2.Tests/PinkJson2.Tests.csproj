@@ -1,26 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="Json\discord_detectable.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Json\test1.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\PinkJson2.Tests.Common\PinkJson2.Tests.Common.csproj" />
     <ProjectReference Include="..\PinkJson2\PinkJson2.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Json\large-file.json">
+    <None Update="Json\test1.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

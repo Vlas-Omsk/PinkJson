@@ -10,7 +10,23 @@ namespace PinkJson2
     {
         public static bool IsArrayType(this Type type)
         {
-            return type.GetInterface(nameof(IEnumerable)) != null && type != typeof(string);
+            return 
+                type.GetInterface(nameof(IEnumerable)) != null && 
+                type != typeof(string);
+        }
+
+        public static bool IsDictionaryType(this Type type)
+        {
+            return
+                type == typeof(IDictionary) ||
+                type.IsAssignableTo(typeof(IDictionary));
+        }
+
+        public static bool IsJsonType(this Type type)
+        {
+            return
+                type == typeof(IJson) ||
+                type.IsAssignableTo(typeof(IJson));
         }
 
         public static bool IsValueType(this Type type)
@@ -28,11 +44,12 @@ namespace PinkJson2
 
         public static bool IsAnonymousType(this Type type)
         {
-            return Attribute.IsDefined(type, typeof(CompilerGeneratedAttribute), false)
-                && (type.IsGenericType || IsEmptyAnonymousType(type))
-                && type.Name.Contains("AnonymousType")
-                && (type.Name.StartsWith("<>") || type.Name.StartsWith("VB$"))
-                && (type.Attributes & TypeAttributes.NotPublic) == TypeAttributes.NotPublic;
+            return 
+                Attribute.IsDefined(type, typeof(CompilerGeneratedAttribute), false) && 
+                (type.IsGenericType || IsEmptyAnonymousType(type)) && 
+                type.Name.Contains("AnonymousType") && 
+                (type.Name.StartsWith("<>") || type.Name.StartsWith("VB$")) && 
+                (type.Attributes & TypeAttributes.NotPublic) == TypeAttributes.NotPublic;
         }
 
         public static bool IsEmptyAnonymousType(this Type type)
@@ -43,7 +60,8 @@ namespace PinkJson2
             return name == "<>f__AnonymousType";
         }
 
-        // from .Net 5
+#if NET5_0_OR_GREATER == false
         public static bool IsAssignableTo(this Type sourceType, Type targetType) => targetType?.IsAssignableFrom(sourceType) ?? false;
+#endif
     }
 }

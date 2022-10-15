@@ -5,8 +5,6 @@ namespace PinkJson2
 {
     public class JsonLexerException : PinkJsonException
     {
-        public int Position { get; }
-
         private const short _range = 200;
 
         public JsonLexerException(string message, int position, StreamReader stream) : base(Create(message, position, stream))
@@ -19,9 +17,11 @@ namespace PinkJson2
             Position = position;
         }
 
+        public int Position { get; }
+
         private static string Create(string message, int pos, StreamReader stream)
         {
-            var content = "Impossible to seek in stream.";
+            string content = null;
 
             if (stream.BaseStream.CanSeek)
             {
@@ -41,10 +41,10 @@ namespace PinkJson2
                 length = stream.Read(buffer, 0, startPos + length);
                 Array.Resize(ref buffer, length);
                 content = "\r\n" + string.Join("", buffer);
-                content = content.Substring(startPos).Insert(arrowPos, " --->");
+                content = "\r\nWhere: " + content.Substring(startPos).Insert(arrowPos, " --->");
             }
 
-            return $"{message} (Position: {pos})\r\nWhere: {content}";
+            return $"{message} (Position: {pos}){content}";
         }
     }
 }

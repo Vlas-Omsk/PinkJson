@@ -25,17 +25,6 @@ namespace PinkJson2
             set => throw new NotSupportedForTypeException(GetType());
         }
 
-        public override IEnumerable<JsonEnumerableItem> GetJsonEnumerable()
-        {
-            yield return new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
-
-            foreach (var item in this)
-                foreach (var item2 in item.GetJsonEnumerable())
-                    yield return item2;
-
-            yield return new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
-        }
-
         public override int SetIndex(object value, int index = -1)
         {
             var node = NodeAtOrDefault(index);

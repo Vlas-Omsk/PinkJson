@@ -1,35 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
 namespace PinkJson2.Formatters
 {
     public sealed class PrettyFormatter : IFormatter
     {
+        private ITextWriter _writer;
+        private IEnumerator<JsonEnumerableItem> _enumerator;
+        private int _depth = 0;
+        private JsonEnumerableItem _current;
+
         public IndentStyle IndentStyle { get; set; } = IndentStyle.Space;
         public int IndentSize { get; set; } = 2;
 
-        private StreamWriter _stream;
-        private IEnumerator<JsonEnumerableItem> _enumerator;
-        private int _depth = 0;
-        private static readonly string _newLine = Environment.NewLine;
-        private JsonEnumerableItem _current;
-
-        private void MoveNext()
+        public void Format(IEnumerable<JsonEnumerableItem> json, ITextWriter writer)
         {
-            if (_enumerator.MoveNext())
-            {
-                _current = _enumerator.Current;
-                return;
-            }
-
-            throw new Exception();
-        }
-
-        public void Format(IEnumerable<JsonEnumerableItem> json, StreamWriter stream)
-        {
-            _stream = stream;
+            _writer = writer;
             _enumerator = json.GetEnumerator();
 
             MoveNext();
@@ -62,11 +49,11 @@ namespace PinkJson2.Formatters
 
         private void FormatObject()
         {
-            _stream.Write('{');
+            _writer.Write('{');
             if (_current.Type != JsonEnumerableItemType.ObjectEnd)
             {
                 _depth++;
-                _stream.Write(_newLine);
+                _writer.WriteLine();
                 MoveNext();
                 do
                 {
@@ -76,8 +63,8 @@ namespace PinkJson2.Formatters
                         FormatKeyValue();
                         MoveNext();
                         if (_current.Type != JsonEnumerableItemType.ObjectEnd)
-                            _stream.Write(',');
-                        _stream.Write(_newLine);
+                            _writer.Write(',');
+                        _writer.WriteLine();
                     }
                 }
                 while (_current.Type != JsonEnumerableItemType.ObjectEnd);
@@ -85,27 +72,26 @@ namespace PinkJson2.Formatters
                 if (_depth > 0)
                     AddIndent();
             }
-            _stream.Write('}');
+            _writer.Write('}');
         }
 
         private void FormatKeyValue()
         {
-            _stream.Write($"\"{((string)_current.Value).EscapeString()}\"");
-            _stream.Write(": ");
+            _writer.Write($"\"{((string)_current.Value).EscapeString()}\": ");
             MoveNext();
             FormatValue();
         }
 
         private void FormatArray()
         {
-            _stream.Write('[');
+            _writer.Write('[');
             var isRoot = _depth == 0;
             if (_current.Type != JsonEnumerableItemType.ArrayEnd)
             {
                 if (isRoot)
                 {
                     _depth++;
-                    _stream.Write(_newLine);
+                    _writer.WriteLine();
                     AddIndent();
                 }
                 MoveNext();
@@ -116,17 +102,17 @@ namespace PinkJson2.Formatters
                         FormatValue();
                         MoveNext();
                         if (_current.Type != JsonEnumerableItemType.ArrayEnd)
-                            _stream.Write(", ");
+                            _writer.Write(", ");
                     }
                 }
                 while (_current.Type != JsonEnumerableItemType.ArrayEnd);
                 if (isRoot)
                 {
                     _depth--;
-                    _stream.Write(_newLine);
+                    _writer.WriteLine();
                 }
             }
-            _stream.Write(']');
+            _writer.Write(']');
         }
 
         private void FormatValue()
@@ -136,15 +122,24 @@ namespace PinkJson2.Formatters
                 FormatJson();
                 return;
             }
-            _stream.Write(Formatter.FormatValue(_current.Value));
+            _writer.Write(Formatter.FormatValue(_current.Value));
         }
 
         private void AddIndent()
         {
-            var str = IndentStyle == IndentStyle.Space ? 
-                ' '.Repeat(IndentSize) : 
-                '\t'.Repeat(IndentSize);
-            _stream.Write(str.Repeat(_depth));
+            var indent = Formatter.GetIndent(IndentStyle, IndentSize).Repeat(_depth);
+            _writer.Write(indent);
+        }
+
+        private void MoveNext()
+        {
+            if (_enumerator.MoveNext())
+            {
+                _current = _enumerator.Current;
+                return;
+            }
+
+            throw new Exception();
         }
     }
 }

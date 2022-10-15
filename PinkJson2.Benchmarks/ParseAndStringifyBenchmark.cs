@@ -8,14 +8,21 @@ namespace PinkJson2.Benchmarks
 	[MemoryDiagnoser]
     public class ParseAndStringifyBenchmark
     {
-		[Params("Json\\test1.json", "Json\\discord_detectable.json", "Json\\large-file.json")]
+		[Params("Json\\small.json", "Json\\medium.json", "Json\\large.json")]
 		public string FilePath;
 
         [Benchmark(Baseline = true)]
-        public void PinkJsonFast()
+        public void PinkJsonUltraFast()
         {
             using (var streamReader = new StreamReader(FilePath))
                 Json.Parse(streamReader).ToString(new MinifiedFormatter());
+        }
+
+        [Benchmark]
+        public void PinkJsonFast()
+        {
+            using (var streamReader = new StreamReader(FilePath))
+                Json.Parse(streamReader).ToString(new PrettyFormatter());
         }
 
         [Benchmark]

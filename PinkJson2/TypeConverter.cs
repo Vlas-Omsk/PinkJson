@@ -7,15 +7,6 @@ namespace PinkJson2
 {
     public sealed class TypeConverter : ICloneable
     {
-        internal List<Type> PrimitiveTypes { get; } = new List<Type>()
-        {
-            typeof(string),
-            typeof(DateTime),
-            typeof(TimeSpan),
-            typeof(Guid)
-        };
-
-        private readonly Dictionary<Type, List<TypeConversion>> _registeredTypes = new Dictionary<Type, List<TypeConversion>>();
         private readonly static MethodInfo _enumTryParseMethodInfo;
         private readonly static TypeConversion _dateTimeTypeConversion = new TypeConversion((object obj, Type targetType, ref bool handled) =>
         {
@@ -55,8 +46,7 @@ namespace PinkJson2
 
             return null;
         });
-
-        public static TypeConverter Default { get; set; } = new TypeConverter();
+        private readonly Dictionary<Type, List<TypeConversion>> _registeredTypes = new Dictionary<Type, List<TypeConversion>>();
 
         static TypeConverter()
         {
@@ -87,6 +77,16 @@ namespace PinkJson2
                 _registeredTypes.Add(registeredType.Key, new List<TypeConversion>(registeredType.Value));
         }
 
+        public static TypeConverter Default { get; set; } = new TypeConverter();
+
+        internal List<Type> PrimitiveTypes { get; } = new List<Type>()
+        {
+            typeof(string),
+            typeof(DateTime),
+            typeof(TimeSpan),
+            typeof(Guid)
+        };
+
         public object ChangeType(object value, Type type)
         {
             if (type == null)
@@ -113,24 +113,6 @@ namespace PinkJson2
             }
         }
 
-        private IEnumerable<TypeConversion> GetRegisteredTypeConversions(Type type)
-        {
-            var typeConversions = new List<TypeConversion>();
-
-            while (type != null)
-            {
-                foreach (var keyValue in _registeredTypes)
-                {
-                    if (type == keyValue.Key)
-                        typeConversions.AddRange(((IEnumerable<TypeConversion>)keyValue.Value).Reverse());
-                }
-
-                type = type.BaseType;
-            }
-
-            return typeConversions;
-        }
-
         private bool TryConvert(object obj, Type targetType, out object targetObj)
         {
             targetObj = null;
@@ -138,10 +120,10 @@ namespace PinkJson2
 
             foreach (var typeConversion in GetRegisteredTypeConversions(targetType))
             {
-                if (typeConversion.TypeConversionCallback == null)
+                if (typeConversion.ConvertCallback == null)
                     continue;
 
-                targetObj = typeConversion.TypeConversionCallback.Invoke(obj, targetType, ref handled);
+                targetObj = typeConversion.ConvertCallback.Invoke(obj, targetType, ref handled);
                 if (handled)
                 {
                     CompareObjectToType(targetObj, targetType);
@@ -153,10 +135,10 @@ namespace PinkJson2
 
             foreach (var typeConversion in GetRegisteredTypeConversions(type))
             {
-                if (typeConversion.TypeConversionBackCallback == null)
+                if (typeConversion.ConvertBackCallback == null)
                     continue;
 
-                targetObj = typeConversion.TypeConversionBackCallback.Invoke(obj, targetType, ref handled);
+                targetObj = typeConversion.ConvertBackCallback.Invoke(obj, targetType, ref handled);
                 if (handled)
                 {
                     CompareObjectToType(targetObj, targetType);
@@ -167,15 +149,30 @@ namespace PinkJson2
             return false;
         }
 
-        private void CompareObjectToType(object obj, Type targetType)
+        private IEnumerable<TypeConversion> GetRegisteredTypeConversions(Type type)
+        {
+            var typeConversions = new List<TypeConversion>();
+
+            while (type != null)
+            {
+                foreach (var keyValue in _registeredTypes)
+                    if (type == keyValue.Key)
+                        typeConversions.AddRange(((IEnumerable<TypeConversion>)keyValue.Value).Reverse());
+
+                type = type.BaseType;
+            }
+
+            return typeConversions;
+        }
+
+        private static void CompareObjectToType(object obj, Type targetType)
         {
             if (obj == null)
                 return;
 
             var objType = obj.GetType();
 
-            if (objType != targetType &&
-                !objType.IsAssignableTo(targetType))
+            if (objType != targetType && !objType.IsAssignableTo(targetType))
                 throw new InvalidObjectTypeException(targetType);
         }
 
@@ -197,9 +194,14 @@ namespace PinkJson2
             PrimitiveTypes.Remove(type);
         }
 
-        public object Clone()
+        public TypeConverter Clone()
         {
-            return new TypeConverter(this._registeredTypes);
+            return new TypeConverter(_registeredTypes);
+        }
+
+        object ICloneable.Clone()
+        {
+            return Clone();
         }
     }
 }

@@ -13,5 +13,17 @@ namespace PinkJson2.xUnitTests
 
             Assert.Equal("test_value", o["test_key"].Get<string>());
         }
+
+        [Fact]
+        public void ReplaceByKeyTest()
+        {
+            var o = new JsonObject()
+            {
+                { "test_key", "test_value" }
+            };
+            o.SetKey("test_key", "test_value2");
+
+            Assert.Equal("test_value2", o["test_key"].Get<string>());
+        }
     }
 }

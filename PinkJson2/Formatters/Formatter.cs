@@ -31,5 +31,18 @@ namespace PinkJson2.Formatters
 
             return str;
         }
+
+        public static string GetIndent(IndentStyle style, int size)
+        {
+            switch (style)
+            {
+                case IndentStyle.Space:
+                    return ' '.Repeat(size);
+                case IndentStyle.Tab:
+                    return '\t'.Repeat(size);
+                default:
+                    throw new Exception();
+            }
+        }
     }
 }

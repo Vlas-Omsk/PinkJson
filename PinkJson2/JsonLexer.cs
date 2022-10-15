@@ -10,8 +10,6 @@ namespace PinkJson2
 {
     public sealed class JsonLexer : IEnumerable<Token>, IDisposable
     {
-        public StreamReader Stream { get; }
-
         private static readonly FieldInfo _streamReaderDetectEncodingField = typeof(StreamReader).GetField("_detectEncoding", BindingFlags.NonPublic | BindingFlags.Instance);
         private JsonLexerEnumerator _enumerator;
         private readonly object _enumeratorLock = new object();
@@ -19,25 +17,24 @@ namespace PinkJson2
 
         private sealed class JsonLexerEnumerator : IEnumerator<Token>
         {
+            private static readonly char[] _numberChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', '.', 'x', 'o', 'b' };
+            private static readonly char[] _hexadecimalChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
             private readonly JsonLexer _lexer;
             private int _position = -1;
             private int _startPosition;
-            private Token _token;
             private readonly StringBuilder _buffer = new StringBuilder();
             private bool _useBuffer = false;
             private char? _current;
             private char? _next;
             private readonly StringBuilder _stringBuffer = new StringBuilder();
-            private static readonly char[] _numberChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', '.', 'x', 'o', 'b' };
-            private static readonly char[] _hexadecimalChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-
-            public Token Current => _token;
-            public bool Disposed { get; private set; }
 
             public JsonLexerEnumerator(JsonLexer lexer)
             {
                 _lexer = lexer;
             }
+
+            public Token Current { get; private set; }
+            public bool Disposed { get; private set; }
 
             private StreamReader Stream => _lexer.Stream;
             private int BufferLength => _buffer.Length;
@@ -64,31 +61,15 @@ namespace PinkJson2
 
                 while (Next.HasValue)
                 {
-                    Get();
+                    Current = Get();
 
-                    if (_token.Type == TokenType.Invalid)
+                    if (Current.Type == TokenType.Invalid)
                         throw new InvalidTokenException(_startPosition, Stream);
-                    if (_token.Type != TokenType.Invisible)
+                    if (Current.Type != TokenType.Invisible)
                         return true;
                 }
 
                 return false;
-            }
-
-            public void Reset()
-            {
-                if (Disposed)
-                    throw new ObjectDisposedException(nameof(JsonLexerEnumerator));
-
-                _position = -1;
-                _startPosition = 0;
-                _next = null;
-                _lexer.ResetStream();
-            }
-
-            public void Dispose()
-            {
-                Disposed = true;
             }
 
             private void ReadNext()
@@ -122,31 +103,33 @@ namespace PinkJson2
                 return str;
             }
 
-            private void Get()
+            private Token Get()
             {
-                _token = new Token();
                 ReadNext();
-                _token.Position = _startPosition = _position;
+
+                var tokenPosition = _startPosition = _position;
+                TokenType tokenType;
+                object tokenValue = null;
 
                 switch (_current.Value)
                 {
                     case ':':
-                        _token.Type = TokenType.Colon;
+                        tokenType = TokenType.Colon;
                         break;
                     case ',':
-                        _token.Type = TokenType.Comma;
+                        tokenType = TokenType.Comma;
                         break;
                     case '{':
-                        _token.Type = TokenType.LeftBrace;
+                        tokenType = TokenType.LeftBrace;
                         break;
                     case '}':
-                        _token.Type = TokenType.RightBrace;
+                        tokenType = TokenType.RightBrace;
                         break;
                     case '[':
-                        _token.Type = TokenType.LeftBracket;
+                        tokenType = TokenType.LeftBracket;
                         break;
                     case ']':
-                        _token.Type = TokenType.RightBracket;
+                        tokenType = TokenType.RightBracket;
                         break;
                     case '+':
                     case '-':
@@ -160,39 +143,64 @@ namespace PinkJson2
                     case '8':
                     case '9':
                     case '0':
-                        ReadNumber();
+                        tokenValue = ReadNumber();
+                        tokenType = TokenType.Number;
                         break;
                     case '"':
-                        ReadString();
+                    case '\'':
+                        tokenValue = ReadString();
+                        tokenType = TokenType.String;
                         break;
                     default:
                         if (_current.Value == '\0' || char.IsWhiteSpace(_current.Value))
+                        {
                             ReadWhiteSpace();
+                            tokenType = TokenType.Invisible;
+                        }
                         else if (char.IsLetterOrDigit(_current.Value))
-                            ReadOther();
+                        {
+                            (tokenType, tokenValue) = ReadOther();
+                        }
+                        else
+                        {
+                            throw new Exception();
+                        }
                         break;
                 }
 
-                _token.Length = _position - _startPosition;
+                return new Token(tokenType, tokenPosition, _position - _startPosition, tokenValue);
             }
 
             private void ReadWhiteSpace()
             {
                 while (Next.HasValue && (Next.Value == '\0' || char.IsWhiteSpace(Next.Value)))
                     ReadNext();
-                _token.Type = TokenType.Invisible;
             }
 
-            private void ReadNumber()
+            private object ReadNumber()
             {
                 EnableBuffer();
 
                 var isDouble = false;
                 var isEnumber = false;
                 var valueBase = 10;
+                var signed = _current.Value == '-' || _current.Value == '+';
+                var prefixLength = signed ? 3 : 2;
 
-                while (Next.HasValue &&
-                    (_numberChars.Contains(char.ToLowerInvariant(Next.Value)) || (char.ToLowerInvariant(_current.Value) == 'e' && ((isEnumber && Next.Value == '-') || (isEnumber && Next.Value == '+')))))
+                while (
+                    Next.HasValue &&
+                    (
+                        _numberChars.Contains(char.ToLowerInvariant(Next.Value)) || 
+                        (
+                            char.ToLowerInvariant(_current.Value) == 'e' &&
+                            isEnumber &&
+                            (
+                                Next.Value == '-' || 
+                                Next.Value == '+'
+                            )
+                        )
+                    )
+                )
                 {
                     var previous = _current.Value;
                     ReadNext();
@@ -214,19 +222,19 @@ namespace PinkJson2
                     }
                     else if (lowerCurrent == 'x')
                     {
-                        if (valueBase == 16 || previous != '0' || BufferLength > 2)
+                        if (valueBase == 16 || previous != '0' || BufferLength > prefixLength)
                             throw new JsonLexerException("Invalid hexadecimal number", _position, Stream);
                         else
                             valueBase = 16;
                     }
                     else if (lowerCurrent == 'o')
                     {
-                        if (valueBase == 8 || previous != '0' || BufferLength > 2)
+                        if (valueBase == 8 || previous != '0' || BufferLength > prefixLength)
                             throw new JsonLexerException("Invalid octal number", _position, Stream);
                         else
                             valueBase = 8;
                     }
-                    else if (lowerCurrent == 'b' && previous == '0' && BufferLength == 2)
+                    else if (lowerCurrent == 'b' && previous == '0' && BufferLength == prefixLength)
                     {
                         if (valueBase == 2)
                             throw new JsonLexerException("Invalid binary number", _position, Stream);
@@ -247,34 +255,39 @@ namespace PinkJson2
                 {
                     if (!double.TryParse(buffer.Replace('.', ','), out double value))
                         throw new JsonLexerException($"Invalid double number {_buffer}", _startPosition, Stream);
-                    _token.Value = value;
+                    return value;
                 }
                 else if (valueBase != 10)
                 {
-                    var prefix = buffer.Substring(0, 2);
-                    buffer = buffer.Substring(2);
+                    var number = buffer.Substring(prefixLength);
                     try
                     {
-                        _token.Value = Convert.ToInt32(buffer, valueBase);
+                        var i = Convert.ToInt32(number, valueBase);
+                        if (signed && buffer[0] == '-')
+                            i = -i;
+                        return i;
                     }
                     catch
                     {
                         try
                         {
-                            _token.Value = Convert.ToInt64(buffer, valueBase);
+                            var i = Convert.ToInt64(number, valueBase);
+                            if (signed && buffer[0] == '-')
+                                i = -i;
+                            return i;
                         }
                         catch (Exception ex)
                         {
-                            throw new JsonLexerException($"Invalid number {prefix}{_buffer}", _startPosition, Stream, ex);
+                            throw new JsonLexerException($"Invalid number {buffer.Substring(0, 2)}{_buffer}", _startPosition, Stream, ex);
                         }
                     }
                 }
                 else
                 {
                     if (int.TryParse(buffer, out int intvalue))
-                        _token.Value = intvalue;
+                        return intvalue;
                     else if (long.TryParse(buffer, out long longvalue))
-                        _token.Value = longvalue;
+                        return longvalue;
                     //else if (BigInteger.TryParse(str, out BigInteger bigintvalue))
                     //    _token.Value = bigintvalue;
                     else
@@ -285,17 +298,16 @@ namespace PinkJson2
                             throw new JsonLexerException($"Well.. It's seriously big number {_buffer}. I.. I even can't imagine how to handle it. No, seriously. Maybe you know how?", _startPosition, Stream);
                     }
                 }
-
-                _token.Type = TokenType.Number;
             }
 
-            private void ReadString()
+            private string ReadString()
             {
+                var stringBeginChar = _current.Value;
                 var escape = false;
 
                 _stringBuffer.Clear();
 
-                while (Next.HasValue && (escape || Next.Value != '"'))
+                while (Next.HasValue && (escape || Next.Value != stringBeginChar))
                 {
                     ReadNext();
 
@@ -339,6 +351,9 @@ namespace PinkJson2
                             case '"':
                                 _stringBuffer.Append('\"');
                                 break;
+                            case '\'':
+                                _stringBuffer.Append('\'');
+                                break;
                             case '\\':
                                 _stringBuffer.Append('\\');
                                 break;
@@ -361,11 +376,10 @@ namespace PinkJson2
 
                 ReadNext();
 
-                _token.Type = TokenType.String;
-                _token.Value = _stringBuffer.ToString();
+                return _stringBuffer.ToString();
             }
 
-            private void ReadOther()
+            private (TokenType type, object value) ReadOther()
             {
                 EnableBuffer();
 
@@ -375,14 +389,27 @@ namespace PinkJson2
                 var buffer = DisableBuffer();
 
                 if (buffer == "null")
-                {
-                    _token.Type = TokenType.Null;
-                }
+                    return (TokenType.Null, null);
                 else if (bool.TryParse(buffer, out bool value))
-                {
-                    _token.Value = value;
-                    _token.Type = TokenType.Boolean;
-                }
+                    return (TokenType.Boolean, value);
+
+                throw new Exception();
+            }
+
+            public void Reset()
+            {
+                if (Disposed)
+                    throw new ObjectDisposedException(nameof(JsonLexerEnumerator));
+
+                _position = -1;
+                _startPosition = 0;
+                _next = null;
+                _lexer.ResetStream();
+            }
+
+            public void Dispose()
+            {
+                Disposed = true;
             }
         }
 
@@ -408,6 +435,8 @@ namespace PinkJson2
         {
             Dispose();
         }
+
+        public StreamReader Stream { get; }
 
         public IEnumerator<Token> GetEnumerator()
         {

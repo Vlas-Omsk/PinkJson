@@ -31,17 +31,6 @@ namespace PinkJson2
             }
         }
 
-        public override IEnumerable<JsonEnumerableItem> GetJsonEnumerable()
-        {
-            yield return new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
-
-            foreach (var item in this)
-                foreach (var item2 in item.GetJsonEnumerable())
-                    yield return item2;
-
-            yield return new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
-        }
-
         public void Add(string key, object value)
         {
             AddLast(new JsonKeyValue(key, value));

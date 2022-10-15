@@ -8,8 +8,6 @@ namespace PinkJson2.Serializers
 {
     public sealed class ObjectSerializer : ISerializer
     {
-        public ObjectSerializerOptions Options { get; set; }
-
         private const string _indexerPropertyName = "Item";
         private readonly List<object> _ids = new List<object>();
         private bool _running;
@@ -21,8 +19,10 @@ namespace PinkJson2.Serializers
 
         public ObjectSerializer(ObjectSerializerOptions options)
         {
-            Options = options ?? throw new ArgumentNullException(nameof(options));
+            Options = options;
         }
+
+        public ObjectSerializerOptions Options { get; set; }
 
         public IJson Serialize(object instance)
         {
@@ -136,7 +136,6 @@ namespace PinkJson2.Serializers
 
                 return jsonObject;
             }
-
             var type = obj.GetType();
             var properties = type.GetProperties(Options.PropertyBindingFlags);
             var fields = type.GetFields(Options.FieldBindingFlags);
@@ -186,16 +185,46 @@ namespace PinkJson2.Serializers
 
         private IJson SerializeArray(object obj, bool useJsonSerialize)
         {
-            if (useJsonSerialize && TryJsonSerialize(obj, out IJson jsonArray))
-                return jsonArray;
+            if (useJsonSerialize && TryJsonSerialize(obj, out IJson json))
+                return json;
 
-            var enumerable = (IEnumerable)obj;
-            jsonArray = new JsonArray();
+            var type = obj.GetType();
 
-            foreach (var item in enumerable)
-                ((JsonArray)jsonArray).AddLast(new JsonArrayValue(SerializeValue(item, item?.GetType())));
+            if (type.IsDictionaryType())
+            {
+                var dictionary = (IDictionary)obj;
+                var genericDictionaryType = type.GetInterface("IDictionary`2");
+                var keyType = genericDictionaryType?.GetGenericArguments()[0];
 
-            return jsonArray;
+                if (genericDictionaryType == null || keyType != typeof(string))
+                {
+                    json = new JsonArray();
+
+                    foreach (var item in dictionary)
+                        ((JsonArray)json).AddLast(new JsonArrayValue(SerializeValue(item, item?.GetType())));
+                }
+                else
+                {
+                    var valueType = genericDictionaryType.GetGenericArguments()[1];
+                    var enumerator = dictionary.GetEnumerator();
+
+                    json = new JsonObject();
+
+                    while (enumerator.MoveNext())
+                        ((JsonObject)json).AddLast(new JsonKeyValue((string)enumerator.Key, SerializeValue(enumerator.Value, valueType)));
+                }
+            }
+            else
+            {
+                var enumerable = (IEnumerable)obj;
+
+                json = new JsonArray();
+
+                foreach (var item in enumerable)
+                    ((JsonArray)json).AddLast(new JsonArrayValue(SerializeValue(item, item?.GetType())));
+            }
+
+            return json;
         }
 
         private bool TryJsonSerialize(object obj, out IJson json)
@@ -205,6 +234,7 @@ namespace PinkJson2.Serializers
                 json = serializable.Serialize(this);
                 return true;
             }
+
             json = null;
             return false;
         }

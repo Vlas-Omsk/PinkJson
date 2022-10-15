@@ -2,13 +2,8 @@
 
 namespace PinkJson2
 {
-    public struct Token
+    public readonly struct Token
     {
-        public TokenType Type { get; set; }
-        public int Position { get; set; }
-        public int Length { get; set; }
-        public object Value { get; set; }
-
         public Token(TokenType type, int position, int length, object value)
         {
             Type = type;
@@ -16,5 +11,10 @@ namespace PinkJson2
             Length = length;
             Value = value;
         }
+
+        public TokenType Type { get; }
+        public int Position { get; }
+        public int Length { get; }
+        public object Value { get; }
     }
 }

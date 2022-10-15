@@ -184,8 +184,6 @@ namespace PinkJson2
 
         #endregion
 
-        public abstract IEnumerable<JsonEnumerableItem> GetJsonEnumerable();
-
         protected T AsChild(IJson value)
         {
             if (!(value is T child))
@@ -255,7 +253,7 @@ namespace PinkJson2
 
         public override string ToString()
         {
-            return new MinifiedFormatter().FormatToString(GetJsonEnumerable());
+            return this.ToString(new MinifiedFormatter());
         }
     }
 }

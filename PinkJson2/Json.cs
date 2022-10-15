@@ -123,7 +123,7 @@ namespace PinkJson2
 
         public static string ToString(this IJson self, IFormatter formatter)
         {
-            return ToString(self.GetJsonEnumerable(), formatter);
+            return ToString(self.ToJsonEnumerable(), formatter);
         }
 
         public static string ToString(this IEnumerable<JsonEnumerableItem> self, IFormatter formatter)
@@ -133,7 +133,7 @@ namespace PinkJson2
 
         public static void ToStream(this IJson self, StreamWriter stream)
         {
-            ToStream(self.GetJsonEnumerable(), stream);
+            ToStream(self.ToJsonEnumerable(), stream);
         }
 
         public static void ToStream(this IEnumerable<JsonEnumerableItem> self, StreamWriter stream)
@@ -143,12 +143,12 @@ namespace PinkJson2
 
         public static void ToStream(this IJson self, IFormatter formatter, StreamWriter stream)
         {
-            ToStream(self.GetJsonEnumerable(), formatter, stream);
+            ToStream(self.ToJsonEnumerable(), formatter, stream);
         }
 
         public static void ToStream(this IEnumerable<JsonEnumerableItem> self, IFormatter formatter, StreamWriter stream)
         {
-            formatter.Format(self, stream);
+            formatter.Format(self, new StreamTextWriter(stream));
         }
 
         public static IJson ToJson(this IEnumerable<JsonEnumerableItem> self)
@@ -156,6 +156,13 @@ namespace PinkJson2
             var converter = new JsonEnumerableToJsonConverter();
 
             return converter.Convert(self);
+        }
+
+        public static IEnumerable<JsonEnumerableItem> ToJsonEnumerable(this IJson self)
+        {
+            var converter = new JsonToJsonEnumerableConverter(self);
+
+            return converter;
         }
     }
 }

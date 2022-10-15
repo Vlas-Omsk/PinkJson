@@ -12,19 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\PinkJson2.Tests.Common\PinkJson2.Tests.Common.csproj" />
     <ProjectReference Include="..\PinkJson2\PinkJson2.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Json\discord_detectable.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Json\large-file.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Json\test1.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

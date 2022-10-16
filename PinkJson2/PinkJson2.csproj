@@ -6,9 +6,13 @@
     <Version>1.31.0</Version>
     <Authors>Vlas-Omsk</Authors>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+  
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DefineConstants>$(DefineConstants);USEPATH</DefineConstants>
+  </PropertyGroup>
+  
+  <!--<PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
-  </PropertyGroup>
+  </PropertyGroup>-->
 </Project>

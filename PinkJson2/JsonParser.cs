@@ -13,11 +13,13 @@ namespace PinkJson2
         private sealed class JsonParserEnumerator : IEnumerator<JsonEnumerableItem>
         {
             private readonly IEnumerable<Token> _source;
+#if USEPATH
             private readonly Stack<IJsonPathSegment> _path = new Stack<IJsonPathSegment>();
+            private int _arrayIndex;
+#endif
             private IEnumerator<Token> _enumerator;
             private int _state = 1;
             private readonly Stack<int> _nextState = new Stack<int>();
-            private int _arrayIndex;
 
             public JsonParserEnumerator(IEnumerable<Token> source)
             {
@@ -26,7 +28,12 @@ namespace PinkJson2
 
             public JsonEnumerableItem Current { get; private set; }
 
-            private JsonPath Path => new JsonPath(_path.Reverse().ToArray());
+            private JsonPath Path =>
+#if USEPATH
+                new JsonPath(_path.Reverse().ToArray());
+#else
+                new JsonPath();
+#endif
             object IEnumerator.Current => Current;
 
             public bool MoveNext()
@@ -53,7 +60,9 @@ namespace PinkJson2
                                 _state = 3;
                                 break;
                             case TokenType.LeftBracket:
+#if USEPATH
                                 _arrayIndex = 0;
+#endif
                                 Current = new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
 
                                 _state = 8;
@@ -96,7 +105,9 @@ namespace PinkJson2
                         }
 
                         var key = (string)_enumerator.Current.Value;
+#if USEPATH
                         _path.Push(new JsonPathObjectSegment(key));
+#endif
                         Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, key);
 
                         _state = 6;
@@ -109,7 +120,9 @@ namespace PinkJson2
                         _state = 2;
                         goto case 2;
                     case 5:
+#if USEPATH
                         _path.Pop();
+#endif
 
                         EnsureEnumeratorMoveNext(TokenType.RightBrace, TokenType.Comma);
                         if (_enumerator.Current.Type == TokenType.RightBrace)
@@ -133,13 +146,17 @@ namespace PinkJson2
                             _state = _nextState.Pop();
                             return true;
                         }
+#if USEPATH
                         _path.Push(new JsonPathArraySegment(_arrayIndex++));
+#endif
 
                         _nextState.Push(9);
                         _state = 2;
                         goto case 2;
                     case 9:
+#if USEPATH
                         _path.Pop();
+#endif
                         EnsureEnumeratorMoveNext(TokenType.RightBracket, TokenType.Comma);
                         if (_enumerator.Current.Type == TokenType.RightBracket)
                         {
@@ -168,7 +185,9 @@ namespace PinkJson2
                 if (_enumerator != null)
                     _enumerator.Reset();
 
+#if USEPATH
                 _path.Clear();
+#endif
                 _nextState.Clear();
                 Current = default;
                 _state = 1;
@@ -182,10 +201,14 @@ namespace PinkJson2
                     _enumerator = null;
                 }
 
+#if USEPATH
                 Debug.Assert(_path.Count == 0, "_path was not empty");
+#endif
                 Debug.Assert(_nextState.Count == 0, "_nextState was not empty");
 
+#if USEPATH
                 _path.Clear();
+#endif
                 _nextState.Clear();
                 Current = default;
                 _state = -1;

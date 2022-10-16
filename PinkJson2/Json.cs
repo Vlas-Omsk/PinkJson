@@ -128,27 +128,32 @@ namespace PinkJson2
 
         public static string ToString(this IEnumerable<JsonEnumerableItem> self, IFormatter formatter)
         {
-            return formatter.FormatToString(self);
+            using (var writer = new StringWriter())
+            {
+                formatter.Format(self, writer);
+
+                return writer.ToString();
+            }
         }
 
-        public static void ToStream(this IJson self, StreamWriter stream)
+        public static void ToStream(this IJson self, TextWriter writer)
         {
-            ToStream(self.ToJsonEnumerable(), stream);
+            ToStream(self.ToJsonEnumerable(), writer);
         }
 
-        public static void ToStream(this IEnumerable<JsonEnumerableItem> self, StreamWriter stream)
+        public static void ToStream(this IEnumerable<JsonEnumerableItem> self, TextWriter writer)
         {
-            self.ToStream(new MinifiedFormatter(), stream);
+            ToStream(self, new MinifiedFormatter(), writer);
         }
 
-        public static void ToStream(this IJson self, IFormatter formatter, StreamWriter stream)
+        public static void ToStream(this IJson self, IFormatter formatter, TextWriter writer)
         {
-            ToStream(self.ToJsonEnumerable(), formatter, stream);
+            ToStream(self.ToJsonEnumerable(), formatter, writer);
         }
 
-        public static void ToStream(this IEnumerable<JsonEnumerableItem> self, IFormatter formatter, StreamWriter stream)
+        public static void ToStream(this IEnumerable<JsonEnumerableItem> self, IFormatter formatter, TextWriter writer)
         {
-            formatter.Format(self, new StreamTextWriter(stream));
+            formatter.Format(self, writer);
         }
 
         public static IJson ToJson(this IEnumerable<JsonEnumerableItem> self)

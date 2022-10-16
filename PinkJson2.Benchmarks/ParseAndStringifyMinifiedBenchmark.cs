@@ -7,7 +7,7 @@ using System;
 namespace PinkJson2.Benchmarks
 {
 	[MemoryDiagnoser]
-    public class ParseAndStringifyBenchmark
+    public class ParseAndStringifyMinifiedBenchmark
     {
 		[Params("Json\\small.json", "Json\\medium.json", "Json\\large.json")]
 		public string FilePath { get; set; }
@@ -16,23 +16,23 @@ namespace PinkJson2.Benchmarks
         public void PinkJsonFast()
         {
             using (var streamReader = new StreamReader(FilePath))
-                Json.Parse(streamReader).ToString(new PrettyFormatter());
+                Json.Parse(streamReader).ToString(new MinifiedFormatter());
         }
 
         [Benchmark(Baseline = true)]
         public void PinkJson()
-		{
-			using (var streamReader = new StreamReader(FilePath))
-				Json.Parse(streamReader).ToJson().ToString(new PrettyFormatter());
-		}
+        {
+            using (var streamReader = new StreamReader(FilePath))
+                Json.Parse(streamReader).ToJson().ToString(new MinifiedFormatter());
+        }
 
         [Benchmark]
-		public void NewtonsoftJson()
-		{
+        public void NewtonsoftJson()
+        {
             var serializer = new JsonSerializer();
             using (var streamReader = new StreamReader(FilePath))
             using (var jsonTextReader = new JsonTextReader(streamReader))
-                ((JToken)serializer.Deserialize(jsonTextReader)).ToString(Formatting.Indented);
+                ((JToken)serializer.Deserialize(jsonTextReader)).ToString(Formatting.None);
         }
     }
 }

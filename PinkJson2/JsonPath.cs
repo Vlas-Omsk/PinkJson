@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 
 namespace PinkJson2
 {
-    public sealed class JsonPath : Collection<IJsonPathSegment>
+    public sealed class JsonPath : LinkedList<IJsonPathSegment>
     {
         private const string _rootObjectName = "root";
+
+        public JsonPath() : base()
+        {
+        }
 
         public JsonPath(IList<IJsonPathSegment> segments) : base(segments)
         {
@@ -16,7 +18,9 @@ namespace PinkJson2
 
         public override string ToString()
         {
-            var pathString = new StringBuilder();
+            if (Count == 0)
+                return "<empty>";
+
             return _rootObjectName + string.Concat(this.Select(x =>
             {
                 if (x is JsonPathObjectSegment objectSegment)

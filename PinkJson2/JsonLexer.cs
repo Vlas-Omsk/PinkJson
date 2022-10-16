@@ -27,6 +27,7 @@ namespace PinkJson2
             private char? _current;
             private char? _next;
             private readonly StringBuilder _stringBuffer = new StringBuilder();
+            private int _state = 1;
 
             public JsonLexerEnumerator(JsonLexer lexer)
             {
@@ -34,39 +35,34 @@ namespace PinkJson2
             }
 
             public Token Current { get; private set; }
-            public bool Disposed { get; private set; }
+            public bool Disposed => _state == -1;
 
             private StreamReader Stream => _lexer.Stream;
             private int BufferLength => _buffer.Length;
             object IEnumerator.Current => Current;
 
-            private char? Next
-            {
-                get
-                {
-                    // if Stream.BaseStream is ChunkedEncodingReadStream Stream.Peek return -1 if position in end of chunk
-                    if (!_next.HasValue)
-                    {
-                        var next = Stream.Read();
-                        _next = next == -1 ? null : (char?)next;
-                    }
-                    return _next;
-                }
-            }
-
             public bool MoveNext()
             {
-                if (Disposed)
+                if (_state == -1)
                     throw new ObjectDisposedException(nameof(JsonLexerEnumerator));
 
-                while (Next.HasValue)
+                switch (_state)
                 {
-                    Current = Get();
+                    case 1:
+                        _next = ReadNextChar();
+                        _state = 2;
+                        goto case 2;
+                    case 2:
+                        while (_next.HasValue)
+                        {
+                            Current = Get();
 
-                    if (Current.Type == TokenType.Invalid)
-                        throw new InvalidTokenException(_startPosition, Stream);
-                    if (Current.Type != TokenType.Invisible)
-                        return true;
+                            if (Current.Type == TokenType.Invalid)
+                                throw new InvalidTokenException(_startPosition, Stream);
+                            if (Current.Type != TokenType.Invisible)
+                                return true;
+                        }
+                        break;
                 }
 
                 return false;
@@ -76,17 +72,20 @@ namespace PinkJson2
             {
                 _position++;
                 if (_next.HasValue)
-                {
-                    _current = _next;
-                    _next = null;
-                }
+                    _current = _next.Value;
                 else
-                {
-                    var current = Stream.Read();
-                    _current = current == -1 ? null : (char?)current;
-                }
+                    _current = ReadNextChar();
+                // if Stream.BaseStream is ChunkedEncodingReadStream Stream.Peek return -1 if position in end of chunk
+                _next = ReadNextChar();
+
                 if (_useBuffer && _current.HasValue)
                     _buffer.Append(_current.Value);
+            }
+
+            private char? ReadNextChar()
+            {
+                var current = Stream.Read();
+                return current == -1 ? null : (char?)current;
             }
 
             private void EnableBuffer()
@@ -173,7 +172,7 @@ namespace PinkJson2
 
             private void ReadWhiteSpace()
             {
-                while (Next.HasValue && (Next.Value == '\0' || char.IsWhiteSpace(Next.Value)))
+                while (_next.HasValue && (_next.Value == '\0' || char.IsWhiteSpace(_next.Value)))
                     ReadNext();
             }
 
@@ -188,15 +187,15 @@ namespace PinkJson2
                 var prefixLength = signed ? 3 : 2;
 
                 while (
-                    Next.HasValue &&
+                    _next.HasValue &&
                     (
-                        _numberChars.Contains(char.ToLowerInvariant(Next.Value)) || 
+                        _numberChars.Contains(char.ToLowerInvariant(_next.Value)) || 
                         (
                             char.ToLowerInvariant(_current.Value) == 'e' &&
                             isEnumber &&
                             (
-                                Next.Value == '-' || 
-                                Next.Value == '+'
+                                _next.Value == '-' || 
+                                _next.Value == '+'
                             )
                         )
                     )
@@ -307,7 +306,7 @@ namespace PinkJson2
 
                 _stringBuffer.Clear();
 
-                while (Next.HasValue && (escape || Next.Value != stringBeginChar))
+                while (_next.HasValue && (escape || _next.Value != stringBeginChar))
                 {
                     ReadNext();
 
@@ -341,7 +340,7 @@ namespace PinkJson2
                                 string unicode_value = "";
                                 for (var i = 0; i < 4; i++)
                                 {
-                                    if (!Next.HasValue || !_hexadecimalChars.Contains(char.ToLowerInvariant(Next.Value)))
+                                    if (!_next.HasValue || !_hexadecimalChars.Contains(char.ToLowerInvariant(_next.Value)))
                                         throw new JsonLexerException($"The Unicode value must be hexadecimal and 4 characters long", _position - i - 1, Stream);
                                     ReadNext();
                                     unicode_value += _current.Value;
@@ -383,7 +382,7 @@ namespace PinkJson2
             {
                 EnableBuffer();
 
-                while (Next.HasValue && char.IsLetterOrDigit(Next.Value))
+                while (_next.HasValue && char.IsLetterOrDigit(_next.Value))
                     ReadNext();
 
                 var buffer = DisableBuffer();
@@ -398,7 +397,7 @@ namespace PinkJson2
 
             public void Reset()
             {
-                if (Disposed)
+                if (_state == -1)
                     throw new ObjectDisposedException(nameof(JsonLexerEnumerator));
 
                 _position = -1;
@@ -409,7 +408,7 @@ namespace PinkJson2
 
             public void Dispose()
             {
-                Disposed = true;
+                _state = -1;
             }
         }
 

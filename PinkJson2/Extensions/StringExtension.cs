@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -8,136 +10,163 @@ namespace PinkJson2
     {
         private static readonly char[] _hexadecimalChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
-        public static string Repeat(this string str, int count)
+        public static string Repeat(this string self, int count)
         {
-            var result = new StringBuilder();
-            for (var i = 0; i < count; i++)
-                result.Append(str);
-            return result.ToString();
+            using (var writer = new StringWriter())
+            {
+                Repeat(self, count, writer);
+
+                return writer.ToString();
+            }
         }
 
-        public static string EscapeString(this string value)
+        public static void Repeat(this string self, int count, TextWriter writer)
         {
-            var result = new StringBuilder();
+            for (var i = 0; i < count; i++)
+                writer.Write(self);
+        }
 
-            for (var i = 0; i < value.Length; i++)
+        public static string EscapeString(this string self)
+        {
+            using (var writer = new StringWriter())
             {
-                switch (value[i])
+                EscapeString(self, writer);
+
+                return writer.ToString();
+            }
+        }
+
+        public static void EscapeString(this string self, TextWriter writer)
+        {
+            for (var i = 0; i < self.Length; i++)
+            {
+                switch (self[i])
                 {
                     case '\b':
-                        result.Append("\\b");
+                        writer.Write("\\b");
                         break;
                     case '\a':
-                        result.Append("\\a");
+                        writer.Write("\\a");
                         break;
                     case '\f':
-                        result.Append("\\f");
+                        writer.Write("\\f");
                         break;
                     case '\n':
-                        result.Append("\\n");
+                        writer.Write("\\n");
                         break;
                     case '\r':
-                        result.Append("\\r");
+                        writer.Write("\\r");
                         break;
                     case '\t':
-                        result.Append("\\t");
+                        writer.Write("\\t");
                         break;
                     case '\0':
-                        result.Append("\\0");
+                        writer.Write("\\0");
                         break;
                     case '\"':
-                        result.Append("\\\"");
+                        writer.Write("\\\"");
                         break;
                     case '\\':
-                        result.Append("\\\\");
+                        writer.Write("\\\\");
                         break;
                     default:
-                        result.Append(value[i]);
+                        writer.Write(self[i]);
                         break;
                 }
             }
-
-            return result.ToString();
         }
 
-        public static string UnescapeString(this string value)
+        public static string UnescapeString(this string self)
         {
-            var result = new StringBuilder();
+            using (var writer = new StringWriter())
+            {
+                UnescapeString(self, writer);
+
+                return writer.ToString();
+            }
+        }
+
+        public static void UnescapeString(this string self, TextWriter writer)
+        {
             var escape = false;
 
-            for (var i = 0; i < value.Length; i++)
+            for (var i = 0; i < self.Length; i++)
             {
                 if (escape)
                 {
                     escape = false;
-                    switch (value[i])
+                    switch (self[i])
                     {
                         case 'b':
-                            result.Append('\b');
+                            writer.Write('\b');
                             break;
                         case 'a':
-                            result.Append('\a');
+                            writer.Write('\a');
                             break;
                         case 'f':
-                            result.Append('\f');
+                            writer.Write('\f');
                             break;
                         case 'n':
-                            result.Append('\n');
+                            writer.Write('\n');
                             break;
                         case 'r':
-                            result.Append('\r');
+                            writer.Write('\r');
                             break;
                         case 't':
-                            result.Append('\t');
+                            writer.Write('\t');
                             break;
                         case '0':
-                            result.Append("\0");
+                            writer.Write("\0");
                             break;
                         case 'u':
                             string unicode_value = "";
                             for (var j = 0; j < 4; j++)
                             {
                                 i++;
-                                if (i >= value.Length || !_hexadecimalChars.Contains(char.ToLowerInvariant(value[i])))
+                                if (i >= self.Length || !_hexadecimalChars.Contains(char.ToLowerInvariant(self[i])))
                                     throw new Exception($"The Unicode value must be hexadecimal and 4 characters long");
-                                unicode_value += value[i];
+                                unicode_value += self[i];
                             }
-                            result.Append((char)Convert.ToInt32(unicode_value, 16));
+                            writer.Write((char)Convert.ToInt32(unicode_value, 16));
                             break;
                         case '"':
-                            result.Append('\"');
+                            writer.Write('\"');
                             break;
                         case '\\':
-                            result.Append('\\');
+                            writer.Write('\\');
                             break;
                         case '/':
-                            result.Append('/');
+                            writer.Write('/');
                             break;
                         default:
-                            throw new Exception($"Unidentified escape sequence \\{value[i]} at position {i}.");
+                            throw new Exception($"Unidentified escape sequence \\{self[i]} at position {i}.");
                     }
                 }
-                else if (value[i] == '\\')
+                else if (self[i] == '\\')
                 {
                     escape = true;
                 }
                 else
                 {
-                    result.Append(value[i]);
+                    writer.Write(self[i]);
                 }
             }
-
-            return result.ToString();
         }
 
-        public static string ToUnicodeString(this string value)
+        public static string ToUnicodeString(this string self)
         {
-            var result = new StringBuilder();
+            using (var writer = new StringWriter())
+            {
+                ToUnicodeString(self, writer);
 
+                return writer.ToString();
+            }
+        }
+
+        public static void ToUnicodeString(this string value, TextWriter writer)
+        {
             for (var i = 0; i < value.Length; i++)
-                result.Append(value[i].ToUnicode());
-
-            return result.ToString();
+                writer.Write(value[i].ToUnicode());
         }
     }
 }

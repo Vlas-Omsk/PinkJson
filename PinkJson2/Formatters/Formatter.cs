@@ -1,19 +1,22 @@
 ﻿using System;
+using System.IO;
 
 namespace PinkJson2.Formatters
 {
     public static class Formatter
     {
-        public static string FormatValue(object value)
+        public static void FormatValue(object value, TextWriter writer)
         {
-            string str;
-
             if (value is null)
-                str = "null";
+                writer.Write("null");
             else if (value is bool b)
-                str = b ? "true" : "false";
+                writer.Write(b ? "true" : "false");
             else if (value is DateTime dt)
-                str = '\"' + dt.ToISO8601String() + '\"';
+            {
+                writer.Write('\"');
+                writer.Write(dt.ToISO8601String());
+                writer.Write('\"');
+            }
             else if (value is sbyte
                     || value is byte
                     || value is short
@@ -25,11 +28,13 @@ namespace PinkJson2.Formatters
                     || value is float
                     || value is double
                     || value is decimal)
-                str = value.ToString().Replace(',', '.');
+                writer.Write(value.ToString().Replace(',', '.'));
             else
-                str = $"\"{value.ToString().EscapeString()}\"";
-
-            return str;
+            {
+                writer.Write('\"');
+                value.ToString().EscapeString(writer);
+                writer.Write('\"');
+            }
         }
 
         public static string GetIndent(IndentStyle style, int size)

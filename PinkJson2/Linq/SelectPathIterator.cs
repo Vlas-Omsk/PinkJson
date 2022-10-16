@@ -7,6 +7,7 @@ namespace PinkJson2.Linq
     internal sealed class SelectPathIterator : JsonIterator<JsonEnumerableItem>
     {
         private readonly JsonPath _path;
+        private LinkedListNode<IJsonPathSegment> _pathSegment;
         private int _pathIndex;
         private int _depth;
 
@@ -21,6 +22,7 @@ namespace PinkJson2.Linq
         private SelectPathIterator(IEnumerable<JsonEnumerableItem> source, IEnumerator<JsonEnumerableItem> enumerator, JsonPath path) : base(source, enumerator)
         {
             _path = path;
+            _pathSegment = _path.First;
         }
 
         public override Iterator<JsonEnumerableItem, JsonEnumerableItem> Clone()
@@ -53,9 +55,10 @@ namespace PinkJson2.Linq
                             isFirstIteration = false;
                         }
 
-                        var currentSegment = _path[_pathIndex++];
+                        _pathIndex++;
+                        _pathSegment = _pathSegment.Next;
 
-                        if (currentSegment is JsonPathObjectSegment objectSegment)
+                        if (_pathSegment.Value is JsonPathObjectSegment objectSegment)
                         {
                             if (Enumerator.Current.Type != JsonEnumerableItemType.ObjectBegin)
                                 throw new Exception();
@@ -78,7 +81,7 @@ namespace PinkJson2.Linq
                                 SkipOne();
                             }
                         }
-                        else if (currentSegment is JsonPathArraySegment arraySegment)
+                        else if (_pathSegment.Value is JsonPathArraySegment arraySegment)
                         {
                             if (Enumerator.Current.Type != JsonEnumerableItemType.ArrayBegin)
                                 throw new Exception();

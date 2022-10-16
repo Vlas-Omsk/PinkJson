@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace PinkJson2.Formatters
 {
     public sealed class PrettyFormatter : IFormatter
     {
-        private ITextWriter _writer;
+        private TextWriter _writer;
         private IEnumerator<JsonEnumerableItem> _enumerator;
         private int _depth = 0;
         private JsonEnumerableItem _current;
@@ -14,7 +15,7 @@ namespace PinkJson2.Formatters
         public IndentStyle IndentStyle { get; set; } = IndentStyle.Space;
         public int IndentSize { get; set; } = 2;
 
-        public void Format(IEnumerable<JsonEnumerableItem> json, ITextWriter writer)
+        public void Format(IEnumerable<JsonEnumerableItem> json, TextWriter writer)
         {
             _writer = writer;
             _enumerator = json.GetEnumerator();
@@ -77,7 +78,9 @@ namespace PinkJson2.Formatters
 
         private void FormatKeyValue()
         {
-            _writer.Write($"\"{((string)_current.Value).EscapeString()}\": ");
+            _writer.Write('\"');
+            ((string)_current.Value).EscapeString(_writer);
+            _writer.Write("\": ");
             MoveNext();
             FormatValue();
         }
@@ -122,13 +125,12 @@ namespace PinkJson2.Formatters
                 FormatJson();
                 return;
             }
-            _writer.Write(Formatter.FormatValue(_current.Value));
+            Formatter.FormatValue(_current.Value, _writer);
         }
 
         private void AddIndent()
         {
-            var indent = Formatter.GetIndent(IndentStyle, IndentSize).Repeat(_depth);
-            _writer.Write(indent);
+            Formatter.GetIndent(IndentStyle, IndentSize).Repeat(_depth, _writer);
         }
 
         private void MoveNext()

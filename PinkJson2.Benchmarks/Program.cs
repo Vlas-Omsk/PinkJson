@@ -6,10 +6,10 @@ namespace PinkJson2.Benchmarks
     {
         static void Main(string[] args)
         {
-            //var summary = BenchmarkRunner.Run<ParseAndStringifyMinifiedBenchmark>();
+            var summary = BenchmarkRunner.Run<ParseAndStringifyBenchmark>();
 
-            var benchmark = new ParseAndStringifyBenchmark() { FilePath = "Json\\large.json" };
-            benchmark.PinkJson();
+            //var benchmark = new ParseAndStringifyBenchmark() { FilePath = "Json\\large.json" };
+            //benchmark.PinkJson();
         }
     }
 }

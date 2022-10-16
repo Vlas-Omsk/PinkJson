@@ -7,7 +7,7 @@ namespace PinkJson2.Benchmarks
 	[MemoryDiagnoser]
     public class ParseToJsonBenchmark
     {
-		[Params("Json\\small.json", "Json\\medium.json", "Json\\large.json")]
+		[Params("Json/small.json", "Json/medium.json", "Json/large.json")]
 		public string FilePath { get; set; }
 
         [Benchmark(Baseline = true)]

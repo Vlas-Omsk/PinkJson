@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace PinkJson2.Formatters
 {
@@ -50,17 +49,13 @@ namespace PinkJson2.Formatters
             if (_current.Type != JsonEnumerableItemType.ObjectEnd)
             {
                 MoveNext();
-                do
+                while (_current.Type != JsonEnumerableItemType.ObjectEnd)
                 {
+                    FormatKeyValue();
+                    MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ObjectEnd)
-                    {
-                        FormatKeyValue();
-                        MoveNext();
-                        if (_current.Type != JsonEnumerableItemType.ObjectEnd)
-                            _writer.Write(',');
-                    }
+                        _writer.Write(',');
                 }
-                while (_current.Type != JsonEnumerableItemType.ObjectEnd);
             }
             _writer.Write('}');
         }
@@ -80,24 +75,20 @@ namespace PinkJson2.Formatters
             if (_current.Type != JsonEnumerableItemType.ArrayEnd)
             {
                 MoveNext();
-                do
+                while (_current.Type != JsonEnumerableItemType.ArrayEnd)
                 {
+                    FormatValue();
+                    MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ArrayEnd)
-                    {
-                        FormatValue();
-                        MoveNext();
-                        if (_current.Type != JsonEnumerableItemType.ArrayEnd)
-                            _writer.Write(',');
-                    }
+                        _writer.Write(',');
                 }
-                while (_current.Type != JsonEnumerableItemType.ArrayEnd);
             }
             _writer.Write(']');
         }
 
         private void FormatValue()
         {
-            if (new JsonEnumerableItemType[] { JsonEnumerableItemType.ObjectBegin, JsonEnumerableItemType.ArrayBegin }.Contains(_current.Type))
+            if (JsonEnumerableItemType.ObjectBegin == _current.Type || JsonEnumerableItemType.ArrayBegin == _current.Type)
             {
                 FormatJson();
                 return;

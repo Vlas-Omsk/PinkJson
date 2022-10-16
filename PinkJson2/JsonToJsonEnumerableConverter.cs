@@ -9,7 +9,7 @@ namespace PinkJson2
     {
         private readonly IJson _json;
 
-        private class JsonToJsonEnumerableConverterEnumerator : IEnumerator<JsonEnumerableItem>
+        private class Enumerator : IEnumerator<JsonEnumerableItem>
         {
             private readonly Stack<object> _stack = new Stack<object>();
             private readonly Stack<LinkedListNode<JsonKeyValue>> _objectIndex = new Stack<LinkedListNode<JsonKeyValue>>();
@@ -17,7 +17,7 @@ namespace PinkJson2
             private readonly Stack<int> _nextState = new Stack<int>();
             private int _state = 1;
 
-            public JsonToJsonEnumerableConverterEnumerator(IJson json)
+            public Enumerator(IJson json)
             {
                 _stack.Push(json);
             }
@@ -140,7 +140,7 @@ namespace PinkJson2
 
         public IEnumerator<JsonEnumerableItem> GetEnumerator()
         {
-            return new JsonToJsonEnumerableConverterEnumerator(_json);
+            return new Enumerator(_json);
         }
 
         IEnumerator IEnumerable.GetEnumerator()

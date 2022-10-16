@@ -9,7 +9,7 @@ namespace PinkJson2.Benchmarks
 	[MemoryDiagnoser]
     public class ParseAndStringifyBenchmark
     {
-		[Params("Json\\small.json", "Json\\medium.json", "Json\\large.json")]
+		[Params("Json/small.json", "Json/medium.json", "Json/large.json")]
 		public string FilePath { get; set; }
 
         [Benchmark]

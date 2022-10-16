@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace PinkJson2.Formatters
 {
@@ -56,19 +55,15 @@ namespace PinkJson2.Formatters
                 _depth++;
                 _writer.WriteLine();
                 MoveNext();
-                do
+                while (_current.Type != JsonEnumerableItemType.ObjectEnd)
                 {
+                    AddIndent();
+                    FormatKeyValue();
+                    MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ObjectEnd)
-                    {
-                        AddIndent();
-                        FormatKeyValue();
-                        MoveNext();
-                        if (_current.Type != JsonEnumerableItemType.ObjectEnd)
-                            _writer.Write(',');
-                        _writer.WriteLine();
-                    }
+                        _writer.Write(',');
+                    _writer.WriteLine();
                 }
-                while (_current.Type != JsonEnumerableItemType.ObjectEnd);
                 _depth--;
                 if (_depth > 0)
                     AddIndent();
@@ -98,17 +93,13 @@ namespace PinkJson2.Formatters
                     AddIndent();
                 }
                 MoveNext();
-                do
+                while (_current.Type != JsonEnumerableItemType.ArrayEnd)
                 {
+                    FormatValue();
+                    MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ArrayEnd)
-                    {
-                        FormatValue();
-                        MoveNext();
-                        if (_current.Type != JsonEnumerableItemType.ArrayEnd)
-                            _writer.Write(", ");
-                    }
+                        _writer.Write(", ");
                 }
-                while (_current.Type != JsonEnumerableItemType.ArrayEnd);
                 if (isRoot)
                 {
                     _depth--;
@@ -120,7 +111,7 @@ namespace PinkJson2.Formatters
 
         private void FormatValue()
         {
-            if (new JsonEnumerableItemType[] { JsonEnumerableItemType.ObjectBegin, JsonEnumerableItemType.ArrayBegin }.Contains(_current.Type))
+            if (JsonEnumerableItemType.ObjectBegin == _current.Type || JsonEnumerableItemType.ArrayBegin == _current.Type)
             {
                 FormatJson();
                 return;

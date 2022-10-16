@@ -11,11 +11,11 @@ namespace PinkJson2
     public sealed class JsonLexer : IEnumerable<Token>, IDisposable
     {
         private static readonly FieldInfo _streamReaderDetectEncodingField = typeof(StreamReader).GetField("_detectEncoding", BindingFlags.NonPublic | BindingFlags.Instance);
-        private JsonLexerEnumerator _enumerator;
+        private Enumerator _enumerator;
         private readonly object _enumeratorLock = new object();
         private readonly bool _detectEncoding;
 
-        private sealed class JsonLexerEnumerator : IEnumerator<Token>
+        private sealed class Enumerator : IEnumerator<Token>
         {
             private static readonly char[] _numberChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', '.', 'x', 'o', 'b' };
             private static readonly char[] _hexadecimalChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
@@ -29,7 +29,7 @@ namespace PinkJson2
             private readonly StringBuilder _stringBuffer = new StringBuilder();
             private int _state = 1;
 
-            public JsonLexerEnumerator(JsonLexer lexer)
+            public Enumerator(JsonLexer lexer)
             {
                 _lexer = lexer;
             }
@@ -44,7 +44,7 @@ namespace PinkJson2
             public bool MoveNext()
             {
                 if (_state == -1)
-                    throw new ObjectDisposedException(nameof(JsonLexerEnumerator));
+                    throw new ObjectDisposedException(nameof(Enumerator));
 
                 switch (_state)
                 {
@@ -398,7 +398,7 @@ namespace PinkJson2
             public void Reset()
             {
                 if (_state == -1)
-                    throw new ObjectDisposedException(nameof(JsonLexerEnumerator));
+                    throw new ObjectDisposedException(nameof(Enumerator));
 
                 _position = -1;
                 _startPosition = 0;
@@ -449,7 +449,7 @@ namespace PinkJson2
                     ResetStream();
                 }
 
-                return _enumerator = new JsonLexerEnumerator(this);
+                return _enumerator = new Enumerator(this);
             }
         }
 

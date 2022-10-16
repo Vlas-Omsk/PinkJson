@@ -10,7 +10,7 @@ namespace PinkJson2
     {
         private readonly IEnumerable<Token> _lexer;
 
-        private sealed class JsonParserEnumerator : IEnumerator<JsonEnumerableItem>
+        private sealed class Enumerator : IEnumerator<JsonEnumerableItem>
         {
             private readonly IEnumerable<Token> _source;
 #if USEPATH
@@ -21,7 +21,7 @@ namespace PinkJson2
             private int _state = 1;
             private readonly Stack<int> _nextState = new Stack<int>();
 
-            public JsonParserEnumerator(IEnumerable<Token> source)
+            public Enumerator(IEnumerable<Token> source)
             {
                 _source = source;
             }
@@ -45,6 +45,7 @@ namespace PinkJson2
                             _enumerator = _source.GetEnumerator();
 
                         EnsureEnumeratorMoveNext(TokenType.LeftBrace, TokenType.LeftBracket);
+                        CheckToken(TokenType.LeftBrace, TokenType.LeftBracket);
 
                         _nextState.Push(999);
                         _state = 2;
@@ -103,6 +104,18 @@ namespace PinkJson2
                             _state = _nextState.Pop();
                             return true;
                         }
+                        else if (_enumerator.Current.Type != TokenType.String)
+                        {
+                            throw new UnexpectedTokenException(
+                                _enumerator.Current,
+                                new TokenType[]
+                                {
+                                    TokenType.RightBrace,
+                                    TokenType.String
+                                },
+                                Path
+                            );
+                        }
 
                         var key = (string)_enumerator.Current.Value;
 #if USEPATH
@@ -114,6 +127,17 @@ namespace PinkJson2
                         return true;
                     case 6:
                         EnsureEnumeratorMoveNext(TokenType.Colon);
+                        if (_enumerator.Current.Type != TokenType.Colon)
+                        {
+                            throw new UnexpectedTokenException(
+                                _enumerator.Current,
+                                new TokenType[]
+                                {
+                                    TokenType.Colon
+                                },
+                                Path
+                            );
+                        }
                         EnsureEnumeratorMoveNextValue();
 
                         _nextState.Push(5);
@@ -131,6 +155,18 @@ namespace PinkJson2
 
                             _state = _nextState.Pop();
                             return true;
+                        }
+                        else if (_enumerator.Current.Type != TokenType.Comma)
+                        {
+                            throw new UnexpectedTokenException(
+                                _enumerator.Current,
+                                new TokenType[]
+                                {
+                                    TokenType.RightBrace,
+                                    TokenType.Comma
+                                },
+                                Path
+                            );
                         }
 
                         _state = 3;
@@ -165,7 +201,18 @@ namespace PinkJson2
                             _state = _nextState.Pop();
                             return true;
                         }
-                        CheckToken(TokenType.Comma);
+                        else if (_enumerator.Current.Type != TokenType.Comma)
+                        {
+                            throw new UnexpectedTokenException(
+                                _enumerator.Current,
+                                new TokenType[]
+                                {
+                                    TokenType.RightBracket,
+                                    TokenType.Comma
+                                },
+                                Path
+                            );
+                        }
 
                         _state = 8;
                         goto case 8;
@@ -173,11 +220,6 @@ namespace PinkJson2
 
                 Dispose();
                 return false;
-            }
-
-            private void EnsureEnumeratorMoveNextValue()
-            {
-                EnsureEnumeratorMoveNext(TokenType.LeftBrace, TokenType.LeftBracket, TokenType.Boolean, TokenType.Null, TokenType.Number, TokenType.String);
             }
 
             public void Reset()
@@ -214,6 +256,11 @@ namespace PinkJson2
                 _state = -1;
             }
 
+            private void EnsureEnumeratorMoveNextValue()
+            {
+                EnsureEnumeratorMoveNext(TokenType.LeftBrace, TokenType.LeftBracket, TokenType.Boolean, TokenType.Null, TokenType.Number, TokenType.String);
+            }
+
             private void EnsureEnumeratorMoveNext(params TokenType[] expectedTokenTypes)
             {
                 bool success;
@@ -227,12 +274,11 @@ namespace PinkJson2
                 }
                 if (!success)
                     throw new UnexpectedEndOfStreamException(expectedTokenTypes, Path);
-                CheckToken(expectedTokenTypes);
             }
 
             private void CheckToken(params TokenType[] expectedTokenTypes)
             {
-                if (!expectedTokenTypes.Contains(_enumerator.Current.Type))
+                if (!expectedTokenTypes.Any(x => x == _enumerator.Current.Type))
                     throw new UnexpectedTokenException(_enumerator.Current, expectedTokenTypes, Path);
             }
         }
@@ -244,7 +290,7 @@ namespace PinkJson2
 
         public IEnumerator<JsonEnumerableItem> GetEnumerator()
         {
-            return new JsonParserEnumerator(_lexer);
+            return new Enumerator(_lexer);
         }
 
         IEnumerator IEnumerable.GetEnumerator()

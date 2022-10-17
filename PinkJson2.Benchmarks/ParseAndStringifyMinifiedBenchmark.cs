@@ -16,7 +16,7 @@ namespace PinkJson2.Benchmarks
         public void PinkJsonFast()
         {
             using (var streamReader = new StreamReader(FilePath))
-                Json.Parse(streamReader).ToString(new MinifiedFormatter());
+                Json.Parse(streamReader).ToJsonString(new MinifiedFormatter());
         }
 
         [Benchmark(Baseline = true)]

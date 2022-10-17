@@ -1,4 +1,8 @@
-﻿using System;
+﻿using PinkJson2.Formatters;
+using PinkJson2.Serializers;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace PinkJson2.Tests
 {
@@ -10,8 +14,59 @@ namespace PinkJson2.Tests
 
     public static class Program
     {
+        private class Directory
+        {
+            public string Name { get; set; }
+            public Directory Parent { get; set; }
+            public File MetaFile { get; set; }
+            [JsonProperty(DeserializeToType = typeof(File[]))]
+            public IEnumerable<File> Files { get; set; }
+        }
+
+        private class File
+        {
+            public string Name { get; set; }
+            public Directory Parent { get; set; }
+        }
+
         public static void Main(string[] args)
         {
+            //var obj = new
+            //{
+            //    test1 = "str",
+            //    test2 = new
+            //    {
+            //        test4 = "str2",
+            //        test5 = true
+            //    },
+            //    test4 = Enumerable.Range(1, 100),
+            //    test3 = false
+            //};
+
+            //var obj = new object[] { 1, 2, new[] { 5, 6, 7 }, 3, 4 };
+
+            //var json2 = new ObjectSerializer().Serialize(obj).ToJson();
+
+            //var json = new ArgumentNullException("test_patam").Serialize().ToJson();
+
+            //var root = new Directory { Name = "Root" };
+            //var documents = new Directory { Name = "My Documents", Parent = root };
+            //var file = new File { Name = "ImportantLegalDocument.docx", Parent = documents };
+
+            //root.MetaFile = file;
+            //root.Files = new List<File> { file, file };
+            //documents.Files = root.Files;
+
+            //ObjectSerializerOptions.Default.PreserveObjectsReferences = true;
+
+            //var json = Json.Serialize(documents).ToJson();
+
+            //Console.WriteLine(json.ToString(new PrettyFormatter()));
+
+            //var obj = json.Deserialize<Directory>();
+
+            //return;
+
             ShowLogo();
 
             Examples.Start();

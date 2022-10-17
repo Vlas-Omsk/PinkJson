@@ -1,4 +1,5 @@
-﻿using PinkJson2.Formatters;
+﻿using PinkJson2;
+using PinkJson2.Formatters;
 using PinkJson2.Serializers;
 using System;
 using System.Collections;
@@ -23,7 +24,7 @@ namespace PinkJson2.xUnitTests
         [Fact]
         public void SerializeExceptionTest()
         {
-            var json = new ArgumentNullException("test_patam").Serialize();
+            var json = new ArgumentNullException("test_patam").Serialize().ToJson();
 
             Assert.NotNull(json);
         }
@@ -55,7 +56,7 @@ namespace PinkJson2.xUnitTests
 
             ObjectSerializerOptions.Default.PreserveObjectsReferences = true;
 
-            var json = Json.Serialize(documents);
+            var json = Json.Serialize(documents).ToJson();
 
             _output.WriteLine(json.ToString(new PrettyFormatter()));
 
@@ -77,7 +78,7 @@ namespace PinkJson2.xUnitTests
 
             ObjectSerializerOptions.Default.PreserveObjectsReferences = true;
 
-            var json = Json.Serialize(documents);
+            var json = Json.Serialize(documents).ToJson();
 
             _output.WriteLine(json.ToString(new PrettyFormatter()));
 
@@ -103,14 +104,14 @@ namespace PinkJson2.xUnitTests
             product.Name = "Apple";
             product.Expiry = new DateTime(2008, 12, 28);
             product.Sizes = new string[] { "Small" };
-            var json = product.Serialize();
+            var json = product.Serialize().ToJson();
 
             Assert.IsType<JsonObject>(json);
             Assert.IsType<JsonObject>(json.Value);
             Assert.IsType<JsonArray>(json["Sizes"].Value);
         }
 
-        private class Product2 : IJsonSerializable, IJsonDeserializable
+        private class Product2 : IJsonSerializable, IJsonSerializableOld, IJsonDeserializable
         {
             public string Name { get; set; }
             public DateTime Expiry { get; set; }
@@ -129,12 +130,20 @@ namespace PinkJson2.xUnitTests
 
             }
 
-            public IJson Serialize(ISerializer serializer)
+            public IJson Serialize(ISerializerOld serializer)
             {
                 var json = serializer.Serialize(this);
                 json.SetKey("id", Guid.NewGuid());
                 SerializeCallsCount++;
                 return json;
+            }
+
+            public IEnumerable<JsonEnumerableItem> Serialize(ISerializer serializer)
+            {
+                var json = serializer.Serialize(this).ToJson();
+                json.SetKey("id", Guid.NewGuid());
+                SerializeCallsCount++;
+                return json.ToJsonEnumerable();
             }
         }
 
@@ -150,7 +159,7 @@ namespace PinkJson2.xUnitTests
             Product2.SerializeCallsCount = 0;
             Product2.DeserializeCallsCount = 0;
 
-            var json = product.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true });
+            var json = product.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true }).ToJson();
             var newProduct = json.Deserialize<Product2>();
 
             Assert.Equal(1, Product2.SerializeCallsCount);
@@ -169,7 +178,7 @@ namespace PinkJson2.xUnitTests
             dict.Add(new DictionaryEntry("test2", "test2_value"));
             dict.Add(new DictionaryEntry("test3", "test3_value"));
 
-            var json = dict.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true });
+            var json = dict.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true }).ToJson();
             var dict2 = json.Deserialize<DictionaryEntry[]>();
 
             _output.WriteLine(json.ToString(new PrettyFormatter()));
@@ -204,7 +213,7 @@ namespace PinkJson2.xUnitTests
             config.IPAddress = IPAddress.Parse("127.0.0.1");
             config.Port = 1234;
 
-            var json = config.Serialize(new ObjectSerializerOptions()).ToString();
+            var json = config.Serialize(ObjectSerializerOptions.Default).ToJsonString(new MinifiedFormatter());
             var newConfig = Json.Parse(json).ToJson().Deserialize<Config>();
 
             Assert.Equal(config.IPAddress, newConfig.IPAddress);
@@ -221,7 +230,7 @@ namespace PinkJson2.xUnitTests
                 .SetValue(ex2, ex1);
 
             var jsonj = ex1.Serialize(new ObjectSerializerOptions() { PreserveObjectsReferences = true });
-            var json = jsonj.ToString();
+            var json = jsonj.ToJsonString(new PrettyFormatter());
             var ex1_clone = Json.Parse(json).ToJson().Deserialize<Exception>();
 
             Assert.Equal(ex1.Message, ex1_clone.Message);
@@ -265,7 +274,7 @@ namespace PinkJson2.xUnitTests
                 Nullable7 = null
             };
 
-            var json = Json.Parse(obj1.Serialize().ToString()).ToJson();
+            var json = Json.Parse(obj1.Serialize().ToJsonString()).ToJson();
             var obj1_copy = json.Deserialize<NullableTest1>();
 
             Assert.Equal(obj1.Nullable1, obj1_copy.Nullable1);
@@ -304,7 +313,7 @@ namespace PinkJson2.xUnitTests
                 null,
                 3.3,
                 null
-            }.Serialize();
+            }.Serialize().ToJson();
 
             Assert.Equal(1, json[0].Get<int>());
             Assert.Equal("2", json[1].Get<string>());
@@ -323,9 +332,11 @@ namespace PinkJson2.xUnitTests
                 new JsonKeyValue("testKey3", "testValue3"),
             };
 
-            var serializedJson = json.Serialize();
+            var serializedJson = json.Serialize().ToJson();
 
-            Assert.Equal(json, serializedJson);
+            Assert.Equal(json["testKey1"].Value, serializedJson["testKey1"].Value);
+            Assert.Equal(json["testKey2"].Value, serializedJson["testKey2"].Value);
+            Assert.Equal(json["testKey3"].Value, serializedJson["testKey3"].Value);
         }
 
         [Fact]
@@ -338,9 +349,11 @@ namespace PinkJson2.xUnitTests
                 new JsonArrayValue("testValue3"),
             };
 
-            var serializedJson = json.Serialize();
+            var serializedJson = json.Serialize().ToJson();
 
-            Assert.Equal(json, serializedJson);
+            Assert.Equal(json[0].Value, serializedJson[0].Value);
+            Assert.Equal(json[1].Value, serializedJson[1].Value);
+            Assert.Equal(json[2].Value, serializedJson[2].Value);
         }
 
         [Fact]
@@ -353,7 +366,7 @@ namespace PinkJson2.xUnitTests
                 { "testKey3", "testValue3" },
             };
 
-            var json = dict.Serialize();
+            var json = dict.Serialize().ToJson();
 
             Assert.IsType<JsonObject>(json);
 
@@ -372,7 +385,7 @@ namespace PinkJson2.xUnitTests
                 { 3, "testValue3" },
             };
 
-            var json = dict.Serialize();
+            var json = dict.Serialize().ToJson();
 
             Assert.IsType<JsonArray>(json);
 

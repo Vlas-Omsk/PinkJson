@@ -7,7 +7,7 @@ using System.Runtime.Serialization;
 
 namespace PinkJson2.Serializers
 {
-    public sealed class ObjectDeserializer : IDeserializer
+    public sealed class ObjectDeserializerOld : IDeserializer
     {
         private const string _idField = "$id";
         private const string _refField = "$ref";
@@ -25,9 +25,9 @@ namespace PinkJson2.Serializers
 
         private class DeserializerFormatterConverter : IFormatterConverter
         {
-            private readonly ObjectDeserializer _deserializer;
+            private readonly ObjectDeserializerOld _deserializer;
 
-            public DeserializerFormatterConverter(ObjectDeserializer deserializer)
+            public DeserializerFormatterConverter(ObjectDeserializerOld deserializer)
             {
                 _deserializer = deserializer;
             }
@@ -126,12 +126,12 @@ namespace PinkJson2.Serializers
             }
         }
 
-        public ObjectDeserializer()
+        public ObjectDeserializerOld()
         {
             Options = ObjectSerializerOptions.Default;
         }
 
-        public ObjectDeserializer(ObjectSerializerOptions options)
+        public ObjectDeserializerOld(ObjectSerializerOptions options)
         {
             Options = options;
         }

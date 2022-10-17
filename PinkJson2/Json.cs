@@ -30,32 +30,32 @@ namespace PinkJson2
             return new JsonParser(new JsonLexer(source));
         }
 
-        public static IJson Serialize(this object instance)
+        public static IEnumerable<JsonEnumerableItem> Serialize(this object instance)
         {
             var serializer = new ObjectSerializer();
             return Serialize(instance, serializer);
         }
 
-        public static IJson Serialize(this object instance, ObjectSerializerOptions options)
+        public static IEnumerable<JsonEnumerableItem> Serialize(this object instance, ObjectSerializerOptions options)
         {
             var serializer = new ObjectSerializer(options);
             return Serialize(instance, serializer);
         }
 
-        public static IJson Serialize(this object instance, ISerializer serializer)
+        public static IEnumerable<JsonEnumerableItem> Serialize(this object instance, ISerializer serializer)
         {
             return serializer.Serialize(instance);
         }
 
         public static T Deserialize<T>(this IJson json)
         {
-            var deserializer = new ObjectDeserializer();
+            var deserializer = new ObjectDeserializerOld();
             return Deserialize<T>(json, deserializer);
         }
 
         public static T Deserialize<T>(this IJson json, ObjectSerializerOptions options)
         {
-            var deserializer = new ObjectDeserializer(options);
+            var deserializer = new ObjectDeserializerOld(options);
             return Deserialize<T>(json, deserializer);
         }
 
@@ -66,13 +66,13 @@ namespace PinkJson2
 
         public static object Deserialize(this IJson json, Type type)
         {
-            var deserializer = new ObjectDeserializer();
+            var deserializer = new ObjectDeserializerOld();
             return Deserialize(json, type, deserializer);
         }
 
         public static object Deserialize(this IJson json, Type type, ObjectSerializerOptions options)
         {
-            var deserializer = new ObjectDeserializer(options);
+            var deserializer = new ObjectDeserializerOld(options);
             return Deserialize(json, type, deserializer);
         }
 
@@ -123,10 +123,15 @@ namespace PinkJson2
 
         public static string ToString(this IJson self, IFormatter formatter)
         {
-            return ToString(self.ToJsonEnumerable(), formatter);
+            return ToJsonString(self.ToJsonEnumerable(), formatter);
         }
 
-        public static string ToString(this IEnumerable<JsonEnumerableItem> self, IFormatter formatter)
+        public static string ToJsonString(this IEnumerable<JsonEnumerableItem> self)
+        {
+            return ToJsonString(self, new MinifiedFormatter());
+        }
+
+        public static string ToJsonString(this IEnumerable<JsonEnumerableItem> self, IFormatter formatter)
         {
             using (var writer = new StringWriter())
             {

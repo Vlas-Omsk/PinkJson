@@ -119,15 +119,6 @@ namespace PinkJson2
 
             public void Dispose()
             {
-                Debug.Assert(_stack.Count == 0, "_stack was not empty");
-                Debug.Assert(_objectIndex.Count == 0, "_objectIndex was not empty");
-                Debug.Assert(_arrayIndex.Count == 0, "_arrayIndex was not empty");
-                Debug.Assert(_nextState.Count == 0, "_nextState was not empty");
-
-                _stack.Clear();
-                _objectIndex.Clear();
-                _arrayIndex.Clear();
-                _nextState.Clear();
                 Current = default;
                 _state = -1;
             }

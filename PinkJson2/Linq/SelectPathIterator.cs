@@ -55,9 +55,6 @@ namespace PinkJson2.Linq
                             isFirstIteration = false;
                         }
 
-                        _pathIndex++;
-                        _pathSegment = _pathSegment.Next;
-
                         if (_pathSegment.Value is JsonPathObjectSegment objectSegment)
                         {
                             if (Enumerator.Current.Type != JsonEnumerableItemType.ObjectBegin)
@@ -101,6 +98,9 @@ namespace PinkJson2.Linq
                         {
                             throw new Exception();
                         }
+
+                        _pathIndex++;
+                        _pathSegment = _pathSegment.Next;
                     }
 
                     State = 2;

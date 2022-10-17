@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -13,6 +14,13 @@ namespace PinkJson2
             return 
                 type.GetInterface(nameof(IEnumerable)) != null && 
                 type != typeof(string);
+        }
+
+        public static bool IsEqualsOrAssignableTo(this Type type, Type targetType)
+        {
+            return
+                type == targetType ||
+                type.IsAssignableTo(targetType);
         }
 
         public static bool IsDictionaryType(this Type type)
@@ -34,12 +42,16 @@ namespace PinkJson2
             return (type.IsValueType && !type.IsPrimitive) || type == typeof(string);
         }
 
-        public static bool IsPrimitiveType(this Type type, TypeConverter typeConverter)
+        public static bool IsPrimitiveType(this Type type)
         {
             return 
-                type.IsPrimitive || 
-                type.IsEnum ||
-                typeConverter.PrimitiveTypes.Any(x => x == type);
+                type.IsPrimitive ||
+                type.IsEnum;
+        }
+
+        public static bool IsPrimitiveType(this Type type, TypeConverter typeConverter)
+        {
+            return type.IsPrimitiveType() || typeConverter.PrimitiveTypes.Any(x => x == type);
         }
 
         public static bool IsAnonymousType(this Type type)
@@ -60,7 +72,7 @@ namespace PinkJson2
             return name == "<>f__AnonymousType";
         }
 
-#if NET5_0_OR_GREATER == false
+#if !NET5_0_OR_GREATER
         public static bool IsAssignableTo(this Type sourceType, Type targetType) => targetType?.IsAssignableFrom(sourceType) ?? false;
 #endif
     }

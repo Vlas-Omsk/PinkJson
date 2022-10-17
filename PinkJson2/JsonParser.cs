@@ -243,15 +243,6 @@ namespace PinkJson2
                     _enumerator = null;
                 }
 
-#if USEPATH
-                Debug.Assert(_path.Count == 0, "_path was not empty");
-#endif
-                Debug.Assert(_nextState.Count == 0, "_nextState was not empty");
-
-#if USEPATH
-                _path.Clear();
-#endif
-                _nextState.Clear();
                 Current = default;
                 _state = -1;
             }

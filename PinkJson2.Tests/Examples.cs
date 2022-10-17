@@ -43,7 +43,6 @@ namespace PinkJson2.Tests
                 .SelectPath(new JsonPath(new IJsonPathSegment[]
                 {
                     new JsonPathObjectSegment("medications"),
-                    new JsonPathArraySegment(1),
                 }));
 
             var names = medications
@@ -70,7 +69,7 @@ namespace PinkJson2.Tests
 
             stopwatch.Stop();
 
-            Console.WriteLine(medications.ToString(new PrettyFormatter()));
+            Console.WriteLine(medications.ToJsonString(new PrettyFormatter()));
             Console.WriteLine(string.Join(", ", names));
             Console.WriteLine(stopwatch.ElapsedMilliseconds + "ms");
         }
@@ -125,7 +124,7 @@ namespace PinkJson2.Tests
 			product.Expiry = new DateTime(2008, 12, 28);
 			product.Sizes = new string[] { "Small" };
 			var json = product.Serialize();
-			Console.WriteLine(json.ToString(new PrettyFormatter()));
+			Console.WriteLine(json.ToJsonString(new PrettyFormatter()));
 		}
 
 		private static void DynamicJsonTest()

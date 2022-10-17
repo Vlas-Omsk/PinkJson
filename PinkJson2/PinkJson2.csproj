@@ -7,9 +7,9 @@
     <Authors>Vlas-Omsk</Authors>
   </PropertyGroup>
   
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <DefineConstants>$(DefineConstants);USEPATH</DefineConstants>
-  </PropertyGroup>
+  <!--<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DefineConstants>$(DefineConstants);USEPATH;USELOOPDETECTING</DefineConstants>
+  </PropertyGroup>-->
   
   <!--<PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>none</DebugType>

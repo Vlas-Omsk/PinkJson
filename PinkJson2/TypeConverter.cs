@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -47,6 +48,8 @@ namespace PinkJson2
             return null;
         });
         private readonly Dictionary<Type, List<TypeConversion>> _registeredTypes = new Dictionary<Type, List<TypeConversion>>();
+        private readonly Dictionary<int, TypeConversion[]> _registeredTypeConversionsCache = new Dictionary<int, TypeConversion[]>();
+        private readonly HashSet<int> _tryConvertCache = new HashSet<int>();
 
         static TypeConverter()
         {
@@ -79,7 +82,7 @@ namespace PinkJson2
 
         public static TypeConverter Default { get; set; } = new TypeConverter();
 
-        internal List<Type> PrimitiveTypes { get; } = new List<Type>()
+        internal HashSet<Type> PrimitiveTypes { get; } = new HashSet<Type>()
         {
             typeof(string),
             typeof(DateTime),
@@ -87,82 +90,119 @@ namespace PinkJson2
             typeof(Guid)
         };
 
-        public object ChangeType(object value, Type type)
+        public object ChangeType(object value, Type targetType)
         {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
+            if (targetType == null)
+                throw new ArgumentNullException(nameof(targetType));
 
             if (value == null)
                 return value;
 
             var valueType = value.GetType();
 
-            if (TryConvert(value, type, out var targetObj))
+            if (TryConvert(value, valueType, targetType, out var targetObj))
                 return targetObj;
 
-            if (valueType == type || type.IsAssignableFrom(valueType))
+            if (targetType == typeof(object))
+                return value;
+
+            if (valueType == targetType || targetType.IsAssignableFrom(valueType))
                 return value;
 
             try
             {
-                return Convert.ChangeType(value, type);
+                return Convert.ChangeType(value, targetType);
             }
             catch (Exception ex)
             {
-                throw new ArgumentException($"Cannot convert value of type {value.GetType()} to type {type}", ex);
+                throw new ArgumentException($"Cannot convert value of type {value.GetType()} to type {targetType}", ex);
             }
         }
 
-        private bool TryConvert(object obj, Type targetType, out object targetObj)
+        private bool TryConvert(object obj, Type type, Type targetType, out object targetObj)
         {
             targetObj = null;
+
+            var hash = targetType.GetHashCode() + type.GetHashCode();
+
+            if (_tryConvertCache.Contains(hash))
+                return false;
+
             var handled = false;
+            var conversions = GetRegisteredTypeConversions(targetType, true, false);
 
-            foreach (var typeConversion in GetRegisteredTypeConversions(targetType))
+            if (conversions != null)
             {
-                if (typeConversion.ConvertCallback == null)
-                    continue;
-
-                targetObj = typeConversion.ConvertCallback.Invoke(obj, targetType, ref handled);
-                if (handled)
+                foreach (var typeConversion in conversions)
                 {
-                    CompareObjectToType(targetObj, targetType);
-                    return true;
+                    targetObj = typeConversion.ConvertCallback.Invoke(obj, targetType, ref handled);
+                    if (handled)
+                    {
+                        CompareObjectToType(targetObj, targetType);
+                        return true;
+                    }
                 }
             }
 
-            var type = obj.GetType();
+            var backConversions = GetRegisteredTypeConversions(type, false, true);
 
-            foreach (var typeConversion in GetRegisteredTypeConversions(type))
+            if (backConversions != null)
             {
-                if (typeConversion.ConvertBackCallback == null)
-                    continue;
-
-                targetObj = typeConversion.ConvertBackCallback.Invoke(obj, targetType, ref handled);
-                if (handled)
+                foreach (var typeConversion in backConversions)
                 {
-                    CompareObjectToType(targetObj, targetType);
-                    return true;
+                    targetObj = typeConversion.ConvertBackCallback.Invoke(obj, targetType, ref handled);
+                    if (handled)
+                    {
+                        CompareObjectToType(targetObj, targetType);
+                        return true;
+                    }
                 }
             }
 
+            if (conversions == null && backConversions == null)
+                _tryConvertCache.Add(hash);
             return false;
         }
 
-        private IEnumerable<TypeConversion> GetRegisteredTypeConversions(Type type)
+        private TypeConversion[] GetRegisteredTypeConversions(Type type, bool convertCallback, bool convertBackCallback)
         {
-            var typeConversions = new List<TypeConversion>();
+            var hash = type.GetHashCode() + (convertCallback ? 1 : 0) + (convertBackCallback ? 2 : 0);
 
-            while (type != null)
+            Debug.WriteLine(hash + " " + type + " " + convertCallback + " " + convertBackCallback);
+
+            if (_registeredTypeConversionsCache.TryGetValue(hash, out TypeConversion[] cachedConversions))
+                return cachedConversions;
+
+            var collectedConversions = new List<TypeConversion>();
+            var currentType = type;
+
+            while (currentType != null)
             {
                 foreach (var keyValue in _registeredTypes)
-                    if (type == keyValue.Key)
-                        typeConversions.AddRange(((IEnumerable<TypeConversion>)keyValue.Value).Reverse());
+                    if (currentType == keyValue.Key)
+                    {
+                        var conversions = (IEnumerable<TypeConversion>)keyValue.Value;
 
-                type = type.BaseType;
+                        if (convertCallback)
+                            conversions = conversions.Where(x => x.ConvertCallback != null);
+                        if (convertBackCallback)
+                            conversions = conversions.Where(x => x.ConvertBackCallback != null);
+
+                        collectedConversions.AddRange(conversions);
+                    }
+
+                currentType = currentType.BaseType;
             }
 
-            return typeConversions;
+            if (collectedConversions.Count == 0)
+            {
+                _registeredTypeConversionsCache.Add(hash, null);
+                return null;
+            }
+            
+            var arr = collectedConversions.ToArray();
+            _registeredTypeConversionsCache.Add(hash, arr);
+            return arr;
         }
 
         private static void CompareObjectToType(object obj, Type targetType)
@@ -178,6 +218,9 @@ namespace PinkJson2
 
         public void Register(Type type, TypeConversion typeConversion)
         {
+            _tryConvertCache.Clear();
+            _registeredTypeConversionsCache.Clear();
+
             if (!_registeredTypes.TryGetValue(type, out List<TypeConversion> typeConversions))
                 _registeredTypes[type] = typeConversions = new List<TypeConversion>();
 

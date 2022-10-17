@@ -42,16 +42,12 @@ namespace PinkJson2
             return (type.IsValueType && !type.IsPrimitive) || type == typeof(string);
         }
 
-        public static bool IsPrimitiveType(this Type type)
+        public static bool IsPrimitiveType(this Type type, TypeConverter typeConverter)
         {
             return 
                 type.IsPrimitive ||
-                type.IsEnum;
-        }
-
-        public static bool IsPrimitiveType(this Type type, TypeConverter typeConverter)
-        {
-            return type.IsPrimitiveType() || typeConverter.PrimitiveTypes.Any(x => x == type);
+                type.IsEnum ||
+                typeConverter.PrimitiveTypes.Contains(type);
         }
 
         public static bool IsAnonymousType(this Type type)

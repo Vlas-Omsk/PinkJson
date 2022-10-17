@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualBasic;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,7 +26,6 @@ namespace PinkJson2.Serializers
             private readonly Stack<object> _stack = new Stack<object>();
             private readonly Stack<State> _nextState = new Stack<State>();
             private State _state = State.SerializeValue;
-            private IEnumerator<JsonEnumerableItem> _enumerator;
             private readonly bool _useJsonSerializeOnRootObject;
             private int _referenceId;
             private Type _keyType;
@@ -160,8 +158,6 @@ namespace PinkJson2.Serializers
             {
             start:
 
-                Console.WriteLine(_state);
-
                 switch (_state)
                 {
                     case State.SerializeValue:
@@ -182,22 +178,25 @@ namespace PinkJson2.Serializers
                             if (value.GetType().IsAssignableTo(type))
                                 type = value.GetType();
 
-                            if (!IsPrimitiveType(type))
+                            if (!type.IsPrimitiveType(_options.TypeConverter))
                             {
                                 var isJson = type.IsEqualsOrAssignableTo(typeof(IJson));
                                 var isJsonEnumerable = type.IsEqualsOrAssignableTo(typeof(IEnumerable<JsonEnumerableItem>));
 
                                 if (isJson || isJsonEnumerable)
                                 {
+                                    IEnumerator<JsonEnumerableItem> enumerator;
+
                                     if (isJson)
-                                        _enumerator = ((IJson)value).ToJsonEnumerable().GetEnumerator();
+                                        enumerator = ((IJson)value).ToJsonEnumerable().GetEnumerator();
                                     else
-                                        _enumerator = ((IEnumerable<JsonEnumerableItem>)value).GetEnumerator();
+                                        enumerator = ((IEnumerable<JsonEnumerableItem>)value).GetEnumerator();
 
-                                    if (!_enumerator.MoveNext())
+                                    if (!enumerator.MoveNext())
                                         throw new Exception();
-
+                                    
                                     _stack.Pop();
+                                    _stack.Push(enumerator);
                                     _state = State.Enumerating;
                                     goto case State.Enumerating;
                                 }
@@ -223,20 +222,22 @@ namespace PinkJson2.Serializers
                     case State.Enumerating:
                         {
                             var nextState = State.Enumerating;
-                            var isCurrentValue = _enumerator.Current.Type == JsonEnumerableItemType.Value;
+                            var enumerator = (IEnumerator<JsonEnumerableItem>)_stack.Peek();
+                            var isCurrentValueType = enumerator.Current.Type == JsonEnumerableItemType.Value;
 
-                            if (isCurrentValue)
-                                _stack.Push(_enumerator.Current.Value);
+                            if (isCurrentValueType)
+                                _stack.Push(enumerator.Current.Value);
                             else
-                                Current = _enumerator.Current;
+                                Current = enumerator.Current;
 
-                            if (!_enumerator.MoveNext())
+                            if (!enumerator.MoveNext())
                             {
-                                _enumerator.Dispose();
+                                enumerator.Dispose();
+                                _stack.Pop();
                                 nextState = _nextState.Pop();
                             }
 
-                            if (isCurrentValue)
+                            if (isCurrentValueType)
                             {
                                 _nextState.Push(nextState);
                                 goto case State.SerializeValue;
@@ -254,22 +255,27 @@ namespace PinkJson2.Serializers
 
                             if (_stack.Count > 1 || _useJsonSerializeOnRootObject || value != _rootObject)
                             {
-                                if (TryJsonSerialize(value))
+                                if (TryJsonSerialize(value, out IEnumerator<JsonEnumerableItem> enumerator))
                                 {
-                                    if (!_enumerator.MoveNext())
+                                    if (!enumerator.MoveNext())
                                         throw new Exception();
 
-                                    if (_enumerator.Current.Type == JsonEnumerableItemType.ObjectBegin)
+#if !USELOOPDETECTING
+                                    _stack.Pop();
+#endif
+                                    _stack.Push(enumerator);
+
+                                    if (enumerator.Current.Type == JsonEnumerableItemType.ObjectBegin)
                                         AddReference(value);
 
-                                    if (_enumerator.Current.Type == JsonEnumerableItemType.ArrayBegin || _enumerator.Current.Type == JsonEnumerableItemType.ObjectBegin)
+                                    if (enumerator.Current.Type == JsonEnumerableItemType.ArrayBegin || enumerator.Current.Type == JsonEnumerableItemType.ObjectBegin)
                                     {
                                         _state = State.Enumerating;
                                         goto case State.Enumerating;
                                     }
-                                    else if (_enumerator.Current.Type == JsonEnumerableItemType.Value)
+                                    else if (enumerator.Current.Type == JsonEnumerableItemType.Value)
                                     {
-                                        Current = _enumerator.Current;
+                                        Current = enumerator.Current;
                                         return true;
                                     }
                                     else
@@ -278,8 +284,13 @@ namespace PinkJson2.Serializers
                                     }
                                 }
 
-                                if (TrySerializable(value))
+                                if (TrySerializable(value, out Queue<Key> keys))
                                 {
+#if !USELOOPDETECTING
+                                    _stack.Pop();
+#endif
+                                    _stack.Push(keys);
+
                                     AddReference(value);
 
                                     Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
@@ -297,7 +308,12 @@ namespace PinkJson2.Serializers
                         goto case State.JsonSerialize;
                     case State.ContinueArray:
                         {
-                            var value = _stack.Peek();
+                            var value =
+#if USELOOPDETECTING
+                                _stack.Peek();
+#else
+                                _stack.Pop();
+#endif
 
                             var enumerator = ((IEnumerable)value).GetEnumerator();
                             _stack.Push(enumerator);
@@ -350,8 +366,10 @@ namespace PinkJson2.Serializers
                             }
                             else
                             {
+#if USELOOPDETECTING
                                 if (_stack.Skip(1).Contains(value))
                                     throw new JsonSerializationException($"Self referencing loop detected");
+#endif
                             }
 
                             _nextState.Push(State.ContinueObject);
@@ -359,7 +377,12 @@ namespace PinkJson2.Serializers
                         }
                     case State.ContinueObject:
                         {
-                            var value = _stack.Peek();
+                            var value =
+#if USELOOPDETECTING
+                                _stack.Peek();
+#else
+                                _stack.Pop();
+#endif
 
                             AddReference(value);
 
@@ -390,10 +413,14 @@ namespace PinkJson2.Serializers
                         _state = _nextState.Pop();
                         return true;
                     case State.PreEndObject:
+#if USELOOPDETECTING
                         _stack.Pop();
+#endif
                         goto case State.EndObject;
                     case State.PreEndArray:
+#if USELOOPDETECTING
                         _stack.Pop();
+#endif
                         goto case State.EndArray;
                     case State.EndObject:
                         Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
@@ -463,29 +490,33 @@ namespace PinkJson2.Serializers
                 return false;
             }
 
-            private bool TryJsonSerialize(object obj)
+            private bool TryJsonSerialize(object obj, out IEnumerator<JsonEnumerableItem> enumerator)
             {
                 if (obj is IJsonSerializable serializable)
                 {
-                    _enumerator = serializable.Serialize(new InternalSerializer(obj, _options, _references)).GetEnumerator();
+                    enumerator = serializable.Serialize(new InternalSerializer(obj, _options, _references)).GetEnumerator();
                     return true;
                 }
 
+                enumerator = null;
                 return false;
             }
 
-            private bool TrySerializable(object obj)
+            private bool TrySerializable(object obj, out Queue<Key> keys)
             {
                 var type = obj.GetType();
 
-                if (_customSerializableTypes.Contains(type.Name) || !(obj is ISerializable serializable))
+                if (type.Name == "Dictionary`2" /*_customSerializableTypes.Contains(type.Name)*/ || !(obj is ISerializable serializable))
+                {
+                    keys = null;
                     return false;
+                }
 
                 var formatter = new FormatterConverter();
                 var info = new SerializationInfo(obj.GetType(), formatter);
                 serializable.GetObjectData(info, new StreamingContext());
 
-                var keys = new Queue<Key>(info.MemberCount);
+                keys = new Queue<Key>(info.MemberCount);
 
                 foreach (var prop in info)
                     keys.Enqueue(new StaticKey(prop.Value, _options.KeyTransformer.TransformKey(prop.Name), false));
@@ -493,13 +524,7 @@ namespace PinkJson2.Serializers
                 if (keys.Count == 0)
                     return false;
 
-                _stack.Push(keys);
                 return true;
-            }
-
-            private bool IsPrimitiveType(Type type)
-            {
-                return type.IsPrimitiveType() || _options.TypeConverter.PrimitiveTypes.Any(x => x == type);
             }
 
             private bool TryPushKeys(object obj)

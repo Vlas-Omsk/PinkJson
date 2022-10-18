@@ -168,8 +168,6 @@ namespace PinkJson2
         {
             var hash = type.GetHashCode() + (convertCallback ? 1 : 0) + (convertBackCallback ? 2 : 0);
 
-            Debug.WriteLine(hash + " " + type + " " + convertCallback + " " + convertBackCallback);
-
             if (_registeredTypeConversionsCache.TryGetValue(hash, out TypeConversion[] cachedConversions))
                 return cachedConversions;
 

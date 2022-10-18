@@ -47,13 +47,13 @@ namespace PinkJson2.Benchmarks
         [GlobalSetup]
         public void Setup()
         {
-            //using (var streamReader = new StreamReader("Json/small.json"))
-            //    _o = Json.Parse(streamReader).ToJson().Deserialize<O>(new ObjectSerializerOptions()
-            //    {
-            //        KeyTransformer = new CamelCaseKeyTransformer()
-            //    });
+            using (var streamReader = new StreamReader("Json/small.json"))
+                _o = Json.Parse(streamReader).ToJson().Deserialize<O>(new ObjectSerializerOptions()
+                {
+                    KeyTransformer = new CamelCaseKeyTransformer()
+                });
 
-            _o = Enumerable.Range(0, 10_000_000);
+            //_o = Enumerable.Range(0, 10_000_000);
         }
 
         [Benchmark(Baseline = true)]

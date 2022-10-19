@@ -6,9 +6,6 @@
     <Version>1.31.0</Version>
     <Authors>Vlas-Omsk</Authors>
   </PropertyGroup>
-  <ItemGroup>
-    <Folder Include="Runtime\" />
-  </ItemGroup>
   
   <!--<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <DefineConstants>$(DefineConstants);USEPATH;USELOOPDETECTING</DefineConstants>

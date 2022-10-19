@@ -148,15 +148,15 @@ namespace PinkJson2
 
         public static void ToStream(this IEnumerable<JsonEnumerableItem> self, TextWriter writer)
         {
-            ToStream(self, new MinifiedFormatter(), writer);
+            ToStream(self, writer, new MinifiedFormatter());
         }
 
-        public static void ToStream(this IJson self, IFormatter formatter, TextWriter writer)
+        public static void ToStream(this IJson self, TextWriter writer, IFormatter formatter)
         {
-            ToStream(self.ToJsonEnumerable(), formatter, writer);
+            ToStream(self.ToJsonEnumerable(), writer, formatter);
         }
 
-        public static void ToStream(this IEnumerable<JsonEnumerableItem> self, IFormatter formatter, TextWriter writer)
+        public static void ToStream(this IEnumerable<JsonEnumerableItem> self, TextWriter writer, IFormatter formatter)
         {
             formatter.Format(self, writer);
         }

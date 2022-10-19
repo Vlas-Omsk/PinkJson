@@ -60,10 +60,10 @@ namespace PinkJson2.Serializers
             if (value == null)
                 return null;
 
-            if (value.GetType().IsAssignableTo(type))
+            if (value.GetType().IsAssignableToCached(type))
                 type = value.GetType();
 
-            if (type.IsAssignableTo(typeof(IJson)))
+            if (type.IsAssignableToCached(typeof(IJson)))
                 return value;
             else if (type.IsArrayType())
                 return SerializeArray(value, useJsonDeserialize);
@@ -190,7 +190,7 @@ namespace PinkJson2.Serializers
 
             var type = obj.GetType();
 
-            if (type.IsDictionaryType())
+            if (type.IsEqualsOrAssignableTo(typeof(IDictionary)))
             {
                 var dictionary = (IDictionary)obj;
                 var genericDictionaryType = type.GetInterface("IDictionary`2");

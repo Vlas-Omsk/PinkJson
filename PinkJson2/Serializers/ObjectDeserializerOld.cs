@@ -225,7 +225,7 @@ namespace PinkJson2.Serializers
         {
             type = TryGetUnderlayingType(type);
 
-            if (type != typeof(object) && type.IsJsonType())
+            if (type != typeof(object) && type.IsEqualsOrAssignableTo(typeof(IJson)))
                 return json.Value;
 
             var value = json.Value;
@@ -235,10 +235,10 @@ namespace PinkJson2.Serializers
 
             var valueType = value.GetType();
 
-            if (valueType != type && valueType.IsAssignableTo(type))
+            if (valueType != type && valueType.IsAssignableToCached(type))
                 type = value.GetType();
 
-            if (type.IsArrayType() && (!type.IsDictionaryType() || value is JsonArray))
+            if (type.IsArrayType() && (!type.IsEqualsOrAssignableTo(typeof(IDictionary)) || value is JsonArray))
                 return DeserializeArray((IJson)value, type, instance, createObject, useJsonDeserialize);
             else if (!type.IsPrimitiveType(Options.TypeConverter))
                 return DeserializeObject((IJson)value, type, instance, createObject, useJsonDeserialize);
@@ -306,7 +306,7 @@ namespace PinkJson2.Serializers
 
             TryAddRef(json, obj);
 
-            if (type.IsDictionaryType())
+            if (type.IsEqualsOrAssignableTo(typeof(IDictionary)))
             {
                 var genericDictionaryType = type.GetInterface("IDictionary`2");
 
@@ -423,7 +423,7 @@ namespace PinkJson2.Serializers
             if (!(json is JsonArray))
                 throw new Exception($"Json of type {json.GetType()} cannot be converted to an object of type {type}");
 
-            if (type.IsDictionaryType())
+            if (type.IsEqualsOrAssignableTo(typeof(IDictionary)))
             {
                 var genericDictionaryType = type.GetInterface("IDictionary`2");
 

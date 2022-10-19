@@ -1,5 +1,6 @@
 ﻿using BenchmarkDotNet.Running;
 using PinkJson2.Formatters;
+using PinkJson2.KeyTransformers;
 using PinkJson2.Serializers;
 
 namespace PinkJson2.Benchmarks
@@ -8,10 +9,11 @@ namespace PinkJson2.Benchmarks
     {
         static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<SerializeBenchmark>();
+            //var summary = BenchmarkRunner.Run<ParseAndStringifyMinifiedBenchmark>();
 
-            //var benchmark = new SerializeBenchmark();
+            //var benchmark = new ParseAndStringifyMinifiedBenchmark();
             //benchmark.Setup();
+            //benchmark.FilePath = "Json/small.json";
             //benchmark.PinkJson();
         }
     }

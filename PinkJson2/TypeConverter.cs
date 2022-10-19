@@ -210,7 +210,7 @@ namespace PinkJson2
 
             var objType = obj.GetType();
 
-            if (objType != targetType && !objType.IsAssignableTo(targetType))
+            if (objType != targetType && !objType.IsAssignableToCached(targetType))
                 throw new InvalidObjectTypeException(targetType);
         }
 

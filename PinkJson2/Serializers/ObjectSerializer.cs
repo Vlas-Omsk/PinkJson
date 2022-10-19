@@ -55,10 +55,10 @@ namespace PinkJson2.Serializers
                 string Name { get; }
                 bool IsValueType { get; }
 
-                object GetValue();
+                object GetValue(object obj);
             }
 
-            private readonly struct StaticKey : IKey
+            private sealed class StaticKey : IKey
             {
                 private readonly object _value;
 
@@ -72,31 +72,29 @@ namespace PinkJson2.Serializers
                 public string Name { get; }
                 public bool IsValueType { get; }
 
-                public object GetValue()
+                public object GetValue(object obj)
                 {
                     return _value;
                 }
             }
 
-            private readonly struct MemberKey : IKey
+            private sealed class MemberKey : IKey
             {
-                private readonly object _obj;
+                private readonly IMemberInfoWrapper _memberInfo;
 
-                public MemberKey(IMemberInfoWrapper memberInfo, object obj, string name, bool isValueType)
+                public MemberKey(IMemberInfoWrapper memberInfo, string name, bool isValueType)
                 {
+                    _memberInfo = memberInfo;
                     Name = name;
                     IsValueType = isValueType;
-                    MemberInfo = memberInfo;
-                    _obj = obj;
                 }
 
                 public string Name { get; }
                 public bool IsValueType { get; }
-                public IMemberInfoWrapper MemberInfo { get; }
 
-                public object GetValue()
+                public object GetValue(object obj)
                 {
-                    return MemberInfo.GetValue(_obj);
+                    return _memberInfo.GetValue(obj);
                 }
             }
 
@@ -110,34 +108,38 @@ namespace PinkJson2.Serializers
             private sealed class PropertyInfoWrapper : IMemberInfoWrapper
             {
                 private readonly PropertyInfo _propertyInfo;
+                private readonly Func<object, object> _getter;
 
                 public PropertyInfoWrapper(PropertyInfo propertyInfo)
                 {
                     _propertyInfo = propertyInfo;
+                    _getter = FastInvoke.BuildUntypedGetter(propertyInfo);
                 }
 
                 public MemberInfo MemberInfo => _propertyInfo;
 
                 public object GetValue(object obj)
                 {
-                    return _propertyInfo.GetValue(obj);
+                    return _getter.Invoke(obj);
                 }
             }
 
             private sealed class FieldInfoWrapper : IMemberInfoWrapper
             {
                 private readonly FieldInfo _fieldInfo;
+                private readonly Func<object, object> _getter;
 
                 public FieldInfoWrapper(FieldInfo fieldInfo)
                 {
                     _fieldInfo = fieldInfo;
+                    _getter = FastInvoke.BuildUntypedGetter(fieldInfo);
                 }
 
                 public MemberInfo MemberInfo => _fieldInfo;
 
                 public object GetValue(object obj)
                 {
-                    return _fieldInfo.GetValue(obj);
+                    return _getter.Invoke(obj);
                 }
             }
 
@@ -176,7 +178,7 @@ namespace PinkJson2.Serializers
 
                             var type = value.GetType();
 
-                            if (value.GetType().IsAssignableTo(type))
+                            if (value.GetType().IsAssignableToCached(type))
                                 type = value.GetType();
 
                             if (!type.IsPrimitiveType(_options.TypeConverter))
@@ -285,7 +287,7 @@ namespace PinkJson2.Serializers
                                     }
                                 }
 
-                                if (TrySerializable(value, out Queue<IKey> keys))
+                                if (TrySerializable(value, out KeysQueue keys))
                                 {
 #if !USELOOPDETECTING
                                     _stack.Pop();
@@ -430,21 +432,25 @@ namespace PinkJson2.Serializers
                         return true;
                     case State.SerializeKeys:
                         {
-                            var keys = (Queue<IKey>)_stack.Peek();
-                            var key = keys.Dequeue();
+                            var keys = (KeysQueue)_stack.Peek();
 
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, key.Name);
-                            _stack.Push(key.GetValue());
+                            Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, keys.Current.Name);
+                            _stack.Push(keys.GetCurrentValue());
 
-                            if (key.IsValueType)
+                            if (keys.Current.IsValueType)
                                 _state = State.SerializeNativeValue;
                             else
                                 _state = State.SerializeValue;
 
-                            if (keys.Count == 0)
+                            if (!keys.MoveNext())
+                            {
+                                keys.Dispose();
                                 _nextState.Push(State.PreEndObject);
+                            }
                             else
+                            {
                                 _nextState.Push(State.SerializeKeys);
+                            }
                             return true;
                         }
                     case State.SerializeDictionaryStringsValues:
@@ -508,7 +514,7 @@ namespace PinkJson2.Serializers
                 return type.Name == "Dictionary`2";
             }
 
-            private bool TrySerializable(object obj, out Queue<IKey> keys)
+            private bool TrySerializable(object obj, out KeysQueue keys)
             {
                 var type = obj.GetType();
 
@@ -522,59 +528,93 @@ namespace PinkJson2.Serializers
                 var info = new SerializationInfo(obj.GetType(), formatter);
                 serializable.GetObjectData(info, new StreamingContext());
 
-                keys = new Queue<IKey>(info.MemberCount);
-
-                foreach (var prop in info)
-                    keys.Enqueue(new StaticKey(prop.Value, _options.KeyTransformer.TransformKey(prop.Name), false));
-
-                if (keys.Count == 0)
+                if (info.MemberCount == 0)
+                {
+                    keys = null;
                     return false;
+                }
 
+                keys = new KeysQueue(GetKeys(info), null);
                 return true;
             }
 
-            private static readonly Dictionary<Type, MemberKey[]> _keysCache = new Dictionary<Type, MemberKey[]>();
+            private IEnumerable<IKey> GetKeys(SerializationInfo info)
+            {
+                foreach (var prop in info)
+                    yield return new StaticKey(prop.Value, _options.KeyTransformer.TransformKey(prop.Name), false);
+            }
+
+            private static readonly Dictionary<Type, IKey[]> _keysCache = new Dictionary<Type, IKey[]>();
+
+            private sealed class KeysQueue : IDisposable
+            {
+                private readonly IEnumerator<IKey> _enumerator;
+                private readonly object _obj;
+
+                public KeysQueue(IEnumerable<IKey> enumerable, object obj)
+                {
+                    _enumerator = enumerable.GetEnumerator();
+                    _enumerator.MoveNext();
+                    _obj = obj;
+                }
+
+                public IKey Current => _enumerator.Current;
+
+                public bool MoveNext()
+                {
+                    return _enumerator.MoveNext();
+                }
+
+                public object GetCurrentValue()
+                {
+                    return _enumerator.Current.GetValue(_obj);
+                }
+
+                public void Dispose()
+                {
+                    _enumerator.Dispose();
+                }
+            }
 
             private bool TryPushKeys(object obj)
             {
                 var type = obj.GetType();
-                Queue<IKey> keys;
+                IKey[] keys;
 
-                if (_keysCache.TryGetValue(type, out var cachedKeys))
+                if (_keysCache.TryGetValue(type, out keys))
                 {
-                    if (cachedKeys == null)
+                    if (keys == null)
                         return false;
-
-                    keys = new Queue<IKey>(cachedKeys.Select(x => (IKey)new MemberKey(x.MemberInfo, obj, x.Name, x.IsValueType)));
                 }
                 else
                 {
-                    var members = type
-                        .GetProperties(_options.PropertyBindingFlags)
-                        .Where(x => x.CanRead && x.Name != _indexerPropertyName)
-                        .Select(x => (IMemberInfoWrapper)new PropertyInfoWrapper(x))
-                        .Concat(type.GetFields(_options.FieldBindingFlags).Select(x => new FieldInfoWrapper(x)));
+                    var properties = type.GetProperties(_options.PropertyBindingFlags);
+                    var fields = type.GetFields(_options.FieldBindingFlags);
+                    var keysList = new List<IKey>();
 
-                    keys = new Queue<IKey>();
+                    foreach (var property in properties)
+                        if (property.CanRead && property.Name != _indexerPropertyName && TryGetKey(new PropertyInfoWrapper(property), out var key))
+                            keysList.Add(key);
 
-                    foreach (var member in members)
-                        if (TryGetKey(member, obj, out var key))
-                            keys.Enqueue(key.Value);
+                    foreach (var field in fields)
+                        if (TryGetKey(new FieldInfoWrapper(field), out var key))
+                            keysList.Add(key);
 
-                    if (keys.Count == 0)
+                    if (keysList.Count == 0)
                     {
                         _keysCache.Add(type, null);
                         return false;
                     }
 
-                    _keysCache.Add(type, keys.Cast<MemberKey>().ToArray());
+                    keys = keysList.ToArray();
+                    _keysCache.Add(type, keys);
                 }
 
-                _stack.Push(keys);
+                _stack.Push(new KeysQueue(keys, obj));
                 return true;
             }
             
-            private bool TryGetKey(IMemberInfoWrapper member, object obj, out MemberKey? key)
+            private bool TryGetKey(IMemberInfoWrapper member, out MemberKey key)
             {
                 if (member.MemberInfo.TryGetCustomAttribute<NonSerializedAttribute>(out _))
                 {
@@ -601,15 +641,14 @@ namespace PinkJson2.Serializers
 
                 name = _options.KeyTransformer.TransformKey(name);
 
-                key = new MemberKey(member, obj, name, isValueType);
+                key = new MemberKey(member, name, isValueType);
                 return true;
             }
 
             private void DisposeEnumerator(IEnumerator enumerator)
             {
-                var disposeMethod = enumerator.GetType().GetMethod("Dispose");
-                if (disposeMethod != null)
-                    disposeMethod.Invoke(enumerator, null);
+                if (enumerator is IDisposable disposable)
+                    disposable.Dispose();
             }
 
             private void AddReference(object obj)

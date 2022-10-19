@@ -13,8 +13,8 @@ namespace PinkJson2.Benchmarks
         private class O
         {
             public Dictionary<string, Medication[]> Medications { get; set; }
-            public Lab[] Labs { get; set; }
-            public Imaging[] Imaging { get; set; }
+            public List<Lab> Labs { get; set; }
+            public List<Imaging> Imaging { get; set; }
         }
 
         private class Medication
@@ -42,32 +42,47 @@ namespace PinkJson2.Benchmarks
             public string Location { get; set; }
         }
 
-        private object _o;
+        private object _obj;
 
         [GlobalSetup]
         public void Setup()
         {
+            O obj;
+
             using (var streamReader = new StreamReader("Json/small.json"))
-                _o = Json.Parse(streamReader).ToJson().Deserialize<O>(new ObjectSerializerOptions()
+                obj = Json.Parse(streamReader).ToJson().Deserialize<O>(new ObjectSerializerOptions()
                 {
                     KeyTransformer = new CamelCaseKeyTransformer()
                 });
+
+            for (var i = 0; i < 15; i++)
+                obj.Labs.AddRange(obj.Labs);
+            for (var i = 0; i < 15; i++)
+                obj.Imaging.AddRange(obj.Imaging);
+            for (var i = 0; i < 15; i++)
+            {
+                var j = 0;
+                foreach (var item in obj.Medications.ToArray())
+                    obj.Medications.Add(item.Key + i * (++j), item.Value);
+            }
+
+            _obj = obj;
 
             //_o = Enumerable.Range(0, 10_000_000);
         }
 
         [Benchmark(Baseline = true)]
-        public void PinkJson()
+        public string PinkJson()
         {
-            //return _o.Serialize().ToJsonString();
-            foreach (var item in _o.Serialize())
-                ;
+            //return _obj.Serialize().ToJsonString();
+            foreach (var item in _obj.Serialize()) ;
+            return null;
         }
 
         [Benchmark]
         public string NewtonsoftJson()
         {
-            return JsonConvert.SerializeObject(_o);
+            return JsonConvert.SerializeObject(_obj);
         }
     }
 }

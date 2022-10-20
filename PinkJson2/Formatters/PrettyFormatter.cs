@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
@@ -10,9 +11,28 @@ namespace PinkJson2.Formatters
         private IEnumerator<JsonEnumerableItem> _enumerator;
         private int _depth = 0;
         private JsonEnumerableItem _current;
+        private IndentStyle _indentStyle = IndentStyle.Space;
+        private int _indentSize = 2;
+        private string _indent;
 
-        public IndentStyle IndentStyle { get; set; } = IndentStyle.Space;
-        public int IndentSize { get; set; } = 2;
+        public IndentStyle IndentStyle
+        {
+            get => _indentStyle;
+            set
+            {
+                _indentStyle = value;
+                _indent = null;
+            }
+        }
+        public int IndentSize
+        {
+            get => _indentSize;
+            set
+            {
+                _indentSize = value;
+                _indent = null;
+            }
+        }
 
         public void Format(IEnumerable<JsonEnumerableItem> json, TextWriter writer)
         {
@@ -49,7 +69,7 @@ namespace PinkJson2.Formatters
 
         private void FormatObject()
         {
-            _writer.Write('{');
+            _writer.Write(Formatter.LeftBrace);
             if (_current.Type != JsonEnumerableItemType.ObjectEnd)
             {
                 _depth++;
@@ -61,29 +81,32 @@ namespace PinkJson2.Formatters
                     FormatKeyValue();
                     MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ObjectEnd)
-                        _writer.Write(',');
+                        _writer.Write(Formatter.Comma);
                     _writer.WriteLine();
                 }
                 _depth--;
                 if (_depth > 0)
                     AddIndent();
             }
-            _writer.Write('}');
+            _writer.Write(Formatter.RightBrace);
         }
 
         private void FormatKeyValue()
         {
-            _writer.Write('\"');
+            _writer.Write(Formatter.Quote);
             ((string)_current.Value).EscapeString(_writer);
-            _writer.Write("\": ");
+            _writer.Write(Formatter.Quote);
+            _writer.Write(Formatter.Colon);
+            _writer.Write(Formatter.Space);
             MoveNext();
             FormatValue();
         }
 
         private void FormatArray()
         {
-            _writer.Write('[');
             var isRoot = _depth == 0;
+
+            _writer.Write(Formatter.LeftBracket);
             if (_current.Type != JsonEnumerableItemType.ArrayEnd)
             {
                 if (isRoot)
@@ -98,7 +121,10 @@ namespace PinkJson2.Formatters
                     FormatValue();
                     MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ArrayEnd)
-                        _writer.Write(", ");
+                    {
+                        _writer.Write(Formatter.Comma);
+                        _writer.Write(Formatter.Space);
+                    }
                 }
                 if (isRoot)
                 {
@@ -106,7 +132,7 @@ namespace PinkJson2.Formatters
                     _writer.WriteLine();
                 }
             }
-            _writer.Write(']');
+            _writer.Write(Formatter.RightBracket);
         }
 
         private void FormatValue()
@@ -121,7 +147,23 @@ namespace PinkJson2.Formatters
 
         private void AddIndent()
         {
-            Formatter.GetIndent(IndentStyle, IndentSize).Repeat(_depth, _writer);
+            GetIndent().Repeat(_depth, _writer);
+        }
+
+        public string GetIndent()
+        {
+            if (_indent != null)
+                return _indent;
+
+            switch (IndentStyle)
+            {
+                case IndentStyle.Space:
+                    return _indent = Formatter.Space.Repeat(IndentSize);
+                case IndentStyle.Tab:
+                    return _indent = Formatter.Tab.Repeat(IndentSize);
+                default:
+                    throw new Exception();
+            }
         }
 
         private void MoveNext()

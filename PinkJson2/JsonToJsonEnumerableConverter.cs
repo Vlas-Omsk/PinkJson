@@ -103,22 +103,33 @@ namespace PinkJson2
                         goto case 2;
                 }
 
-                Dispose();
                 return false;
             }
 
             public void Reset()
             {
+                if (_state == -1)
+                    throw new ObjectDisposedException(GetType().FullName);
+
                 _stack.Clear();
                 _objectIndex.Clear();
                 _arrayIndex.Clear();
                 _nextState.Clear();
+
                 Current = default;
                 _state = 1;
             }
 
             public void Dispose()
             {
+                if (_state == -1)
+                    return;
+
+                _stack.Clear();
+                _objectIndex.Clear();
+                _arrayIndex.Clear();
+                _nextState.Clear();
+
                 Current = default;
                 _state = -1;
             }

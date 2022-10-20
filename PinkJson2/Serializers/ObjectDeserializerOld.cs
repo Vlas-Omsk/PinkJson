@@ -240,7 +240,7 @@ namespace PinkJson2.Serializers
 
             if (type.IsArrayType() && (!type.IsEqualsOrAssignableTo(typeof(IDictionary)) || value is JsonArray))
                 return DeserializeArray((IJson)value, type, instance, createObject, useJsonDeserialize);
-            else if (!type.IsPrimitiveType(Options.TypeConverter))
+            else if (!Options.TypeConverter.IsPrimitiveType(type))
                 return DeserializeObject((IJson)value, type, instance, createObject, useJsonDeserialize);
             else
                 return Options.TypeConverter.ChangeType(value, type);

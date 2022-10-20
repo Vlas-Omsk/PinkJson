@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -48,8 +49,16 @@ namespace PinkJson2
             return null;
         });
         private readonly Dictionary<Type, List<TypeConversion>> _registeredTypes = new Dictionary<Type, List<TypeConversion>>();
-        private readonly Dictionary<int, TypeConversion[]> _registeredTypeConversionsCache = new Dictionary<int, TypeConversion[]>();
-        private readonly HashSet<int> _tryConvertCache = new HashSet<int>();
+        private readonly ConcurrentDictionary<int, TypeConversion[]> _registeredTypeConversionsCache = new ConcurrentDictionary<int, TypeConversion[]>();
+        private readonly ConcurrentDictionary<int, bool> _isPrimitiveTypeCache = new ConcurrentDictionary<int, bool>();
+        private readonly ConcurrentDictionary<int, bool> _tryConvertCache = new ConcurrentDictionary<int, bool>();
+        private readonly HashSet<Type> _primitiveTypes = new HashSet<Type>()
+        {
+            typeof(string),
+            typeof(DateTime),
+            typeof(TimeSpan),
+            typeof(Guid)
+        };
 
         static TypeConverter()
         {
@@ -82,13 +91,20 @@ namespace PinkJson2
 
         public static TypeConverter Default { get; set; } = new TypeConverter();
 
-        internal HashSet<Type> PrimitiveTypes { get; } = new HashSet<Type>()
+        public bool IsPrimitiveType(Type type)
         {
-            typeof(string),
-            typeof(DateTime),
-            typeof(TimeSpan),
-            typeof(Guid)
-        };
+            var hash = type.GetHashCode();
+
+            if (_isPrimitiveTypeCache.TryGetValue(hash, out var result))
+                return result;
+
+            result =
+                type.IsPrimitiveType() ||
+                _primitiveTypes.Contains(type);
+
+            _isPrimitiveTypeCache.TryAdd(hash, result);
+            return result;
+        }
 
         public object ChangeType(object value, Type targetType)
         {
@@ -123,9 +139,9 @@ namespace PinkJson2
         {
             targetObj = null;
 
-            var hash = targetType.GetHashCode() + type.GetHashCode();
+            var hash = unchecked(targetType.GetHashCode() + type.GetHashCode());
 
-            if (_tryConvertCache.Contains(hash))
+            if (_tryConvertCache.TryGetValue(hash, out _))
                 return false;
 
             var handled = false;
@@ -160,13 +176,13 @@ namespace PinkJson2
             }
 
             if (conversions == null && backConversions == null)
-                _tryConvertCache.Add(hash);
+                _tryConvertCache.TryAdd(hash, false);
             return false;
         }
 
         private TypeConversion[] GetRegisteredTypeConversions(Type type, bool convertCallback, bool convertBackCallback)
         {
-            var hash = type.GetHashCode() + (convertCallback ? 1 : 0) + (convertBackCallback ? 2 : 0);
+            var hash = unchecked(type.GetHashCode() + (convertCallback ? 1 : 0) + (convertBackCallback ? 2 : 0));
 
             if (_registeredTypeConversionsCache.TryGetValue(hash, out TypeConversion[] cachedConversions))
                 return cachedConversions;
@@ -194,12 +210,12 @@ namespace PinkJson2
 
             if (collectedConversions.Count == 0)
             {
-                _registeredTypeConversionsCache.Add(hash, null);
+                _registeredTypeConversionsCache.TryAdd(hash, null);
                 return null;
             }
             
             var arr = collectedConversions.ToArray();
-            _registeredTypeConversionsCache.Add(hash, arr);
+            _registeredTypeConversionsCache.TryAdd(hash, arr);
             return arr;
         }
 
@@ -227,12 +243,14 @@ namespace PinkJson2
 
         public void AddPrimitiveType(Type type)
         {
-            PrimitiveTypes.Add(type);
+            _isPrimitiveTypeCache.Clear();
+            _primitiveTypes.Add(type);
         }
 
         public void RemovePrimitiveType(Type type)
         {
-            PrimitiveTypes.Remove(type);
+            _isPrimitiveTypeCache.Clear();
+            _primitiveTypes.Remove(type);
         }
 
         public TypeConverter Clone()

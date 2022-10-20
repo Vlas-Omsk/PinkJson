@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -8,56 +9,49 @@ namespace PinkJson2
 {
     public static class TypeExtension
     {
-        private static readonly Dictionary<Type, bool> _isArrayTypeCache = new Dictionary<Type, bool>();
-        //private static readonly Dictionary<int, bool> _isEqualsOrAssignableToCache = new Dictionary<int, bool>();
-        private static readonly Dictionary<Type, bool> _isValueTypeCache = new Dictionary<Type, bool>();
-        //private static readonly Dictionary<int, bool> _isAssignableToCache = new Dictionary<int, bool>();
+        private static readonly ConcurrentDictionary<int, bool> _isArrayTypeCache = new ConcurrentDictionary<int, bool>();
+        private static readonly ConcurrentDictionary<int, bool> _isValueTypeCache = new ConcurrentDictionary<int, bool>();
 
         public static bool IsArrayType(this Type type)
         {
-            if (_isArrayTypeCache.TryGetValue(type, out var result))
+            var hash = type.GetHashCode();
+
+            if (_isArrayTypeCache.TryGetValue(hash, out var result))
                 return result;
 
             result = 
                 type.GetInterface(nameof(IEnumerable)) != null && 
                 type != typeof(string);
 
-            _isArrayTypeCache.Add(type, result);
+            _isArrayTypeCache.TryAdd(hash, result);
             return result;
         }
 
         public static bool IsEqualsOrAssignableTo(this Type type, Type targetType)
         {
-            //var hash = type.GetHashCode() + targetType.GetHashCode();
-
-            //if (_isEqualsOrAssignableToCache.TryGetValue(hash, out var result))
-            //    return result;
-
-            var result =
+            return
                 type == targetType ||
                 type.IsAssignableToCached(targetType);
-
-            //_isEqualsOrAssignableToCache.Add(hash, result);
-            return result;
         }
 
         public static bool IsValueType(this Type type)
         {
-            if (_isValueTypeCache.TryGetValue(type, out var result))
+            var hash = type.GetHashCode();
+
+            if (_isValueTypeCache.TryGetValue(hash, out var result))
                 return result;
 
             result = (type.IsValueType && !type.IsPrimitive) || type == typeof(string);
 
-            _isValueTypeCache.Add(type, result);
+            _isValueTypeCache.TryAdd(hash, result);
             return result;
         }
 
-        public static bool IsPrimitiveType(this Type type, TypeConverter typeConverter)
+        public static bool IsPrimitiveType(this Type type)
         {
             return
                 type.IsPrimitive ||
-                type.IsEnum ||
-                typeConverter.PrimitiveTypes.Contains(type);
+                type.IsEnum;
         }
 
         public static bool IsAnonymousType(this Type type)
@@ -80,15 +74,7 @@ namespace PinkJson2
 
         public static bool IsAssignableToCached(this Type sourceType, Type targetType)
         {
-            //var hash = sourceType.GetHashCode() + targetType.GetHashCode();
-
-            //if (_isAssignableToCache.TryGetValue(hash, out var result))
-            //    return result;
-
-            var result = sourceType.IsAssignableTo(targetType);
-
-            //_isAssignableToCache.Add(hash, result);
-            return result;
+            return sourceType.IsAssignableTo(targetType);
         }
 
 #if !NET5_0_OR_GREATER

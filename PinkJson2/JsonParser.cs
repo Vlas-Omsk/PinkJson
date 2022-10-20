@@ -218,12 +218,14 @@ namespace PinkJson2
                         goto case 8;
                 }
 
-                Dispose();
                 return false;
             }
 
             public void Reset()
             {
+                if (_state == -1)
+                    throw new ObjectDisposedException(GetType().FullName);
+
                 if (_enumerator != null)
                     _enumerator.Reset();
 
@@ -231,17 +233,26 @@ namespace PinkJson2
                 _path.Clear();
 #endif
                 _nextState.Clear();
+
                 Current = default;
                 _state = 1;
             }
 
             public void Dispose()
             {
+                if (_state == -1)
+                    return;
+
                 if (_enumerator != null)
                 {
                     _enumerator.Dispose();
                     _enumerator = null;
                 }
+
+#if USEPATH
+                _path.Clear();
+#endif
+                _nextState.Clear();
 
                 Current = default;
                 _state = -1;

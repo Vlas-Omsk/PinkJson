@@ -67,7 +67,7 @@ namespace PinkJson2.Serializers
                 return value;
             else if (type.IsArrayType())
                 return SerializeArray(value, useJsonDeserialize);
-            else if (!type.IsPrimitiveType(Options.TypeConverter))
+            else if (!Options.TypeConverter.IsPrimitiveType(type))
                 return SerializeObject(value, useJsonDeserialize);
 
             return Options.TypeConverter.ChangeType(value, typeof(object));

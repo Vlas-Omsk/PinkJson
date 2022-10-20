@@ -5,6 +5,7 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <Version>1.31.0</Version>
     <Authors>Vlas-Omsk</Authors>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   
   <!--<PropertyGroup Condition="'$(Configuration)' == 'Debug'">

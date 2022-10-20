@@ -45,7 +45,7 @@ namespace PinkJson2.Formatters
 
         private void FormatObject()
         {
-            _writer.Write('{');
+            _writer.Write(Formatter.LeftBrace);
             if (_current.Type != JsonEnumerableItemType.ObjectEnd)
             {
                 MoveNext();
@@ -54,24 +54,25 @@ namespace PinkJson2.Formatters
                     FormatKeyValue();
                     MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ObjectEnd)
-                        _writer.Write(',');
+                        _writer.Write(Formatter.Comma);
                 }
             }
-            _writer.Write('}');
+            _writer.Write(Formatter.RightBrace);
         }
 
         private void FormatKeyValue()
         {
-            _writer.Write('\"');
+            _writer.Write(Formatter.Quote);
             ((string)_current.Value).EscapeString(_writer);
-            _writer.Write("\":");
+            _writer.Write(Formatter.Quote);
+            _writer.Write(Formatter.Colon);
             MoveNext();
             FormatValue();
         }
 
         private void FormatArray()
         {
-            _writer.Write('[');
+            _writer.Write(Formatter.LeftBracket);
             if (_current.Type != JsonEnumerableItemType.ArrayEnd)
             {
                 MoveNext();
@@ -80,31 +81,26 @@ namespace PinkJson2.Formatters
                     FormatValue();
                     MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ArrayEnd)
-                        _writer.Write(',');
+                        _writer.Write(Formatter.Comma);
                 }
             }
-            _writer.Write(']');
+            _writer.Write(Formatter.RightBracket);
         }
 
         private void FormatValue()
         {
             if (JsonEnumerableItemType.ObjectBegin == _current.Type || JsonEnumerableItemType.ArrayBegin == _current.Type)
-            {
                 FormatJson();
-                return;
-            }
-            Formatter.FormatValue(_current.Value, _writer);
+            else
+                Formatter.FormatValue(_current.Value, _writer);
         }
 
         private void MoveNext()
         {
-            if (_enumerator.MoveNext())
-            {
-                _current = _enumerator.Current;
-                return;
-            }
+            if (!_enumerator.MoveNext())
+                throw new Exception();
 
-            throw new Exception();
+            _current = _enumerator.Current;
         }
     }
 }

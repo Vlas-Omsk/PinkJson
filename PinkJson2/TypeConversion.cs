@@ -6,23 +6,26 @@ namespace PinkJson2
 
     public sealed class TypeConversion
     {
-        public TypeConversion()
+        public TypeConversion(TypeConversionDirection direction, TypeConversionCallback сallback)
         {
-        }
-
-        public TypeConversion(TypeConversionCallback typeConversionCallback, TypeConversionCallback typeConversionBackCallback)
-        {
-            ConvertCallback = typeConversionCallback;
-            ConvertBackCallback = typeConversionBackCallback;
-        }
-
-        public TypeConversion(TypeConversionCallback typeConversionCallback)
-        {
-            ConvertCallback = typeConversionCallback;
+            Direction = direction;
+            ConvertCallback = сallback;
         }
 
         public TypeConversionType Type { get; set; } = TypeConversionType.Static;
-        public TypeConversionCallback ConvertCallback { get; set; }
-        public TypeConversionCallback ConvertBackCallback { get; set; }
+        public TypeConversionDirection Direction { get; }
+        public TypeConversionCallback ConvertCallback { get; }
+    }
+
+    public enum TypeConversionType
+    {
+        Static,
+        Dynamic
+    }
+
+    public enum TypeConversionDirection
+    {
+        FromType,
+        ToType
     }
 }

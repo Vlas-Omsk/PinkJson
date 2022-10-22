@@ -9,7 +9,7 @@ namespace PinkJson2
     public sealed class TypeConverter : ICloneable
     {
         private readonly static MethodInfo _enumTryParseMethodInfo;
-        private readonly static TypeConversion _dateTimeTypeConversion = new TypeConversion((object obj, Type targetType, ref bool handled) =>
+        private readonly static TypeConversion _dateTimeTypeConversion = new TypeConversion(TypeConversionDirection.ToType, (object obj, Type targetType, ref bool handled) =>
         {
             if (obj is string @string)
             {
@@ -24,7 +24,7 @@ namespace PinkJson2
 
             return null;
         });
-        private readonly static TypeConversion _enumTypeConversion = new TypeConversion((object obj, Type targetType, ref bool handled) =>
+        private readonly static TypeConversion _enumTypeConversion = new TypeConversion(TypeConversionDirection.ToType, (object obj, Type targetType, ref bool handled) =>
         {
             if (obj is string @string)
             {
@@ -37,7 +37,7 @@ namespace PinkJson2
 
             return null;
         });
-        private readonly static TypeConversion _guidTypeConversion = new TypeConversion((object obj, Type targetType, ref bool handled) =>
+        private readonly static TypeConversion _guidTypeConversion = new TypeConversion(TypeConversionDirection.ToType, (object obj, Type targetType, ref bool handled) =>
         {
             if (obj is string value)
             {
@@ -48,9 +48,8 @@ namespace PinkJson2
             return null;
         });
         private readonly Dictionary<Type, List<TypeConversion>> _registeredTypes = new Dictionary<Type, List<TypeConversion>>();
-        private readonly ConcurrentDictionary<int, List<TypeConversion>> _registeredTypeConversionsCache = new ConcurrentDictionary<int, List<TypeConversion>>();
         private readonly ConcurrentDictionary<int, bool> _isPrimitiveTypeCache = new ConcurrentDictionary<int, bool>();
-        private readonly ConcurrentDictionary<int, bool> _tryConvertCache = new ConcurrentDictionary<int, bool>();
+        private readonly ConcurrentDictionary<int, IEnumerable<TypeConversion>> _tryConvertCache = new ConcurrentDictionary<int, IEnumerable<TypeConversion>>();
         private readonly HashSet<Type> _primitiveTypes = new HashSet<Type>()
         {
             typeof(string),
@@ -58,13 +57,6 @@ namespace PinkJson2
             typeof(TimeSpan),
             typeof(Guid)
         };
-
-        private sealed class TryConvertCacheItem
-        {
-            public bool Result { get; }
-            public TypeConversionType Type { get; }
-            public IEnumerable<TypeConversion> Conversions { get; }
-        }
 
         static TypeConverter()
         {
@@ -122,13 +114,13 @@ namespace PinkJson2
 
             var valueType = value.GetType();
 
-            if (TryConvert(value, valueType, targetType, out var targetObj))
+            if (valueType.IsEqualsOrAssignableTo(targetType))
+                return value;
+
+            if (TryConvert(valueType, value, targetType, out var targetObj))
                 return targetObj;
 
             if (targetType == typeof(object))
-                return value;
-
-            if (valueType.IsEqualsOrAssignableTo(targetType))
                 return value;
 
             try
@@ -141,89 +133,95 @@ namespace PinkJson2
             }
         }
 
-        private bool TryConvert(object obj, Type type, Type targetType, out object targetObj)
+        private bool TryConvert(Type type, object obj, Type targetType, out object targetObj)
         {
             targetObj = null;
 
             var hash = unchecked(targetType.GetHashCode() + type.GetHashCode());
 
-            if (_tryConvertCache.TryGetValue(hash, out _))
-                return false;
-
-            var handled = false;
-            var conversions = GetRegisteredTypeConversions(targetType, true, false);
-
-            if (conversions != null)
+            if (_tryConvertCache.TryGetValue(hash, out var cacheItem))
             {
-                foreach (var typeConversion in conversions)
+                if (cacheItem == null)
+                    return false;
+
+                if (!TryConvertUsingTypeConversions(cacheItem, obj, targetType, out targetObj, out _))
+                    throw new Exception();
+                return true;
+            }
+            else
+            {
+                TypeConversion conversion;
+                var conversions = GetRegisteredTypeConversions(targetType, TypeConversionDirection.ToType, TypeConversionType.Static);
+
+                if (TryConvertUsingTypeConversions(conversions, obj, targetType, out targetObj, out conversion))
                 {
-                    targetObj = typeConversion.ConvertCallback.Invoke(obj, targetType, ref handled);
-                    if (handled)
-                    {
-                        CompareObjectToType(targetObj, targetType);
-                        return true;
-                    }
+                    _tryConvertCache.TryAdd(hash, new TypeConversion[] { conversion });
+                    return true;
+                }
+
+                conversions = GetRegisteredTypeConversions(type, TypeConversionDirection.FromType, TypeConversionType.Static);
+
+                if (TryConvertUsingTypeConversions(conversions, obj, targetType, out targetObj, out conversion))
+                {
+                    _tryConvertCache.TryAdd(hash, new TypeConversion[] { conversion });
+                    return true;
+                }
+
+                conversions = GetRegisteredTypeConversions(targetType, TypeConversionDirection.ToType, TypeConversionType.Dynamic)
+                    .Concat(GetRegisteredTypeConversions(type, TypeConversionDirection.FromType, TypeConversionType.Dynamic))
+                    .ToArray();
+
+                if (TryConvertUsingTypeConversions(conversions, obj, targetType, out targetObj, out _))
+                {
+                    _tryConvertCache.TryAdd(hash, conversions);
+                    return true;
                 }
             }
 
-            var backConversions = GetRegisteredTypeConversions(type, false, true);
-
-            if (backConversions != null)
-            {
-                foreach (var typeConversion in backConversions)
-                {
-                    targetObj = typeConversion.ConvertBackCallback.Invoke(obj, targetType, ref handled);
-                    if (handled)
-                    {
-                        CompareObjectToType(targetObj, targetType);
-                        return true;
-                    }
-                }
-            }
-
-            if (conversions == null && backConversions == null)
-                _tryConvertCache.TryAdd(hash, false);
+            _tryConvertCache.TryAdd(hash, null);
             return false;
         }
 
-        private IEnumerable<TypeConversion> GetRegisteredTypeConversions(Type type, bool convertCallback, bool convertBackCallback)
+        private bool TryConvertUsingTypeConversions(IEnumerable<TypeConversion> conversions, object obj, Type targetType, out object targetObj, out TypeConversion targetConversion)
         {
-            var hash = unchecked(type.GetHashCode() + (convertCallback ? 1 : 0) + (convertBackCallback ? 2 : 0));
+            var handled = false;
+            
+            foreach (var conversion in conversions)
+            {
+                targetObj = conversion.ConvertCallback.Invoke(obj, targetType, ref handled);
 
-            if (_registeredTypeConversionsCache.TryGetValue(hash, out List<TypeConversion> collectedConversions))
-                return collectedConversions;
+                if (handled)
+                {
+                    CompareObjectToType(targetObj, targetType);
+                    targetConversion = conversion;
+                    return true;
+                }
+            }
 
-            collectedConversions = new List<TypeConversion>();
+            targetObj = null;
+            targetConversion = null;
+            return false;
+        }
+
+        private IEnumerable<TypeConversion> GetRegisteredTypeConversions(Type type, TypeConversionDirection conversionDirection, TypeConversionType conversionType)
+        {
             var currentType = type;
 
             while (currentType != null)
             {
-                foreach (var keyValue in _registeredTypes)
-                    if (currentType == keyValue.Key)
+                if (_registeredTypes.TryGetValue(currentType, out var conversions))
+                {
+                    foreach (var conversion in conversions)
                     {
-                        var conversions = (IEnumerable<TypeConversion>)keyValue.Value;
+                        if (conversion.Type != conversionType || conversion.Direction != conversionDirection)
+                            continue;
 
-                        if (convertCallback)
-                            conversions = conversions.Where(x => x.ConvertCallback != null);
-                        if (convertBackCallback)
-                            conversions = conversions.Where(x => x.ConvertBackCallback != null);
-
-                        collectedConversions.AddRange(conversions);
+                        yield return conversion;
                     }
+                }
 
                 currentType = currentType.BaseType;
             }
-
-            if (collectedConversions.Count == 0)
-            {
-                _registeredTypeConversionsCache.TryAdd(hash, null);
-                return null;
-            }
-
-            collectedConversions.TrimExcess();
-
-            _registeredTypeConversionsCache.TryAdd(hash, collectedConversions);
-            return collectedConversions;
         }
 
         private static void CompareObjectToType(object obj, Type targetType)
@@ -240,7 +238,6 @@ namespace PinkJson2
         public void Register(Type type, TypeConversion typeConversion)
         {
             _tryConvertCache.Clear();
-            _registeredTypeConversionsCache.Clear();
 
             if (!_registeredTypes.TryGetValue(type, out List<TypeConversion> typeConversions))
                 _registeredTypes[type] = typeConversions = new List<TypeConversion>();

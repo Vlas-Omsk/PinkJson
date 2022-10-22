@@ -11,6 +11,7 @@ namespace PinkJson2
     {
         private static readonly ConcurrentDictionary<int, bool> _isArrayTypeCache = new ConcurrentDictionary<int, bool>();
         private static readonly ConcurrentDictionary<int, bool> _isValueTypeCache = new ConcurrentDictionary<int, bool>();
+        private static readonly ConcurrentDictionary<int, bool> _isAssignableToCache = new ConcurrentDictionary<int, bool>();
 
         public static bool IsArrayType(this Type type)
         {
@@ -74,7 +75,15 @@ namespace PinkJson2
 
         public static bool IsAssignableToCached(this Type sourceType, Type targetType)
         {
-            return sourceType.IsAssignableTo(targetType);
+            var hash = unchecked(sourceType.GetHashCode() + targetType.GetHashCode());
+
+            if (_isAssignableToCache.TryGetValue(hash, out var result))
+                return result;
+
+            result = sourceType.IsAssignableTo(targetType);
+
+            _isAssignableToCache.TryAdd(hash, result);
+            return result;
         }
 
 #if !NET5_0_OR_GREATER

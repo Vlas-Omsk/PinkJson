@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -49,7 +48,7 @@ namespace PinkJson2
             return null;
         });
         private readonly Dictionary<Type, List<TypeConversion>> _registeredTypes = new Dictionary<Type, List<TypeConversion>>();
-        private readonly ConcurrentDictionary<int, TypeConversion[]> _registeredTypeConversionsCache = new ConcurrentDictionary<int, TypeConversion[]>();
+        private readonly ConcurrentDictionary<int, List<TypeConversion>> _registeredTypeConversionsCache = new ConcurrentDictionary<int, List<TypeConversion>>();
         private readonly ConcurrentDictionary<int, bool> _isPrimitiveTypeCache = new ConcurrentDictionary<int, bool>();
         private readonly ConcurrentDictionary<int, bool> _tryConvertCache = new ConcurrentDictionary<int, bool>();
         private readonly HashSet<Type> _primitiveTypes = new HashSet<Type>()
@@ -59,6 +58,13 @@ namespace PinkJson2
             typeof(TimeSpan),
             typeof(Guid)
         };
+
+        private sealed class TryConvertCacheItem
+        {
+            public bool Result { get; }
+            public TypeConversionType Type { get; }
+            public IEnumerable<TypeConversion> Conversions { get; }
+        }
 
         static TypeConverter()
         {
@@ -122,7 +128,7 @@ namespace PinkJson2
             if (targetType == typeof(object))
                 return value;
 
-            if (valueType == targetType || targetType.IsAssignableFrom(valueType))
+            if (valueType.IsEqualsOrAssignableTo(targetType))
                 return value;
 
             try
@@ -180,14 +186,14 @@ namespace PinkJson2
             return false;
         }
 
-        private TypeConversion[] GetRegisteredTypeConversions(Type type, bool convertCallback, bool convertBackCallback)
+        private IEnumerable<TypeConversion> GetRegisteredTypeConversions(Type type, bool convertCallback, bool convertBackCallback)
         {
             var hash = unchecked(type.GetHashCode() + (convertCallback ? 1 : 0) + (convertBackCallback ? 2 : 0));
 
-            if (_registeredTypeConversionsCache.TryGetValue(hash, out TypeConversion[] cachedConversions))
-                return cachedConversions;
+            if (_registeredTypeConversionsCache.TryGetValue(hash, out List<TypeConversion> collectedConversions))
+                return collectedConversions;
 
-            var collectedConversions = new List<TypeConversion>();
+            collectedConversions = new List<TypeConversion>();
             var currentType = type;
 
             while (currentType != null)
@@ -213,10 +219,11 @@ namespace PinkJson2
                 _registeredTypeConversionsCache.TryAdd(hash, null);
                 return null;
             }
-            
-            var arr = collectedConversions.ToArray();
-            _registeredTypeConversionsCache.TryAdd(hash, arr);
-            return arr;
+
+            collectedConversions.TrimExcess();
+
+            _registeredTypeConversionsCache.TryAdd(hash, collectedConversions);
+            return collectedConversions;
         }
 
         private static void CompareObjectToType(object obj, Type targetType)

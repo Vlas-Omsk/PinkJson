@@ -157,7 +157,7 @@ namespace PinkJson2.Serializers
                                 Current = new JsonEnumerableItem(JsonEnumerableItemType.Value, null);
 
                                 _stack.Pop();
-                                _state = _nextState.Pop();
+                                SetNextState();
                                 return true;
                             }
 
@@ -194,8 +194,7 @@ namespace PinkJson2.Serializers
                         {
                             var value = _options.TypeConverter.ChangeType(_stack.Pop(), typeof(object));
                             Current = new JsonEnumerableItem(JsonEnumerableItemType.Value, value);
-
-                            _state = _nextState.Pop();
+                            SetNextState();
                             return true;
                         }
                     case State.Enumerate:
@@ -278,7 +277,7 @@ namespace PinkJson2.Serializers
                     case State.TrySelfSerialize:
                         {
                             var value = _stack.Peek();
-                            _state = _nextState.Pop();
+                            SetNextState();
 
                             if (_stack.Count <= 1 && !_useJsonSerializeOnRootObject && value == _rootObject)
                                 goto start;
@@ -344,7 +343,7 @@ namespace PinkJson2.Serializers
                         return true;
                     case State.SerializeReferenceValue:
                         Current = new JsonEnumerableItem(JsonEnumerableItemType.Value, _referenceId);
-                        _state = _nextState.Pop();
+                        SetNextState();
                         return true;
 
                     // Array
@@ -400,7 +399,7 @@ namespace PinkJson2.Serializers
                             enumerator.TryDispose();
 
                             Current = new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
-                            _state = _nextState.Pop();
+                            SetNextState();
                         }
                         return true;
 
@@ -470,12 +469,17 @@ namespace PinkJson2.Serializers
                         {
                             _stack.Pop();
                             Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
-                            _state = _nextState.Pop();
+                            SetNextState();
                         }
                         return true;
                 }
 
                 return false;
+            }
+
+            private void SetNextState()
+            {
+                _state = _nextState.Pop();
             }
 
             public void Reset()

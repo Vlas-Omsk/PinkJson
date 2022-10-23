@@ -68,15 +68,15 @@ namespace PinkJson2.Benchmarks
 
             _obj = obj;
 
-            //_obj = Enumerable.Range(0, 10_000_000);
+            _obj = Enumerable.Range(0, 10_000_000);
         }
 
         [Benchmark(Baseline = true)]
         public string PinkJson()
         {
-            //return _obj.Serialize().ToJsonString();
-            foreach (var item in _obj.Serialize()) ;
-            return null;
+            return _obj.Serialize().ToJsonString();
+            //foreach (var item in _obj.Serialize()) ;
+            //return null;
         }
 
         [Benchmark]

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -10,12 +9,11 @@ namespace PinkJson2
     public static class TypeExtension
     {
         private static readonly ConcurrentDictionary<int, bool> _isArrayTypeCache = new ConcurrentDictionary<int, bool>();
-        private static readonly ConcurrentDictionary<int, bool> _isValueTypeCache = new ConcurrentDictionary<int, bool>();
         private static readonly ConcurrentDictionary<int, bool> _isAssignableToCache = new ConcurrentDictionary<int, bool>();
 
         public static bool IsArrayType(this Type type)
         {
-            var hash = type.GetHashCode();
+            var hash = type.GetHashCodeCached();
 
             if (_isArrayTypeCache.TryGetValue(hash, out var result))
                 return result;
@@ -37,15 +35,7 @@ namespace PinkJson2
 
         public static bool IsValueType(this Type type)
         {
-            var hash = type.GetHashCode();
-
-            if (_isValueTypeCache.TryGetValue(hash, out var result))
-                return result;
-
-            result = (type.IsValueType && !type.IsPrimitive) || type == typeof(string);
-
-            _isValueTypeCache.TryAdd(hash, result);
-            return result;
+            return (type.IsValueType && !type.IsPrimitive) || type == typeof(string);
         }
 
         public static bool IsPrimitiveType(this Type type)
@@ -75,7 +65,7 @@ namespace PinkJson2
 
         public static bool IsAssignableToCached(this Type sourceType, Type targetType)
         {
-            var hash = unchecked(sourceType.GetHashCode() + targetType.GetHashCode());
+            var hash = unchecked(sourceType.GetHashCodeCached() + targetType.GetHashCodeCached());
 
             if (_isAssignableToCache.TryGetValue(hash, out var result))
                 return result;
@@ -84,6 +74,11 @@ namespace PinkJson2
 
             _isAssignableToCache.TryAdd(hash, result);
             return result;
+        }
+
+        public static int GetHashCodeCached(this Type type)
+        {
+            return type.GetHashCode();
         }
 
 #if !NET5_0_OR_GREATER

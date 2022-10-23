@@ -1,4 +1,6 @@
-﻿using System;
+﻿using PinkJson2.Formatters;
+using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -38,42 +40,87 @@ namespace PinkJson2
 
         public static void EscapeString(this string self, TextWriter writer)
         {
+            var flushIndex = 0;
+
             for (var i = 0; i < self.Length; i++)
             {
-                switch (self[i])
+                var ch = self[i];
+
+                switch (ch)
                 {
                     case '\b':
+                        FlushString(self, ref flushIndex, i, writer);
                         writer.Write("\\b");
                         break;
                     case '\a':
+                        FlushString(self, ref flushIndex, i, writer);
                         writer.Write("\\a");
                         break;
                     case '\f':
+                        FlushString(self, ref flushIndex, i, writer);
                         writer.Write("\\f");
                         break;
                     case '\n':
+                        FlushString(self, ref flushIndex, i, writer);
                         writer.Write("\\n");
                         break;
                     case '\r':
+                        FlushString(self, ref flushIndex, i, writer);
                         writer.Write("\\r");
                         break;
                     case '\t':
+                        FlushString(self, ref flushIndex, i, writer);
                         writer.Write("\\t");
                         break;
                     case '\0':
+                        FlushString(self, ref flushIndex, i, writer);
                         writer.Write("\\0");
                         break;
                     case '\"':
+                        FlushString(self, ref flushIndex, i, writer);
                         writer.Write("\\\"");
                         break;
                     case '\\':
+                        FlushString(self, ref flushIndex, i, writer);
                         writer.Write("\\\\");
-                        break;
-                    default:
-                        writer.Write(self[i]);
                         break;
                 }
             }
+
+            FlushString(self, ref flushIndex, self.Length, writer);
+        }
+
+        private static void FlushString(string str, ref int flushIndex, int i, TextWriter writer)
+        {
+            FlushStringInternal(str, ref flushIndex, i, writer);
+
+            flushIndex = i + 1;
+        }
+
+        private static void FlushStringInternal(string str, ref int flushIndex, int i, TextWriter writer)
+        {
+            if (flushIndex == 0 && i == str.Length)
+            {
+                writer.Write(str);
+                return;
+            }
+            
+            var length = i - flushIndex;
+
+            if (length == 0)
+                return;
+
+            if (length == 1)
+            {
+                writer.Write(str[flushIndex]);
+                return;
+            }
+
+#if NET5_0_OR_GREATER
+            writer.Write(str.AsSpan(flushIndex, length));
+#else
+            writer.Write(str.Substring(flushIndex, length));
+#endif
         }
 
         public static string UnescapeString(this string self)

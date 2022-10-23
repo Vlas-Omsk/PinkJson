@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -13,7 +13,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PinkJson2.Tests.Common\PinkJson2.Tests.Common.csproj" />
-    <ProjectReference Include="..\PinkJson2\PinkJson2.csproj" />
+    <ProjectReference Include="..\PinkJson2\PinkJson2.csproj">
+      <SetTargetFramework>TargetFramework=net5.0</SetTargetFramework>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

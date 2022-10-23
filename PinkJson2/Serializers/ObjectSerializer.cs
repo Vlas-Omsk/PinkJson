@@ -593,7 +593,7 @@ namespace PinkJson2.Serializers
             private bool TryGetKeysFromObject(object obj, out KeysQueue queue)
             {
                 var type = obj.GetType();
-                var hash = type.GetHashCode();
+                var hash = type.GetHashCodeCached();
 
                 if (_keysCache.TryGetValue(hash, out List<IKey> keys))
                 {

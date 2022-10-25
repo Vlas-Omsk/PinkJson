@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PinkJson2
+namespace PinkJson2.Formatters
 {
     public enum IndentStyle
     {

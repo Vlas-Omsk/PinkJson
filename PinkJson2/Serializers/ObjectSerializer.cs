@@ -13,8 +13,6 @@ namespace PinkJson2.Serializers
 
         private sealed class Enumerator : IEnumerator<JsonEnumerableItem>
         {
-            private const string _refName = "$ref";
-            private const string _idName = "$id";
             private const string _indexerPropertyName = "Item";
             private static readonly ConcurrentDictionary<int, List<IKey>> _keysCache = new ConcurrentDictionary<int, List<IKey>>();
             private readonly ObjectSerializerOptions _options;
@@ -334,11 +332,11 @@ namespace PinkJson2.Serializers
                     // References
 
                     case State.SerializeReference:
-                        Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, _refName);
+                        Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, Serializer.RefName);
                         _state = State.SerializeReferenceValue;
                         return true;
                     case State.SerializeReferenceId:
-                        Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, _idName);
+                        Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, Serializer.IdName);
                         _state = State.SerializeReferenceValue;
                         return true;
                     case State.SerializeReferenceValue:

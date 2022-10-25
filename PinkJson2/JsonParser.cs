@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace PinkJson2
 {
@@ -17,12 +16,24 @@ namespace PinkJson2
             private int _arrayIndex;
 #endif
             private IEnumerator<Token> _enumerator;
-            private int _state = 1;
-            private readonly Stack<int> _nextState = new Stack<int>();
+            private State _state = State.Start;
+            private readonly Stack<State> _nextState = new Stack<State>();
 
-            public Enumerator(IEnumerable<Token> source)
+            private enum State
             {
-                _source = source;
+                Start = 1,
+                ParseObjectBegin = 3,
+                ParseKeyValue = 6,
+                ParseObjectEnd = 5,
+                ParseArrayBegin = 8,
+                ParseArrayEnd = 9,
+                End = 999,
+                Disposed
+            }
+
+            public Enumerator(IEnumerable<Token> enumerator)
+            {
+                _source = enumerator;
             }
 
             public JsonEnumerableItem Current { get; private set; }
@@ -39,227 +50,220 @@ namespace PinkJson2
             {
                 switch (_state)
                 {
-                    case 1:
+                    case State.Start:
                         if (_enumerator == null)
                             _enumerator = _source.GetEnumerator();
 
                         EnsureEnumeratorMoveNext(TokenType.LeftBrace, TokenType.LeftBracket);
-                        CheckToken(TokenType.LeftBrace, TokenType.LeftBracket);
 
-                        _nextState.Push(999);
-                        _state = 2;
-                        goto case 2;
+                        if (_enumerator.Current.Type != TokenType.LeftBrace && _enumerator.Current.Type != TokenType.LeftBracket)
+                            throw new UnexpectedTokenException(
+                                _enumerator.Current,
+                                new TokenType[]
+                                {
+                                    TokenType.LeftBrace,
+                                    TokenType.LeftBracket
+                                },
+                                Path
+                            );
 
-                    // Parse value
-                    case 2:
-                        switch (_enumerator.Current.Type)
-                        {
-                            case TokenType.LeftBrace:
-                                Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
-
-                                _state = 3;
-                                break;
-                            case TokenType.LeftBracket:
-#if USEPATH
-                                _arrayIndex = 0;
-#endif
-                                Current = new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
-
-                                _state = 8;
-                                break;
-                            case TokenType.Boolean:
-                            case TokenType.Null:
-                            case TokenType.Number:
-                            case TokenType.String:
-                                Current = new JsonEnumerableItem(JsonEnumerableItemType.Value, _enumerator.Current.Value);
-
-                                _state = _nextState.Pop();
-                                break;
-                            default:
-                                throw new UnexpectedTokenException(
-                                    _enumerator.Current,
-                                    new TokenType[]
-                                    {
-                                        TokenType.LeftBrace,
-                                        TokenType.LeftBracket,
-                                        TokenType.Boolean,
-                                        TokenType.Null,
-                                        TokenType.Number,
-                                        TokenType.String
-                                    },
-                                    Path
-                                );
-                        }
-
+                        _nextState.Push(State.End);
+                        Current = ParseValue();
                         return true;
 
                     // Parse object
-                    case 3:
-                        EnsureEnumeratorMoveNext(TokenType.RightBrace, TokenType.String);
-                        if (_enumerator.Current.Type == TokenType.RightBrace)
-                        {
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
-
-                            _state = _nextState.Pop();
-                            return true;
-                        }
-                        else if (_enumerator.Current.Type != TokenType.String)
-                        {
-                            throw new UnexpectedTokenException(
-                                _enumerator.Current,
-                                new TokenType[]
-                                {
-                                    TokenType.RightBrace,
-                                    TokenType.String
-                                },
-                                Path
-                            );
-                        }
-
-                        var key = (string)_enumerator.Current.Value;
-#if USEPATH
-                        _path.Push(new JsonPathObjectSegment(key));
-#endif
-                        Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, key);
-
-                        _state = 6;
+                    case State.ParseObjectBegin:
+                        Current = ParseObjectBegin();
                         return true;
-                    case 6:
-                        EnsureEnumeratorMoveNext(TokenType.Colon);
-                        if (_enumerator.Current.Type != TokenType.Colon)
-                        {
-                            throw new UnexpectedTokenException(
-                                _enumerator.Current,
-                                new TokenType[]
-                                {
-                                    TokenType.Colon
-                                },
-                                Path
-                            );
-                        }
-                        EnsureEnumeratorMoveNextValue();
-
-                        _nextState.Push(5);
-                        _state = 2;
-                        goto case 2;
-                    case 5:
-#if USEPATH
-                        _path.Pop();
-#endif
-
-                        EnsureEnumeratorMoveNext(TokenType.RightBrace, TokenType.Comma);
-                        if (_enumerator.Current.Type == TokenType.RightBrace)
-                        {
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
-
-                            _state = _nextState.Pop();
-                            return true;
-                        }
-                        else if (_enumerator.Current.Type != TokenType.Comma)
-                        {
-                            throw new UnexpectedTokenException(
-                                _enumerator.Current,
-                                new TokenType[]
-                                {
-                                    TokenType.RightBrace,
-                                    TokenType.Comma
-                                },
-                                Path
-                            );
-                        }
-
-                        _state = 3;
-                        goto case 3;
+                    case State.ParseKeyValue:
+                        Current = ParseKeyValue();
+                        return true;
+                    case State.ParseObjectEnd:
+                        Current = ParseObjectEnd();
+                        return true;
 
                     // Parse array
-                    case 8:
-                        EnsureEnumeratorMoveNext(TokenType.RightBracket, TokenType.LeftBrace, TokenType.LeftBracket, TokenType.Boolean, TokenType.Null, TokenType.Number, TokenType.String);
-                        if (_enumerator.Current.Type == TokenType.RightBracket)
-                        {
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
-
-                            _state = _nextState.Pop();
-                            return true;
-                        }
-#if USEPATH
-                        _path.Push(new JsonPathArraySegment(_arrayIndex++));
-#endif
-
-                        _nextState.Push(9);
-                        _state = 2;
-                        goto case 2;
-                    case 9:
-#if USEPATH
-                        _path.Pop();
-#endif
-                        EnsureEnumeratorMoveNext(TokenType.RightBracket, TokenType.Comma);
-                        if (_enumerator.Current.Type == TokenType.RightBracket)
-                        {
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
-
-                            _state = _nextState.Pop();
-                            return true;
-                        }
-                        else if (_enumerator.Current.Type != TokenType.Comma)
-                        {
-                            throw new UnexpectedTokenException(
-                                _enumerator.Current,
-                                new TokenType[]
-                                {
-                                    TokenType.RightBracket,
-                                    TokenType.Comma
-                                },
-                                Path
-                            );
-                        }
-
-                        _state = 8;
-                        goto case 8;
+                    case State.ParseArrayBegin:
+                        Current = ParseArrayBegin();
+                        return true;
+                    case State.ParseArrayEnd:
+                        Current = ParseArrayEnd();
+                        return true;
                 }
 
                 return false;
             }
 
-            public void Reset()
+            private JsonEnumerableItem ParseValue()
             {
-                if (_state == -1)
-                    throw new ObjectDisposedException(GetType().FullName);
-
-                if (_enumerator != null)
-                    _enumerator.Reset();
-
-#if USEPATH
-                _path.Clear();
-#endif
-                _nextState.Clear();
-
-                Current = default;
-                _state = 1;
-            }
-
-            public void Dispose()
-            {
-                if (_state == -1)
-                    return;
-
-                if (_enumerator != null)
+                switch (_enumerator.Current.Type)
                 {
-                    _enumerator.Dispose();
-                    _enumerator = null;
-                }
-
+                    case TokenType.LeftBrace:
+                        _state = State.ParseObjectBegin;
+                        return new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
+                    case TokenType.LeftBracket:
 #if USEPATH
-                _path.Clear();
+                        _arrayIndex = 0;
 #endif
-                _nextState.Clear();
-
-                Current = default;
-                _state = -1;
+                        _state = State.ParseArrayBegin;
+                        return new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
+                    case TokenType.Boolean:
+                    case TokenType.Null:
+                    case TokenType.Number:
+                    case TokenType.String:
+                        _state = _nextState.Pop();
+                        return new JsonEnumerableItem(JsonEnumerableItemType.Value, _enumerator.Current.Value);
+                    default:
+                        throw new UnexpectedTokenException(
+                            _enumerator.Current,
+                            new TokenType[]
+                            {
+                                TokenType.LeftBrace,
+                                TokenType.LeftBracket,
+                                TokenType.Boolean,
+                                TokenType.Null,
+                                TokenType.Number,
+                                TokenType.String
+                            },
+                            Path
+                        );
+                }
             }
 
-            private void EnsureEnumeratorMoveNextValue()
+            private JsonEnumerableItem ParseObjectBegin()
             {
-                EnsureEnumeratorMoveNext(TokenType.LeftBrace, TokenType.LeftBracket, TokenType.Boolean, TokenType.Null, TokenType.Number, TokenType.String);
+                EnsureEnumeratorMoveNext(TokenType.RightBrace, TokenType.String);
+
+                switch (_enumerator.Current.Type)
+                {
+                    case TokenType.RightBrace:
+                        _state = _nextState.Pop();
+                        return new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
+                    case TokenType.String:
+                        var key = (string)_enumerator.Current.Value;
+#if USEPATH
+                        _path.Push(new JsonPathObjectSegment(key));
+#endif
+                        _state = State.ParseKeyValue;
+                        return new JsonEnumerableItem(JsonEnumerableItemType.Key, key);
+                    default:
+                        throw new UnexpectedTokenException(
+                            _enumerator.Current,
+                            new TokenType[]
+                            {
+                                TokenType.RightBrace,
+                                TokenType.String
+                            },
+                            Path
+                        );
+                }
+            }
+
+            private JsonEnumerableItem ParseKeyValue()
+            {
+                EnsureEnumeratorMoveNext(TokenType.Colon);
+
+                if (_enumerator.Current.Type != TokenType.Colon)
+                    throw new UnexpectedTokenException(
+                        _enumerator.Current,
+                        new TokenType[]
+                        {
+                            TokenType.Colon
+                        },
+                        Path
+                    );
+
+                EnsureEnumeratorMoveNext(
+                    TokenType.LeftBrace,
+                    TokenType.LeftBracket,
+                    TokenType.Boolean,
+                    TokenType.Null,
+                    TokenType.Number,
+                    TokenType.String
+                );
+
+                _nextState.Push(State.ParseObjectEnd);
+                return ParseValue();
+            }
+
+            private JsonEnumerableItem ParseObjectEnd()
+            {
+#if USEPATH
+                _path.Pop();
+#endif
+
+                EnsureEnumeratorMoveNext(TokenType.RightBrace, TokenType.Comma);
+
+                switch (_enumerator.Current.Type)
+                {
+                    case TokenType.RightBrace:
+                        _state = _nextState.Pop();
+                        return new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
+                    case TokenType.Comma:
+                        return ParseObjectBegin();
+                    default:
+                        throw new UnexpectedTokenException(
+                            _enumerator.Current,
+                            new TokenType[]
+                            {
+                                TokenType.RightBrace,
+                                TokenType.Comma
+                            },
+                            Path
+                        );
+                }
+            }
+
+            private JsonEnumerableItem ParseArrayBegin()
+            {
+                EnsureEnumeratorMoveNext(
+                    TokenType.RightBracket,
+                    TokenType.LeftBrace,
+                    TokenType.LeftBracket,
+                    TokenType.Boolean,
+                    TokenType.Null,
+                    TokenType.Number,
+                    TokenType.String
+                );
+
+                if (_enumerator.Current.Type == TokenType.RightBracket)
+                {
+                    _state = _nextState.Pop();
+                    return new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
+                }
+#if USEPATH
+                _path.Push(new JsonPathArraySegment(_arrayIndex++));
+#endif
+
+                _nextState.Push(State.ParseArrayEnd);
+                return ParseValue();
+            }
+
+            private JsonEnumerableItem ParseArrayEnd()
+            {
+#if USEPATH
+                _path.Pop();
+#endif
+                EnsureEnumeratorMoveNext(TokenType.RightBracket, TokenType.Comma);
+
+                switch (_enumerator.Current.Type)
+                {
+                    case TokenType.RightBracket:
+                        _state = _nextState.Pop();
+                        return new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
+                    case TokenType.Comma:
+                        return ParseArrayBegin();
+                    default:
+                        throw new UnexpectedTokenException(
+                            _enumerator.Current,
+                            new TokenType[]
+                            {
+                                TokenType.RightBracket,
+                                TokenType.Comma
+                            },
+                            Path
+                        );
+                }
             }
 
             private void EnsureEnumeratorMoveNext(params TokenType[] expectedTokenTypes)
@@ -277,10 +281,41 @@ namespace PinkJson2
                     throw new UnexpectedEndOfStreamException(expectedTokenTypes, Path);
             }
 
-            private void CheckToken(params TokenType[] expectedTokenTypes)
+            public void Reset()
             {
-                if (!expectedTokenTypes.Any(x => x == _enumerator.Current.Type))
-                    throw new UnexpectedTokenException(_enumerator.Current, expectedTokenTypes, Path);
+                if (_state == State.Disposed)
+                    throw new ObjectDisposedException(GetType().FullName);
+
+                if (_enumerator != null)
+                    _enumerator.Reset();
+
+#if USEPATH
+                _path.Clear();
+#endif
+                _nextState.Clear();
+
+                Current = default;
+                _state = State.Start;
+            }
+
+            public void Dispose()
+            {
+                if (_state == State.Disposed)
+                    return;
+
+                if (_enumerator != null)
+                {
+                    _enumerator.Dispose();
+                    _enumerator = null;
+                }
+
+#if USEPATH
+                _path.Clear();
+#endif
+                _nextState.Clear();
+
+                Current = default;
+                _state = State.Disposed;
             }
         }
 

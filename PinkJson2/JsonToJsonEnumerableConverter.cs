@@ -11,8 +11,6 @@ namespace PinkJson2
         private class Enumerator : IEnumerator<JsonEnumerableItem>
         {
             private readonly Stack<object> _stack = new Stack<object>();
-            private readonly Stack<LinkedListNode<JsonKeyValue>> _objectIndex = new Stack<LinkedListNode<JsonKeyValue>>();
-            private readonly Stack<LinkedListNode<JsonArrayValue>> _arrayIndex = new Stack<LinkedListNode<JsonArrayValue>>();
             private readonly Stack<int> _nextState = new Stack<int>();
             private int _state = 1;
 
@@ -31,78 +29,85 @@ namespace PinkJson2
                 {
                     case 1:
                         _nextState.Push(999);
-                        _state = 2;
                         goto case 2;
                     case 2:
-                        var obj = _stack.Pop();
-
-                        if (obj is JsonObject jsonObject)
-                        {
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
-
-                            _objectIndex.Push(jsonObject.First);
-                            _state = 3;
-                        }
-                        else if (obj is JsonArray jsonArray)
-                        {
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
-
-                            _arrayIndex.Push(jsonArray.First);
-                            _state = 4;
-                        }
-                        else if (obj is JsonKeyValue jsonKeyValue)
-                        {
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, jsonKeyValue.Key);
-
-                            _stack.Push(jsonKeyValue.Value);
-                        }
-                        else if (obj is JsonArrayValue jsonArrayValue)
-                        {
-                            _stack.Push(jsonArrayValue.Value);
-                            goto case 2;
-                        }
-                        else
-                        {
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.Value, obj);
-
-                            _state = _nextState.Pop();
-                        }
+                        Current = ConvertValue();
                         return true;
                     case 3:
-                        var objectNode = _objectIndex.Pop();
-
-                        if (objectNode?.Value == null)
-                        {
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
-
-                            _state = _nextState.Pop();
-                            return true;
-                        }
-
-                        _nextState.Push(3);
-                        _objectIndex.Push(objectNode.Next);
-                        _stack.Push(objectNode.Value);
-                        _state = 2;
-                        goto case 2;
+                        Current = ConvertObject();
+                        return true;
                     case 4:
-                        var arrayNode = _arrayIndex.Pop();
-
-                        if (arrayNode?.Value == null)
-                        {
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
-
-                            _state = _nextState.Pop();
-                            return true;
-                        }
-
-                        _nextState.Push(4);
-                        _arrayIndex.Push(arrayNode.Next);
-                        _stack.Push(arrayNode.Value);
-                        _state = 2;
-                        goto case 2;
+                        Current = ConvertArray();
+                        return true;
                 }
 
                 return false;
+            }
+
+            private JsonEnumerableItem ConvertValue()
+            {
+                var obj = _stack.Pop();
+
+                if (obj is JsonObject jsonObject)
+                {
+                    _stack.Push(jsonObject.First);
+                    _state = 3;
+                    return new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
+                }
+                else if (obj is JsonArray jsonArray)
+                {
+                    _stack.Push(jsonArray.First);
+                    _state = 4;
+                    return new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
+                }
+                else if (obj is JsonKeyValue jsonKeyValue)
+                {
+                    _stack.Push(jsonKeyValue.Value);
+                    _state = 2;
+                    return new JsonEnumerableItem(JsonEnumerableItemType.Key, jsonKeyValue.Key);
+                }
+                else if (obj is JsonArrayValue jsonArrayValue)
+                {
+                    _stack.Push(jsonArrayValue.Value);
+                    return ConvertValue();
+                }
+                else
+                {
+                    _state = _nextState.Pop();
+                    return new JsonEnumerableItem(JsonEnumerableItemType.Value, obj);
+                }
+            }
+
+            private JsonEnumerableItem ConvertObject()
+            {
+                var objectNode = (LinkedListNode<JsonKeyValue>)_stack.Pop();
+
+                if (objectNode?.Value == null)
+                {
+                    _state = _nextState.Pop();
+                    return new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
+                }
+
+                _nextState.Push(3);
+                _stack.Push(objectNode.Next);
+                _stack.Push(objectNode.Value);
+                return ConvertValue();
+            }
+
+            private JsonEnumerableItem ConvertArray()
+            {
+                var arrayNode = (LinkedListNode<JsonArrayValue>)_stack.Pop();
+
+                if (arrayNode?.Value == null)
+                {
+                    _state = _nextState.Pop();
+                    return new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
+                }
+
+                _nextState.Push(4);
+                _stack.Push(arrayNode.Next);
+                _stack.Push(arrayNode.Value);
+                return ConvertValue();
             }
 
             public void Reset()
@@ -111,8 +116,6 @@ namespace PinkJson2
                     throw new ObjectDisposedException(GetType().FullName);
 
                 _stack.Clear();
-                _objectIndex.Clear();
-                _arrayIndex.Clear();
                 _nextState.Clear();
 
                 Current = default;
@@ -125,8 +128,6 @@ namespace PinkJson2
                     return;
 
                 _stack.Clear();
-                _objectIndex.Clear();
-                _arrayIndex.Clear();
                 _nextState.Clear();
 
                 Current = default;

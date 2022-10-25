@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace PinkJson2.Formatters
 {
-    internal static class FastNumberFormat
+    internal static class FormattingHelpers
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int CountDigits(ulong value)
@@ -96,36 +95,6 @@ namespace PinkJson2.Formatters
             }
 
             return digits;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static (uint Quotient, uint Remainder) DivRem(uint left, uint right)
-        {
-            uint quotient = left / right;
-            return (quotient, left - (quotient * right));
-        }
-
-        public static string FastAllocateString(int length)
-        {
-            return (string)typeof(string)
-                .GetMethod("FastAllocateString", BindingFlags.Static | BindingFlags.NonPublic)
-                .Invoke(null, new object[] { length });
-        }
-
-        public unsafe static void FormatUInt32(uint value, int length, string result)
-        {
-            fixed (char* buffer = result)
-            {
-                char* p = buffer + length;
-                do
-                {
-                    uint remainder;
-                    (value, remainder) = DivRem(value, 10);
-                    *(--p) = (char)(remainder + '0');
-                }
-                while (value != 0);
-                Debug.Assert(p == buffer);
-            }
         }
     }
 }

@@ -11,7 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PinkJson2.xUnitTests", "Pin
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PinkJson2.Benchmarks", "PinkJson2.Benchmarks\PinkJson2.Benchmarks.csproj", "{FFD14B62-582B-45E2-AFA3-C0E432DDF343}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PinkJson2.Tests.Common", "PinkJson2.Tests.Common\PinkJson2.Tests.Common.csproj", "{1D03E209-4188-4D40-8775-26C023AEAC7A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PinkJson2.Tests.Common", "PinkJson2.Tests.Common\PinkJson2.Tests.Common.csproj", "{1D03E209-4188-4D40-8775-26C023AEAC7A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "grisu.net", "grisu.net\grisu.net\grisu.net.csproj", "{5A07A037-7EE6-4DC5-AB45-564FE1C92D72}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{1D03E209-4188-4D40-8775-26C023AEAC7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1D03E209-4188-4D40-8775-26C023AEAC7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1D03E209-4188-4D40-8775-26C023AEAC7A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A07A037-7EE6-4DC5-AB45-564FE1C92D72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A07A037-7EE6-4DC5-AB45-564FE1C92D72}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A07A037-7EE6-4DC5-AB45-564FE1C92D72}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A07A037-7EE6-4DC5-AB45-564FE1C92D72}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

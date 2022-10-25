@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
@@ -8,6 +7,7 @@ namespace PinkJson2.Formatters
     public sealed class PrettyFormatter : IFormatter
     {
         private TextWriter _writer;
+        private ValueFormatter _valueFormatter;
         private IEnumerator<JsonEnumerableItem> _enumerator;
         private int _depth = 0;
         private JsonEnumerableItem _current;
@@ -37,6 +37,7 @@ namespace PinkJson2.Formatters
         public void Format(IEnumerable<JsonEnumerableItem> json, TextWriter writer)
         {
             _writer = writer;
+            _valueFormatter = new ValueFormatter(writer);
             _enumerator = json.GetEnumerator();
 
             MoveNext();
@@ -69,7 +70,7 @@ namespace PinkJson2.Formatters
 
         private void FormatObject()
         {
-            _writer.Write(Formatter.LeftBrace);
+            _writer.Write(ValueFormatter.LeftBrace);
             if (_current.Type != JsonEnumerableItemType.ObjectEnd)
             {
                 _depth++;
@@ -81,23 +82,23 @@ namespace PinkJson2.Formatters
                     FormatKeyValue();
                     MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ObjectEnd)
-                        _writer.Write(Formatter.Comma);
+                        _writer.Write(ValueFormatter.Comma);
                     _writer.WriteLine();
                 }
                 _depth--;
                 if (_depth > 0)
                     AddIndent();
             }
-            _writer.Write(Formatter.RightBrace);
+            _writer.Write(ValueFormatter.RightBrace);
         }
 
         private void FormatKeyValue()
         {
-            _writer.Write(Formatter.Quote);
+            _writer.Write(ValueFormatter.Quote);
             ((string)_current.Value).EscapeString(_writer);
-            _writer.Write(Formatter.Quote);
-            _writer.Write(Formatter.Colon);
-            _writer.Write(Formatter.Space);
+            _writer.Write(ValueFormatter.Quote);
+            _writer.Write(ValueFormatter.Colon);
+            _writer.Write(ValueFormatter.Space);
             MoveNext();
             FormatValue();
         }
@@ -106,7 +107,7 @@ namespace PinkJson2.Formatters
         {
             var isRoot = _depth == 0;
 
-            _writer.Write(Formatter.LeftBracket);
+            _writer.Write(ValueFormatter.LeftBracket);
             if (_current.Type != JsonEnumerableItemType.ArrayEnd)
             {
                 if (isRoot)
@@ -122,8 +123,8 @@ namespace PinkJson2.Formatters
                     MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ArrayEnd)
                     {
-                        _writer.Write(Formatter.Comma);
-                        _writer.Write(Formatter.Space);
+                        _writer.Write(ValueFormatter.Comma);
+                        _writer.Write(ValueFormatter.Space);
                     }
                 }
                 if (isRoot)
@@ -132,7 +133,7 @@ namespace PinkJson2.Formatters
                     _writer.WriteLine();
                 }
             }
-            _writer.Write(Formatter.RightBracket);
+            _writer.Write(ValueFormatter.RightBracket);
         }
 
         private void FormatValue()
@@ -142,7 +143,7 @@ namespace PinkJson2.Formatters
                 FormatJson();
                 return;
             }
-            Formatter.FormatValue(_current.Value, _writer);
+            _valueFormatter.FormatValue(_current.Value);
         }
 
         private void AddIndent()
@@ -158,9 +159,9 @@ namespace PinkJson2.Formatters
             switch (IndentStyle)
             {
                 case IndentStyle.Space:
-                    return _indent = Formatter.Space.Repeat(IndentSize);
+                    return _indent = ValueFormatter.Space.Repeat(IndentSize);
                 case IndentStyle.Tab:
-                    return _indent = Formatter.Tab.Repeat(IndentSize);
+                    return _indent = ValueFormatter.Tab.Repeat(IndentSize);
                 default:
                     throw new Exception();
             }

@@ -111,7 +111,7 @@ namespace PinkJson2.xUnitTests
             Assert.IsType<JsonArray>(json["Sizes"].Value);
         }
 
-        private class Product2 : IJsonSerializable, IJsonSerializableOld, IJsonDeserializable
+        private class Product2 : IJsonSerializable, IJsonDeserializable
         {
             public string Name { get; set; }
             public DateTime Expiry { get; set; }
@@ -128,14 +128,6 @@ namespace PinkJson2.xUnitTests
                 deserializer.Deserialize(json, this);
                 DeserializeCallsCount++;
 
-            }
-
-            public IJson Serialize(ISerializerOld serializer)
-            {
-                var json = serializer.Serialize(this);
-                json.SetKey("id", Guid.NewGuid());
-                SerializeCallsCount++;
-                return json;
             }
 
             public IEnumerable<JsonEnumerableItem> Serialize(ISerializer serializer)

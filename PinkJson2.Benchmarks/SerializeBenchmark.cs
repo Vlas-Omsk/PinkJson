@@ -68,7 +68,7 @@ namespace PinkJson2.Benchmarks
 
             _obj = obj;
 
-            _obj = Enumerable.Range(0, 10_000_000);
+            _obj = Enumerable.Range(0, 10_000_000).Select(x => (double)x).ToArray();
         }
 
         [Benchmark(Baseline = true)]

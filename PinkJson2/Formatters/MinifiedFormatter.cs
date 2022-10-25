@@ -7,12 +7,14 @@ namespace PinkJson2.Formatters
     public sealed class MinifiedFormatter : IFormatter
     {
         private TextWriter _writer;
+        private ValueFormatter _valueFormatter;
         private IEnumerator<JsonEnumerableItem> _enumerator;
         private JsonEnumerableItem _current;
 
         public void Format(IEnumerable<JsonEnumerableItem> json, TextWriter writer)
         {
             _writer = writer;
+            _valueFormatter = new ValueFormatter(writer);
             _enumerator = json.GetEnumerator();
 
             MoveNext();
@@ -45,7 +47,7 @@ namespace PinkJson2.Formatters
 
         private void FormatObject()
         {
-            _writer.Write(Formatter.LeftBrace);
+            _writer.Write(ValueFormatter.LeftBrace);
             if (_current.Type != JsonEnumerableItemType.ObjectEnd)
             {
                 MoveNext();
@@ -54,25 +56,25 @@ namespace PinkJson2.Formatters
                     FormatKeyValue();
                     MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ObjectEnd)
-                        _writer.Write(Formatter.Comma);
+                        _writer.Write(ValueFormatter.Comma);
                 }
             }
-            _writer.Write(Formatter.RightBrace);
+            _writer.Write(ValueFormatter.RightBrace);
         }
 
         private void FormatKeyValue()
         {
-            _writer.Write(Formatter.Quote);
+            _writer.Write(ValueFormatter.Quote);
             ((string)_current.Value).EscapeString(_writer);
-            _writer.Write(Formatter.Quote);
-            _writer.Write(Formatter.Colon);
+            _writer.Write(ValueFormatter.Quote);
+            _writer.Write(ValueFormatter.Colon);
             MoveNext();
             FormatValue();
         }
 
         private void FormatArray()
         {
-            _writer.Write(Formatter.LeftBracket);
+            _writer.Write(ValueFormatter.LeftBracket);
             if (_current.Type != JsonEnumerableItemType.ArrayEnd)
             {
                 MoveNext();
@@ -81,10 +83,10 @@ namespace PinkJson2.Formatters
                     FormatValue();
                     MoveNext();
                     if (_current.Type != JsonEnumerableItemType.ArrayEnd)
-                        _writer.Write(Formatter.Comma);
+                        _writer.Write(ValueFormatter.Comma);
                 }
             }
-            _writer.Write(Formatter.RightBracket);
+            _writer.Write(ValueFormatter.RightBracket);
         }
 
         private void FormatValue()
@@ -92,7 +94,7 @@ namespace PinkJson2.Formatters
             if (JsonEnumerableItemType.ObjectBegin == _current.Type || JsonEnumerableItemType.ArrayBegin == _current.Type)
                 FormatJson();
             else
-                Formatter.FormatValue(_current.Value, _writer);
+                _valueFormatter.FormatValue(_current.Value);
         }
 
         private void MoveNext()

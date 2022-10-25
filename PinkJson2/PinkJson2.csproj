@@ -7,6 +7,9 @@
     <Authors>Vlas-Omsk</Authors>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\grisu.net\grisu.net\grisu.net.csproj" />
+  </ItemGroup>
   
   <!--<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <DefineConstants>$(DefineConstants);USEPATH;USELOOPDETECTING</DefineConstants>

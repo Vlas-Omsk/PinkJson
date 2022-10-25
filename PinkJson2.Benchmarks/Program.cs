@@ -9,7 +9,7 @@ namespace PinkJson2.Benchmarks
     {
         static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<SerializeBenchmark>();
+            var summary = BenchmarkRunner.Run<ParseToJsonBenchmark>();
 
             //var benchmark = new SerializeBenchmark();
             //benchmark.Setup();

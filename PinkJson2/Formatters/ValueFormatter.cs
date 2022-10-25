@@ -1,6 +1,7 @@
 ﻿using GrisuDotNet;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 
 namespace PinkJson2.Formatters
@@ -17,18 +18,29 @@ namespace PinkJson2.Formatters
         public const char Space = ' ';
         public const char Tab = '\t';
 
-        public const char NegativeSign = '-';
-
         public const string NullValue = "null";
         public const string TrueValue = "true";
         public const string FalseValue = "false";
 
-        private static readonly string _buffer = StringHelper.FastAllocateString(FormattingHelpers.CountDigits(ulong.MaxValue));
+        private static readonly NumberFormatInfo _numberFormatInfo = new NumberFormatInfo()
+        {
+            NaNSymbol = NullValue,
+            NegativeInfinitySymbol = NullValue,
+            PositiveInfinitySymbol = NullValue,
+            NumberDecimalSeparator = "."
+        };
+        [ThreadStatic]
+        private static string _buffer;
         private readonly TextWriter _writer;
+        private readonly GrisuWriter _grisuWriter;
 
         public ValueFormatter(TextWriter writer)
         {
             _writer = writer;
+            _grisuWriter = new GrisuWriter(writer, _numberFormatInfo);
+
+            if (_buffer == null)
+                _buffer = StringHelper.FastAllocateString(FormattingHelpers.CountDigits(ulong.MaxValue));
         }
 
         public void FormatValue(object value)
@@ -112,7 +124,7 @@ namespace PinkJson2.Formatters
         {
             if (value < 0)
             {
-                _writer.Write(NegativeSign);
+                _writer.Write(_numberFormatInfo.NegativeSign);
                 value = -value;
             }
 
@@ -137,7 +149,7 @@ namespace PinkJson2.Formatters
         {
             if (value < 0)
             {
-                _writer.Write(NegativeSign);
+                _writer.Write(_numberFormatInfo.NegativeSign);
                 value = -value;
             }
 
@@ -172,7 +184,7 @@ namespace PinkJson2.Formatters
                 return;
             }
             
-            Grisu.DoubleToString((double)(decimal)value, _writer);
+            _grisuWriter.WriteDouble(new GrisuDouble(value));
         }
 
         private void FormatDoubleValue(double value)
@@ -183,7 +195,7 @@ namespace PinkJson2.Formatters
                 return;
             }
 
-            Grisu.DoubleToString(value, _writer);
+            _grisuWriter.WriteDouble(new GrisuDouble(value));
         }
 
         private void WriteFromBuffer(int length)

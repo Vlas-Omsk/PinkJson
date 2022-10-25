@@ -54,13 +54,13 @@ namespace PinkJson2.xUnitTests
             root.MetaFile = file;
             documents.Files = new List<File> { file, file };
 
-            ObjectSerializerOptions.Default.PreserveObjectsReferences = true;
+            var options = new ObjectSerializerOptions() { PreserveObjectsReferences = true };
 
-            var json = Json.Serialize(documents).ToJson();
+            var json = Json.Serialize(documents, options).ToJson();
 
             _output.WriteLine(json.ToString(new PrettyFormatter()));
 
-            var obj = json.Deserialize<Directory>();
+            var obj = json.Deserialize<Directory>(options);
 
             Assert.Equal(obj.Parent.MetaFile.Name, file.Name);
             Assert.Equal(obj.Files.ElementAt(0).Name, file.Name);
@@ -76,13 +76,13 @@ namespace PinkJson2.xUnitTests
 
             documents.Files[0] = new { Name = "ImportantLegalDocument2.docx", Root = root };
 
-            ObjectSerializerOptions.Default.PreserveObjectsReferences = true;
+            var options = new ObjectSerializerOptions() { PreserveObjectsReferences = true };
 
-            var json = Json.Serialize(documents).ToJson();
+            var json = Json.Serialize(documents, options).ToJson();
 
             _output.WriteLine(json.ToString(new PrettyFormatter()));
 
-            var obj = json.Deserialize(documents.GetType());
+            var obj = json.Deserialize(documents.GetType(), options);
             var files = ((IEnumerable)obj.GetType().GetProperty("Files").GetValue(obj)).Cast<object>();
 
             Assert.Equal(documents.Files[0].Name, (string)files.ElementAt(0).GetType().GetProperty("Name").GetValue(files.ElementAt(0)));
@@ -205,7 +205,7 @@ namespace PinkJson2.xUnitTests
             config.IPAddress = IPAddress.Parse("127.0.0.1");
             config.Port = 1234;
 
-            var json = config.Serialize(ObjectSerializerOptions.Default).ToJsonString(new MinifiedFormatter());
+            var json = config.Serialize().ToJsonString(new MinifiedFormatter());
             var newConfig = Json.Parse(json).ToJson().Deserialize<Config>();
 
             Assert.Equal(config.IPAddress, newConfig.IPAddress);

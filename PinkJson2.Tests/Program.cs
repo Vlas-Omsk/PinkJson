@@ -1,8 +1,4 @@
-﻿using PinkJson2.Formatters;
-using PinkJson2.Serializers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 
 namespace PinkJson2.Tests
 {

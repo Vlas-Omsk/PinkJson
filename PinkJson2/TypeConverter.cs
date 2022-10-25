@@ -53,6 +53,7 @@ namespace PinkJson2
         private readonly HashSet<Type> _primitiveTypes = new HashSet<Type>()
         {
             typeof(string),
+            typeof(decimal),
             typeof(DateTime),
             typeof(TimeSpan),
             typeof(Guid)

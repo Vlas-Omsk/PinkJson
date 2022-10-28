@@ -7,7 +7,7 @@ using System.Runtime.Serialization;
 
 namespace PinkJson2.Serializers
 {
-    public sealed class ObjectDeserializerOld : IDeserializer
+    public sealed class ObjectDeserializer : IDeserializer
     {
         private const string _keyPropertyName = "Key";
         private const string _valuePropertyName = "Value";
@@ -23,9 +23,9 @@ namespace PinkJson2.Serializers
 
         private class FormatterConverter : IFormatterConverter
         {
-            private readonly ObjectDeserializerOld _deserializer;
+            private readonly ObjectDeserializer _deserializer;
 
-            public FormatterConverter(ObjectDeserializerOld deserializer)
+            public FormatterConverter(ObjectDeserializer deserializer)
             {
                 _deserializer = deserializer;
             }
@@ -124,12 +124,12 @@ namespace PinkJson2.Serializers
             }
         }
 
-        public ObjectDeserializerOld()
+        public ObjectDeserializer()
         {
             Options = ObjectSerializerOptions.Default;
         }
 
-        public ObjectDeserializerOld(ObjectSerializerOptions options)
+        public ObjectDeserializer(ObjectSerializerOptions options)
         {
             Options = options;
         }
@@ -177,8 +177,8 @@ namespace PinkJson2.Serializers
         {
             if (obj is JsonObject jsonObject)
             {
-                if (jsonObject.ContainsKey(Serializer.IdName))
-                    _ids.Add(jsonObject[Serializer.IdName].Get<int>(Options.TypeConverter), new JsonId() { Json = jsonObject });
+                if (jsonObject.ContainsKey(Options.IdName))
+                    _ids.Add(jsonObject[Options.IdName].Get<int>(Options.TypeConverter), new JsonId() { Json = jsonObject });
 
                 foreach (var item in jsonObject)
                     AggregateIds(item.Value);
@@ -205,10 +205,10 @@ namespace PinkJson2.Serializers
 
         private void TryAddRef(IJson json, object obj)
         {
-            if (!json.ContainsKey(Serializer.IdName))
+            if (!json.ContainsKey(Options.IdName))
                 return;
 
-            var id = json[Serializer.IdName].Get<int>();
+            var id = json[Options.IdName].Get<int>();
             var jsonId = _ids[id];
             jsonId.Obj = obj;
             jsonId.HasObj = true;
@@ -252,11 +252,11 @@ namespace PinkJson2.Serializers
             if (!(json is JsonObject))
                 throw new Exception($"Json of type {json.GetType()} cannot be converted to an object of type {type}");
 
-            if (json.ContainsKey(Serializer.RefName))
-                return ResolveRef(json[Serializer.RefName].Get<int>(), type);
+            if (json.ContainsKey(Options.RefName))
+                return ResolveRef(json[Options.RefName].Get<int>(), type);
 
-            if (json.ContainsKey(Serializer.IdName) && 
-                _ids.TryGetValue(json[Serializer.IdName].Get<int>(), out JsonId jsonId) && 
+            if (json.ContainsKey(Options.IdName) && 
+                _ids.TryGetValue(json[Options.IdName].Get<int>(), out JsonId jsonId) && 
                 jsonId.HasObj)
                 return jsonId.Obj;
 
@@ -272,7 +272,8 @@ namespace PinkJson2.Serializers
                         {
                             var parameters = x.GetParameters();
 
-                            return parameters.Length == 2 &&
+                            return
+                                parameters.Length == 2 &&
                                 parameters[0].ParameterType == typeof(SerializationInfo) &&
                                 parameters[1].ParameterType == typeof(StreamingContext);
                         });

@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net5.0;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net5.0;net6.0;netstandard2.0;netstandard2.1</TargetFrameworks>
     <OutputType>Library</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <Version>1.31.0</Version>
+    <Version>1.33.0</Version>
     <Authors>Vlas-Omsk</Authors>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -11,12 +11,12 @@
     <ProjectReference Include="..\grisu.net\grisu.net\grisu.net.csproj" />
   </ItemGroup>
   
-  <!--<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <DefineConstants>$(DefineConstants);USEPATH;USELOOPDETECTING</DefineConstants>
-  </PropertyGroup>-->
+  </PropertyGroup>
   
-  <!--<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
-  </PropertyGroup>-->
+  </PropertyGroup>
 </Project>

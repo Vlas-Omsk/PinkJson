@@ -49,13 +49,13 @@ namespace PinkJson2
 
         public static T Deserialize<T>(this IJson json)
         {
-            var deserializer = new ObjectDeserializerOld();
+            var deserializer = new ObjectDeserializer();
             return Deserialize<T>(json, deserializer);
         }
 
         public static T Deserialize<T>(this IJson json, ObjectSerializerOptions options)
         {
-            var deserializer = new ObjectDeserializerOld(options);
+            var deserializer = new ObjectDeserializer(options);
             return Deserialize<T>(json, deserializer);
         }
 
@@ -66,13 +66,13 @@ namespace PinkJson2
 
         public static object Deserialize(this IJson json, Type type)
         {
-            var deserializer = new ObjectDeserializerOld();
+            var deserializer = new ObjectDeserializer();
             return Deserialize(json, type, deserializer);
         }
 
         public static object Deserialize(this IJson json, Type type, ObjectSerializerOptions options)
         {
-            var deserializer = new ObjectDeserializerOld(options);
+            var deserializer = new ObjectDeserializer(options);
             return Deserialize(json, type, deserializer);
         }
 

@@ -8,6 +8,7 @@ namespace PinkJson2.Runtime
     {
         private Func<object, object> _getter;
         private Action<object, object> _setter;
+        private Func<object, object[], object> _invoker;
 
         public MemberAccessor(MemberInfo memberInfo)
         {
@@ -30,6 +31,14 @@ namespace PinkJson2.Runtime
                 CompileSetter();
 
             _setter.Invoke(obj, value);
+        }
+
+        public object Invoke(object obj, params object[] parameters)
+        {
+            if (_invoker == null)
+                CompileInvoker();
+
+            return _invoker.Invoke(obj, parameters);
         }
 
         private void CompileGetter()
@@ -62,6 +71,49 @@ namespace PinkJson2.Runtime
             var lambda = Expression.Lambda<Action<object, object>>(exAssign, exInstance, exValue);
             
             _setter = lambda.Compile();
+        }
+
+        private void CompileInvoker()
+        {
+            var targetType = MemberInfo.DeclaringType;
+
+            var exInstance = Expression.Parameter(typeof(object), "instance");
+            var exParameters =  Expression.Variable(typeof(object[]), "parameters");
+
+            var exConvertedInstance = Expression.Convert(exInstance, targetType);
+
+            if (!(MemberInfo is MethodBase methodBase))
+                throw new Exception();
+
+            var parameters = methodBase.GetParameters();
+
+            var exParametersArray = new Expression[parameters.Length];
+
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var parameterType = parameters[i].ParameterType;
+
+                var exIndex = Expression.Constant(i);
+                var exParameter = Expression.ArrayIndex(exParameters, exIndex);
+                var exConvertedParameter = Expression.Convert(exParameter, parameterType);
+
+                exParametersArray[i] = exConvertedParameter;
+            }
+
+            Expression exResult;
+
+            if (MemberInfo is ConstructorInfo constructor)
+                exResult = Expression.New(constructor, exParametersArray);
+            else if (MemberInfo is MethodInfo method)
+                exResult = Expression.Call(exConvertedInstance, method, exParametersArray);
+            else
+                throw new Exception();
+
+            var exConvertedResult = Expression.Convert(exResult, typeof(object));
+
+            var lambda = Expression.Lambda<Func<object, object[], object>>(exConvertedResult, exInstance, exParameters);
+
+            _invoker = lambda.Compile();
         }
 
         private static Type GetUnderlyingType(MemberInfo member)

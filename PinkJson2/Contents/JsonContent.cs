@@ -12,7 +12,7 @@ namespace PinkJson2.Contents
     public sealed class JsonContent : HttpContent
     {
         private const string _defaultMediaType = "application/json";
-        private static readonly Encoding _defaultEncoding = Encoding.UTF8;
+        private static readonly Encoding _defaultEncoding = new UTF8Encoding(false);
         private readonly IEnumerable<JsonEnumerableItem> _data;
         private readonly Encoding _encoding;
 

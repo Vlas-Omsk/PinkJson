@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 
 namespace PinkJson2.Serializers
@@ -252,9 +253,14 @@ namespace PinkJson2.Serializers
                             _state = State.SerializeJsonValue;
 
                             if (!enumerator.MoveNext())
+                            {
+                                enumerator.TryDispose();
                                 _nextState.Push(State.BeforeEndObject);
+                            }
                             else
+                            {
                                 _nextState.Push(State.SerializeDictionaryValues);
+                            }
                             return true;
                         }
                     case State.SerializeValues:
@@ -264,9 +270,14 @@ namespace PinkJson2.Serializers
                             _stack.Push(enumerator.Current);
 
                             if (!enumerator.MoveNext())
+                            {
+                                enumerator.TryDispose();
                                 _nextState.Push(State.BeforeEndArray);
+                            }
                             else
+                            {
                                 _nextState.Push(State.SerializeValues);
+                            }
                             goto case State.SerializeJsonValue;
                         }
 
@@ -332,11 +343,11 @@ namespace PinkJson2.Serializers
                     // References
 
                     case State.SerializeReference:
-                        Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, Serializer.RefName);
+                        Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, _options.RefName);
                         _state = State.SerializeReferenceValue;
                         return true;
                     case State.SerializeReferenceId:
-                        Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, Serializer.IdName);
+                        Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, _options.IdName);
                         _state = State.SerializeReferenceValue;
                         return true;
                     case State.SerializeReferenceValue:
@@ -393,9 +404,7 @@ namespace PinkJson2.Serializers
                         goto case State.EndArray;
                     case State.EndArray:
                         {
-                            var enumerator = (IEnumerator)_stack.Pop();
-                            enumerator.TryDispose();
-
+                            _stack.Pop();
                             Current = new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
                             SetNextState();
                         }

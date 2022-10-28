@@ -14,6 +14,8 @@ namespace PinkJson2.Serializers
         public BindingFlags FieldBindingFlags { get; set; } = BindingFlags.Public | BindingFlags.Instance;
         public bool IgnoreMissingProperties { get; set; } = true;
         public bool PreserveObjectsReferences { get; set; } = false;
+        public string RefName { get; set; } = "$ref";
+        public string IdName { get; set; } = "$id";
         public TypeConverter TypeConverter { get; set; } = TypeConverter.Default.Clone();
         public IKeyTransformer KeyTransformer { get; set; } = new DefaultKeyTransformer();
     }

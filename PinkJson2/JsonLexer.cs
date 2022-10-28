@@ -160,7 +160,7 @@ namespace PinkJson2
                         }
                         else
                         {
-                            throw new Exception();
+                            throw new JsonLexerException("Character not recognized as valid", _position, Stream);
                         }
                         break;
                 }
@@ -391,7 +391,7 @@ namespace PinkJson2
                 else if (bool.TryParse(_buffer.ToString(), out bool value))
                     return (TokenType.Boolean, value);
 
-                throw new Exception();
+                throw new JsonLexerException($"{_buffer} value is not valid", _position, Stream);
             }
 
             public void Reset()
@@ -443,7 +443,7 @@ namespace PinkJson2
                 if (_enumerator != null)
                 {
                     if (!_enumerator.Disposed)
-                        throw new Exception();
+                        throw new InvalidOperationException($"There can only be one enumerator for a type {nameof(JsonLexer)}");
 
                     ResetStream();
                 }

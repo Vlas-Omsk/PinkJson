@@ -92,7 +92,7 @@ namespace PinkJson2
 
         public bool IsPrimitiveType(Type type)
         {
-            var hash = type.GetHashCodeCached();
+            var hash = type.GetHashCode();
 
             if (_isPrimitiveTypeCache.TryGetValue(hash, out var result))
                 return result;
@@ -138,16 +138,14 @@ namespace PinkJson2
         {
             targetObj = null;
 
-            var hash = unchecked(targetType.GetHashCodeCached() + type.GetHashCodeCached());
+            var hash = unchecked(targetType.GetHashCode() + type.GetHashCode());
 
             if (_tryConvertCache.TryGetValue(hash, out var cacheItem))
             {
                 if (cacheItem == null)
                     return false;
 
-                if (!TryConvertUsingTypeConversions(cacheItem, obj, targetType, out targetObj, out _))
-                    throw new Exception();
-                return true;
+                return TryConvertUsingTypeConversions(cacheItem, obj, targetType, out targetObj, out _);
             }
             else
             {

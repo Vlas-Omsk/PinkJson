@@ -61,7 +61,16 @@ namespace PinkJson2.Linq
                             State = 4;
                             return true;
                         default:
-                            throw new Exception();
+                            throw new UnexpectedJsonEnumerableItemException(
+                                Enumerator.Current,
+                                new JsonEnumerableItemType[]
+                                {
+                                   JsonEnumerableItemType.Key,
+                                   JsonEnumerableItemType.Value,
+                                   JsonEnumerableItemType.ObjectBegin,
+                                   JsonEnumerableItemType.ArrayBegin
+                                }
+                            );
                     }
                 case 3:
                     EnsureEnumeratorMoveNext();

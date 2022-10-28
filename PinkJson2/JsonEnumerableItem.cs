@@ -12,7 +12,5 @@ namespace PinkJson2
 
         public JsonEnumerableItemType Type { get; }
         public object Value { get; }
-
-        public static JsonEnumerableItem Null => new JsonEnumerableItem(JsonEnumerableItemType.Value, null);
     }
 }

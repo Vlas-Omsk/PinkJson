@@ -83,7 +83,7 @@ namespace PinkJson2.Runtime
             var exConvertedInstance = Expression.Convert(exInstance, targetType);
 
             if (!(MemberInfo is MethodBase methodBase))
-                throw new Exception();
+                throw new InvalidOperationException($"{nameof(MemberInfo)} must be of type {nameof(MethodBase)}");
 
             var parameters = methodBase.GetParameters();
 
@@ -107,7 +107,7 @@ namespace PinkJson2.Runtime
             else if (MemberInfo is MethodInfo method)
                 exResult = Expression.Call(exConvertedInstance, method, exParametersArray);
             else
-                throw new Exception();
+                throw new InvalidOperationException($"{nameof(MemberInfo)} must be of type {nameof(ConstructorInfo)} or {nameof(MethodInfo)}");
 
             var exConvertedResult = Expression.Convert(exResult, typeof(object));
 
@@ -129,7 +129,7 @@ namespace PinkJson2.Runtime
                 case MemberTypes.Property:
                     return ((PropertyInfo)member).PropertyType;
                 default:
-                    throw new ArgumentException("Input MemberInfo must be of type EventInfo, FieldInfo, MethodInfo or PropertyInfo");
+                    throw new ArgumentException($"{nameof(MemberInfo)} must be of type {nameof(EventInfo)}, {nameof(FieldInfo)}, {nameof(MethodInfo)} or {nameof(PropertyInfo)}");
             }
         }
     }

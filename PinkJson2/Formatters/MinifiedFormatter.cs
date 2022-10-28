@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PinkJson2.Exceptions;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -46,7 +47,16 @@ namespace PinkJson2.Formatters
                         FormatValue();
                         break;
                     default:
-                        throw new Exception();
+                        throw new UnexpectedJsonEnumerableItemException(
+                            _current,
+                            new JsonEnumerableItemType[]
+                            {
+                                JsonEnumerableItemType.ObjectBegin,
+                                JsonEnumerableItemType.ArrayBegin,
+                                JsonEnumerableItemType.Key,
+                                JsonEnumerableItemType.Value
+                            }
+                        );
                 }
             }
 
@@ -105,7 +115,7 @@ namespace PinkJson2.Formatters
             private void MoveNext()
             {
                 if (!_enumerator.MoveNext())
-                    throw new Exception();
+                    throw new UnexpectedEndOfJsonEnumerableException();
 
                 _current = _enumerator.Current;
             }

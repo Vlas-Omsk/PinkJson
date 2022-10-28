@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PinkJson2.Exceptions;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -62,10 +63,10 @@ namespace PinkJson2.Linq
             State = -1;
         }
 
-        protected void EnsureEnumeratorMoveNext()
+        protected virtual void EnsureEnumeratorMoveNext()
         {
             if (!Enumerator.MoveNext())
-                throw new Exception();
+                throw new UnexpectedEndOfEnumerableException();
         }
     }
 }

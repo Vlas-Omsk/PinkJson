@@ -427,7 +427,7 @@ namespace PinkJson2.Serializers
                 var genericDictionaryType = type.GetInterface("IDictionary`2");
 
                 if (genericDictionaryType == null)
-                    throw new Exception();
+                    throw new Exception("A type that implements IDictionary must also implement IDictionary<T>");
 
                 var keyType = genericDictionaryType.GetGenericArguments()[0];
                 var valueType = genericDictionaryType.GetGenericArguments()[1];
@@ -450,8 +450,7 @@ namespace PinkJson2.Serializers
                     if (!array.IsFixedSize)
                         array.Add(null);
 
-                    var localIndex = i;
-                    array[localIndex] = DeserializeValue(json[i], elementType);
+                    array[i] = DeserializeValue(json[i], elementType);
                 }
 
                 return array;

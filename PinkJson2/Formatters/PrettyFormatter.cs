@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 
 namespace PinkJson2.Formatters
@@ -53,7 +54,16 @@ namespace PinkJson2.Formatters
                         FormatValue();
                         break;
                     default:
-                        throw new Exception();
+                        throw new UnexpectedJsonEnumerableItemException(
+                            _current,
+                            new JsonEnumerableItemType[]
+                            {
+                                JsonEnumerableItemType.ObjectBegin,
+                                JsonEnumerableItemType.ArrayBegin,
+                                JsonEnumerableItemType.Key,
+                                JsonEnumerableItemType.Value
+                            }
+                        );
                 }
             }
 
@@ -142,13 +152,10 @@ namespace PinkJson2.Formatters
 
             private void MoveNext()
             {
-                if (_enumerator.MoveNext())
-                {
-                    _current = _enumerator.Current;
-                    return;
-                }
+                if (!_enumerator.MoveNext())
+                    throw new UnexpectedEndOfJsonEnumerableException();
 
-                throw new Exception();
+                _current = _enumerator.Current;
             }
 
             public void Dispose()
@@ -194,7 +201,7 @@ namespace PinkJson2.Formatters
                 case IndentStyle.Tab:
                     return _indent = ValueFormatter.Tab.Repeat(IndentSize);
                 default:
-                    throw new Exception();
+                    throw new InvalidEnumArgumentException(nameof(IndentStyle), (int)IndentStyle, typeof(IndentStyle));
             }
         }
     }

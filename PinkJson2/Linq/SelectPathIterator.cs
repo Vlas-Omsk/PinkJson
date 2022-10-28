@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PinkJson2.Exceptions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -58,17 +59,23 @@ namespace PinkJson2.Linq
                         if (_pathSegment.Value is JsonPathObjectSegment objectSegment)
                         {
                             if (Enumerator.Current.Type != JsonEnumerableItemType.ObjectBegin)
-                                throw new Exception();
+                                throw new UnexpectedJsonEnumerableItemException(
+                                    Enumerator.Current,
+                                    new JsonEnumerableItemType[] { JsonEnumerableItemType.ObjectBegin }
+                                );
 
                             while (true)
                             {
                                 EnsureEnumeratorMoveNext();
 
                                 if (Enumerator.Current.Type == JsonEnumerableItemType.ObjectEnd)
-                                    throw new Exception();
+                                    throw new JsonPathSegmentNotFoundException(objectSegment, _path);
 
                                 if (Enumerator.Current.Type != JsonEnumerableItemType.Key)
-                                    throw new Exception();
+                                    throw new UnexpectedJsonEnumerableItemException(
+                                        Enumerator.Current,
+                                        new JsonEnumerableItemType[] { JsonEnumerableItemType.Key }
+                                    );
 
                                 var key = (string)Enumerator.Current.Value;
 
@@ -81,7 +88,10 @@ namespace PinkJson2.Linq
                         else if (_pathSegment.Value is JsonPathArraySegment arraySegment)
                         {
                             if (Enumerator.Current.Type != JsonEnumerableItemType.ArrayBegin)
-                                throw new Exception();
+                                throw new UnexpectedJsonEnumerableItemException(
+                                    Enumerator.Current,
+                                    new JsonEnumerableItemType[] { JsonEnumerableItemType.ArrayBegin }
+                                );
 
                             var i = 0;
                             while (i++ < arraySegment.Value)
@@ -89,14 +99,14 @@ namespace PinkJson2.Linq
                                 EnsureEnumeratorMoveNext();
 
                                 if (Enumerator.Current.Type == JsonEnumerableItemType.ArrayEnd)
-                                    throw new Exception();
+                                    throw new JsonPathSegmentNotFoundException(arraySegment, _path);
 
                                 SkipOne();
                             }
                         }
                         else
                         {
-                            throw new Exception();
+                            throw new InvalidOperationException();
                         }
 
                         _pathIndex++;
@@ -108,21 +118,29 @@ namespace PinkJson2.Linq
                 case 2:
                     EnsureEnumeratorMoveNext();
 
-                    if (Enumerator.Current.Type == JsonEnumerableItemType.Key)
+                    switch (Enumerator.Current.Type)
                     {
-                    }
-                    else if (Enumerator.Current.Type == JsonEnumerableItemType.Value)
-                    {
-                        State = 4;
-                    }
-                    else if (new[] { JsonEnumerableItemType.ObjectBegin, JsonEnumerableItemType.ArrayBegin }.Contains(Enumerator.Current.Type))
-                    {
-                        _depth = 1;
-                        State = 3;
-                    }
-                    else
-                    {
-                        throw new Exception();
+                        case JsonEnumerableItemType.Key:
+                            break;
+                        case JsonEnumerableItemType.Value:
+                            State = 4;
+                            break;
+                        case JsonEnumerableItemType.ObjectBegin:
+                        case JsonEnumerableItemType.ArrayBegin:
+                            _depth = 1;
+                            State = 3;
+                            break;
+                        default:
+                            throw new UnexpectedJsonEnumerableItemException(
+                                Enumerator.Current,
+                                new JsonEnumerableItemType[]
+                                {
+                                    JsonEnumerableItemType.Key,
+                                    JsonEnumerableItemType.Value,
+                                    JsonEnumerableItemType.ObjectBegin,
+                                    JsonEnumerableItemType.ArrayBegin
+                                }
+                            );
                     }
 
                     Current = Enumerator.Current;

@@ -21,7 +21,15 @@ namespace PinkJson2.Linq
                 case JsonEnumerableItemType.ArrayBegin:
                     break;
                 default:
-                    throw new Exception();
+                    throw new UnexpectedJsonEnumerableItemException(
+                        Enumerator.Current,
+                        new JsonEnumerableItemType[]
+                        {
+                            JsonEnumerableItemType.Key,
+                            JsonEnumerableItemType.ObjectBegin,
+                            JsonEnumerableItemType.ArrayBegin
+                        }
+                    );
             }
         }
 
@@ -59,7 +67,16 @@ namespace PinkJson2.Linq
                         }
                         return list.ToArray();
                     default:
-                        throw new Exception();
+                        throw new UnexpectedJsonEnumerableItemException(
+                            Enumerator.Current,
+                            new JsonEnumerableItemType[]
+                            {
+                                JsonEnumerableItemType.Key,
+                                JsonEnumerableItemType.Value,
+                                JsonEnumerableItemType.ObjectBegin,
+                                JsonEnumerableItemType.ArrayBegin
+                            }
+                        );
                 }
             }
         }
@@ -89,9 +106,24 @@ namespace PinkJson2.Linq
                         }
                         return;
                     default:
-                        throw new Exception();
+                        throw new UnexpectedJsonEnumerableItemException(
+                            Enumerator.Current,
+                            new JsonEnumerableItemType[]
+                            {
+                                JsonEnumerableItemType.Key,
+                                JsonEnumerableItemType.Value,
+                                JsonEnumerableItemType.ObjectBegin,
+                                JsonEnumerableItemType.ArrayBegin
+                            }
+                        );
                 }
             }
+        }
+
+        protected override void EnsureEnumeratorMoveNext()
+        {
+            if (!Enumerator.MoveNext())
+                throw new UnexpectedEndOfJsonEnumerableException();
         }
     }
 }

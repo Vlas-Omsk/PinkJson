@@ -65,7 +65,7 @@ namespace PinkJson2.Linq
                     if (_taked == _count)
                         State = 3;
                     if (_depth == 0)
-                        throw new Exception();
+                        throw new ObjectsCountLessThanNecessary();
 
                     Current = Enumerator.Current;
                     return true;

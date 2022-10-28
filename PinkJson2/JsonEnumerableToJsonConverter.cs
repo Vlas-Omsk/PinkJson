@@ -30,7 +30,16 @@ namespace PinkJson2
                     json = new JsonArrayValue(_enumerator.Current.Value);
                     break;
                 default:
-                    throw new Exception();
+                    throw new UnexpectedJsonEnumerableItemException(
+                        _enumerator.Current,
+                        new JsonEnumerableItemType[]
+                        {
+                            JsonEnumerableItemType.ObjectBegin,
+                            JsonEnumerableItemType.ArrayBegin,
+                            JsonEnumerableItemType.Key,
+                            JsonEnumerableItemType.Value
+                        }
+                    );
             }
 
             _enumerator.Dispose();
@@ -51,7 +60,16 @@ namespace PinkJson2
                 case JsonEnumerableItemType.Value:
                     return _enumerator.Current.Value;
                 default:
-                    throw new Exception();
+                    throw new UnexpectedJsonEnumerableItemException(
+                        _enumerator.Current,
+                        new JsonEnumerableItemType[]
+                        {
+                            JsonEnumerableItemType.ObjectBegin,
+                            JsonEnumerableItemType.ArrayBegin,
+                            JsonEnumerableItemType.Key,
+                            JsonEnumerableItemType.Value
+                        }
+                    );
             }
         }
 
@@ -97,10 +115,13 @@ namespace PinkJson2
         private void TryMoveNext(params JsonEnumerableItemType[] expectedItemTypes)
         {
             if (!_enumerator.MoveNext())
-                throw new Exception();
+                throw new UnexpectedEndOfJsonEnumerableException();
 
             if (!expectedItemTypes.Contains(_enumerator.Current.Type))
-                throw new Exception();
+                throw new UnexpectedJsonEnumerableItemException(
+                    _enumerator.Current,
+                    expectedItemTypes
+                );
         }
     }
 }

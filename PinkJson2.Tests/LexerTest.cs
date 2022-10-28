@@ -1,7 +1,7 @@
 ﻿using System;
 using Xunit;
 
-namespace PinkJson2.xUnitTests
+namespace PinkJson2.Examples
 {
     public class LexerTest
     {

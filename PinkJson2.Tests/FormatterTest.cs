@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace PinkJson2.xUnitTests
+namespace PinkJson2.Examples
 {
     public class FormatterTest
     {

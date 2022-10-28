@@ -10,7 +10,7 @@ using System.Runtime.Serialization;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace PinkJson2.xUnitTests
+namespace PinkJson2.Examples
 {
     public class ObjectSerializerTest
     {

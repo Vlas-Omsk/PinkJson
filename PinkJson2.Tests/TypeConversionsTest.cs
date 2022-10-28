@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Xunit;
 
-namespace PinkJson2.xUnitTests
+namespace PinkJson2.Examples
 {
     public class TypeConversionsTest
     {

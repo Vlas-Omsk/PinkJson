@@ -21,21 +21,17 @@ namespace PinkJson2.Serializers
             private readonly List<object> _references;
             private readonly Stack<object> _stack = new Stack<object>();
             private readonly Stack<State> _nextState = new Stack<State>();
-            private State _state = State.SerializeJsonValue;
+            private State _state = State.SerializeJsonValueAndSetNextState;
             private readonly bool _useJsonSerializeOnRootObject;
             private int _referenceId;
 
             private enum State
             {
-                SerializeJsonValue,
                 Enumerate,
-                BeforeBeginArray,
-                BeforeBeginObject,
                 SerializeReferenceValue,
                 EndObject,
                 SerializeReferenceId,
                 SerializeKeys,
-                TrySelfSerialize,
                 BeginObject,
                 BeginArray,
                 EndArray,
@@ -45,7 +41,8 @@ namespace PinkJson2.Serializers
                 SerializeReference,
                 BeforeEndObject,
                 BeforeEndArray,
-                SerializeValue
+                SerializeJsonValueAndSetNextState,
+                SerializeValueAndSetNextState
             }
 
             private interface IKey
@@ -143,211 +140,29 @@ namespace PinkJson2.Serializers
 
             public bool MoveNext()
             {
-            start:
-
                 switch (_state)
                 {
-                    case State.SerializeJsonValue:
-                        {
-                            var value = _stack.Peek();
-
-                            if (value == null)
-                            {
-                                Current = new JsonEnumerableItem(JsonEnumerableItemType.Value, null);
-
-                                _stack.Pop();
-                                SetNextState();
-                                return true;
-                            }
-
-                            var type = value.GetType();
-
-                            if (_options.TypeConverter.IsPrimitiveType(type))
-                                goto case State.SerializeValue;
-
-                            if (TryGetJsonEnumerator(value, type, out var enumerator))
-                            {
-                                if (!enumerator.MoveNext())
-                                    throw new UnexpectedEndOfJsonEnumerableException();
-
-                                _stack.Pop();
-                                _stack.Push(enumerator);
-                                _state = State.Enumerate;
-                                goto case State.Enumerate;
-                            }
-                            else if (type.IsArrayType())
-                            {
-                                goto case State.BeforeBeginArray;
-                            }
-                            else
-                            {
-                                goto case State.BeforeBeginObject;
-                            }
-                        }
+                    case State.SerializeJsonValueAndSetNextState:
+                        Current = SerializeJsonValue(_stack.Pop());
+                        return true;
 
                     // Value
 
-                    case State.SerializeValue:
-                        {
-                            var value = _options.TypeConverter.ChangeType(_stack.Pop(), typeof(object));
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.Value, value);
-                            SetNextState();
-                            return true;
-                        }
+                    case State.SerializeValueAndSetNextState:
+                        Current = SerializeValue(_stack.Pop());
+                        return true;
                     case State.Enumerate:
-                        {
-                            var nextState = State.Enumerate;
-                            var enumerator = (IEnumerator<JsonEnumerableItem>)_stack.Peek();
-                            var item = enumerator.Current;
-
-                            if (!enumerator.MoveNext())
-                            {
-                                enumerator.Dispose();
-                                _stack.Pop();
-                                nextState = _nextState.Pop();
-                            }
-
-                            if (item.Type == JsonEnumerableItemType.Value)
-                            {
-                                _stack.Push(item.Value);
-                                _nextState.Push(nextState);
-                                goto case State.SerializeJsonValue;
-                            }
-
-                            Current = item;
-                            return true;
-                        }
+                        Current = Enumerate();
+                        return true;
                     case State.SerializeKeys:
-                        {
-                            var keys = (KeysQueue)_stack.Peek();
-
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, keys.Current.Name);
-
-                            _stack.Push(keys.GetCurrentValue());
-
-                            if (keys.Current.IsValueType)
-                                _state = State.SerializeValue;
-                            else
-                                _state = State.SerializeJsonValue;
-
-                            if (!keys.MoveNext())
-                            {
-                                keys.Dispose();
-                                _nextState.Push(State.BeforeEndObject);
-                            }
-                            else
-                            {
-                                _nextState.Push(State.SerializeKeys);
-                            }
-                            return true;
-                        }
+                        Current = SerializeKeys();
+                        return true;
                     case State.SerializeDictionaryValues:
-                        {
-                            var enumerator = (IDictionaryEnumerator)_stack.Peek();
-                            
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.Key, enumerator.Key);
-
-                            _stack.Push(enumerator.Value);
-                            _state = State.SerializeJsonValue;
-
-                            if (!enumerator.MoveNext())
-                            {
-                                enumerator.TryDispose();
-                                _nextState.Push(State.BeforeEndObject);
-                            }
-                            else
-                            {
-                                _nextState.Push(State.SerializeDictionaryValues);
-                            }
-                            return true;
-                        }
+                        Current = SerializeDictionaryValues();
+                        return true;
                     case State.SerializeValues:
-                        {
-                            var enumerator = (IEnumerator)_stack.Peek();
-
-                            _stack.Push(enumerator.Current);
-
-                            if (!enumerator.MoveNext())
-                            {
-                                enumerator.TryDispose();
-                                _nextState.Push(State.BeforeEndArray);
-                            }
-                            else
-                            {
-                                _nextState.Push(State.SerializeValues);
-                            }
-                            goto case State.SerializeJsonValue;
-                        }
-
-                    // Self serialize
-
-                    case State.TrySelfSerialize:
-                        {
-                            var value = _stack.Peek();
-                            SetNextState();
-
-                            if (_stack.Count <= 1 && !_useJsonSerializeOnRootObject && value == _rootObject)
-                                goto start;
-
-                            if (TryGetEnumeratorFromJsonSerializable(value, out IEnumerator<JsonEnumerableItem> enumerator))
-                            {
-                                if (!enumerator.MoveNext())
-                                    throw new UnexpectedEndOfJsonEnumerableException();
-
-#if !USELOOPDETECTING
-                                _stack.Pop();
-#endif
-
-                                if (
-                                    enumerator.Current.Type == JsonEnumerableItemType.ArrayBegin || 
-                                    enumerator.Current.Type == JsonEnumerableItemType.ObjectBegin
-                                )
-                                {
-                                    _stack.Push(enumerator);
-                                    _state = State.Enumerate;
-                                    goto case State.Enumerate;
-                                }
-                                else if (enumerator.Current.Type == JsonEnumerableItemType.Value)
-                                {
-                                    _stack.Push(enumerator.Current.Value);
-
-                                    if (enumerator.MoveNext())
-                                        throw new UnexpectedJsonEnumerableItemException(enumerator.Current, Array.Empty<JsonEnumerableItemType>());
-
-                                    enumerator.Dispose();
-
-                                    goto case State.SerializeJsonValue;
-                                }
-                                else
-                                {
-                                    throw new UnexpectedJsonEnumerableItemException(
-                                        enumerator.Current,
-                                        new JsonEnumerableItemType[]
-                                        {
-                                            JsonEnumerableItemType.ArrayBegin,
-                                            JsonEnumerableItemType.ObjectBegin,
-                                            JsonEnumerableItemType.Value
-                                        }
-                                    );
-                                }
-                            }
-
-                            if (TryGetKeysFromSerializable(value, out KeysQueue queue))
-                            {
-#if !USELOOPDETECTING
-                                _stack.Pop();
-#endif
-                                _stack.Push(queue);
-
-                                AddReferenceIfNeeded(value);
-
-                                Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
-                                SetStateOrAddReferenceId(State.SerializeKeys);
-                                return true;
-                            }
-
-                            goto start;
-                        }
+                        Current = SerializeValues();
+                        return true;
 
                     // References
 
@@ -366,131 +181,323 @@ namespace PinkJson2.Serializers
 
                     // Array
 
-                    case State.BeforeBeginArray:
-                        _nextState.Push(State.BeginArray);
-                        goto case State.TrySelfSerialize;
                     case State.BeginArray:
-                        {
-                            var value =
-#if USELOOPDETECTING
-                                _stack.Peek();
-#else
-                                _stack.Pop();
-#endif
-
-                            var enumerator = ((IEnumerable)value).GetEnumerator();
-                            _stack.Push(enumerator);
-
-                            if (!enumerator.MoveNext())
-                            {
-                                Current = new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
-                                _state = State.EndArray;
-                                return true;
-                            }
-
-                            var type = value.GetType();
-
-                            if (type.IsEqualsOrAssignableTo(typeof(IDictionary)))
-                            {
-                                var keyType = ((IDictionaryEnumerator)enumerator).Key.GetType();
-
-                                if (keyType == typeof(string))
-                                {
-                                    Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
-                                    _state = State.SerializeDictionaryValues;
-                                    return true;
-                                }
-                            }
-
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
-                            _state = State.SerializeValues;
-                            return true;
-                        }
+                        Current = BeginArray(_stack.Pop());
+                        return true;
                     case State.BeforeEndArray:
 #if USELOOPDETECTING
                         _stack.Pop();
 #endif
                         goto case State.EndArray;
                     case State.EndArray:
-                        {
-                            _stack.Pop();
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
-                            SetNextState();
-                        }
+                        Current = EndArray();
                         return true;
 
                     // Object
 
-                    case State.BeforeBeginObject:
-                        {
-                            var value = _stack.Peek();
-
-                            if (_options.PreserveObjectsReferences)
-                            {
-                                _referenceId = _references.IndexOf(value);
-
-                                if (_referenceId != -1)
-                                {
-                                    Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
-                                    _nextState.Push(State.EndObject);
-                                    _state = State.SerializeReference;
-                                    return true;
-                                }
-                            }
-                            else
-                            {
-#if USELOOPDETECTING
-                                if (_stack.Skip(1).Contains(value))
-                                    throw new JsonSerializationException($"Self referencing loop detected");
-#endif
-                            }
-
-                            _nextState.Push(State.BeginObject);
-                            goto case State.TrySelfSerialize;
-                        }
                     case State.BeginObject:
-                        {
-                            var value =
-#if USELOOPDETECTING
-                                _stack.Peek();
-#else
-                                _stack.Pop();
-#endif
-
-                            AddReferenceIfNeeded(value);
-
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
-
-                            State nextState;
-
-                            if (TryGetKeysFromObject(value, out KeysQueue queue))
-                            {
-                                nextState = State.SerializeKeys;
-                                _stack.Push(queue);
-                            }
-                            else
-                            {
-                                nextState = State.EndObject;
-                            }
-
-                            SetStateOrAddReferenceId(nextState);
-                            return true;
-                        }
+                        Current = BeginObject(_stack.Pop());
+                        return true;
                     case State.BeforeEndObject:
 #if USELOOPDETECTING
                         _stack.Pop();
 #endif
                         goto case State.EndObject;
                     case State.EndObject:
-                        {
-                            _stack.Pop();
-                            Current = new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
-                            SetNextState();
-                        }
+                        Current = EndObject();
                         return true;
                 }
 
                 return false;
+            }
+
+            private JsonEnumerableItem SerializeJsonValue(object value)
+            {
+                if (value == null)
+                {
+                    SetNextState();
+                    return new JsonEnumerableItem(JsonEnumerableItemType.Value, null);
+                }
+
+                var type = value.GetType();
+
+                if (_options.TypeConverter.IsPrimitiveType(type))
+                    return SerializeValue(value);
+
+                if (TryGetJsonEnumerator(value, type, out var enumerator))
+                {
+                    if (!enumerator.MoveNext())
+                        throw new UnexpectedEndOfJsonEnumerableException();
+
+                    _stack.Push(enumerator);
+                    return Enumerate();
+                }
+                else if (type.IsArrayType())
+                {
+                    return BeforeBeginArray(value);
+                }
+                else
+                {
+                    return BeforeBeginObject(value);
+                }
+            }
+
+            private JsonEnumerableItem SerializeValue(object value)
+            {
+                SetNextState();
+                value = _options.TypeConverter.ChangeType(value, typeof(object));
+                return new JsonEnumerableItem(JsonEnumerableItemType.Value, value);
+            }
+
+            private JsonEnumerableItem Enumerate()
+            {
+                var enumerator = (IEnumerator<JsonEnumerableItem>)_stack.Peek();
+                var item = enumerator.Current;
+
+                if (!enumerator.MoveNext())
+                {
+                    enumerator.Dispose();
+                    _stack.Pop();
+                    _state = _nextState.Pop();
+                }
+
+                if (item.Type == JsonEnumerableItemType.Value)
+                {
+                    _nextState.Push(State.Enumerate);
+                    return SerializeJsonValue(item.Value);
+                }
+
+                _state = State.Enumerate;
+                return item;
+            }
+
+            private JsonEnumerableItem SerializeKeys()
+            {
+                var keys = (KeysQueue)_stack.Peek();
+                var current = new JsonEnumerableItem(JsonEnumerableItemType.Key, keys.Current.Name);
+
+                _stack.Push(keys.GetCurrentValue());
+
+                if (keys.Current.IsValueType)
+                    _state = State.SerializeValueAndSetNextState;
+                else
+                    _state = State.SerializeJsonValueAndSetNextState;
+
+                if (!keys.MoveNext())
+                {
+                    keys.Dispose();
+                    _nextState.Push(State.BeforeEndObject);
+                }
+                else
+                {
+                    _nextState.Push(State.SerializeKeys);
+                }
+                return current;
+            }
+
+            private JsonEnumerableItem SerializeDictionaryValues()
+            {
+                var enumerator = (IDictionaryEnumerator)_stack.Peek();
+                var current = new JsonEnumerableItem(JsonEnumerableItemType.Key, enumerator.Key);
+
+                _stack.Push(enumerator.Value);
+                _state = State.SerializeJsonValueAndSetNextState;
+
+                if (!enumerator.MoveNext())
+                {
+                    enumerator.TryDispose();
+                    _nextState.Push(State.BeforeEndObject);
+                }
+                else
+                {
+                    _nextState.Push(State.SerializeDictionaryValues);
+                }
+                return current;
+            }
+
+            private JsonEnumerableItem SerializeValues()
+            {
+                var enumerator = (IEnumerator)_stack.Peek();
+                var current = enumerator.Current;
+
+                if (!enumerator.MoveNext())
+                {
+                    enumerator.TryDispose();
+                    _nextState.Push(State.BeforeEndArray);
+                }
+                else
+                {
+                    _nextState.Push(State.SerializeValues);
+                }
+                return SerializeJsonValue(current);
+            }
+
+            private bool TrySelfSerialize(object value, out JsonEnumerableItem item)
+            {
+                if (_stack.Count <= 1 && !_useJsonSerializeOnRootObject && value == _rootObject)
+                {
+                    item = default;
+                    return false;
+                }
+
+                if (TryGetEnumeratorFromJsonSerializable(value, out IEnumerator<JsonEnumerableItem> enumerator))
+                {
+                    if (!enumerator.MoveNext())
+                        throw new UnexpectedEndOfJsonEnumerableException();
+
+                    if (
+                        enumerator.Current.Type == JsonEnumerableItemType.ArrayBegin ||
+                        enumerator.Current.Type == JsonEnumerableItemType.ObjectBegin
+                    )
+                    {
+                        _stack.Push(enumerator);
+                        item = Enumerate();
+                        return true;
+                    }
+                    else if (enumerator.Current.Type == JsonEnumerableItemType.Value)
+                    {
+                        var current = enumerator.Current.Value;
+
+                        if (enumerator.MoveNext())
+                            throw new UnexpectedJsonEnumerableItemException(enumerator.Current, Array.Empty<JsonEnumerableItemType>());
+
+                        enumerator.Dispose();
+
+                        item = SerializeJsonValue(current);
+                        return true;
+                    }
+                    else
+                    {
+                        throw new UnexpectedJsonEnumerableItemException(
+                            enumerator.Current,
+                            new JsonEnumerableItemType[]
+                            {
+                                JsonEnumerableItemType.ArrayBegin,
+                                JsonEnumerableItemType.ObjectBegin,
+                                JsonEnumerableItemType.Value
+                            }
+                        );
+                    }
+                }
+
+                if (TryGetKeysFromSerializable(value, out KeysQueue queue))
+                {
+                    _stack.Push(queue);
+
+                    AddReferenceIfNeeded(value);
+                    SetStateOrAddReferenceId(State.SerializeKeys);
+
+                    item = new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
+                    return true;
+                }
+
+                item = default;
+                return false;
+            }
+
+            private JsonEnumerableItem BeforeBeginArray(object value)
+            {
+#if USELOOPDETECTING
+                _stack.Push(value);
+#endif
+
+                if (TrySelfSerialize(value, out var item))
+                    return item;
+
+                return BeginArray(value);
+            }
+
+            private JsonEnumerableItem BeginArray(object value)
+            {
+                var enumerator = ((IEnumerable)value).GetEnumerator();
+                _stack.Push(enumerator);
+
+                if (!enumerator.MoveNext())
+                {
+                    _state = State.EndArray;
+                    return new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
+                }
+
+                var type = value.GetType();
+
+                if (type.IsEqualsOrAssignableTo(typeof(IDictionary)))
+                {
+                    var keyType = ((IDictionaryEnumerator)enumerator).Key.GetType();
+
+                    if (keyType == typeof(string))
+                    {
+                        _state = State.SerializeDictionaryValues;
+                        return new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
+                    }
+                }
+
+                _state = State.SerializeValues;
+                return new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
+            }
+
+            private JsonEnumerableItem EndArray()
+            {
+                _stack.Pop();
+                SetNextState();
+                return new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
+            }
+
+            private JsonEnumerableItem BeforeBeginObject(object value)
+            {
+#if USELOOPDETECTING
+                _stack.Push(value);
+#endif
+
+                if (_options.PreserveObjectsReferences)
+                {
+                    _referenceId = _references.IndexOf(value);
+
+                    if (_referenceId != -1)
+                    {
+                        _nextState.Push(State.EndObject);
+                        _state = State.SerializeReference;
+                        return new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
+                    }
+                }
+                else
+                {
+#if USELOOPDETECTING
+                    if (_stack.Skip(1).Contains(value))
+                        throw new JsonSerializationException($"Self referencing loop detected");
+#endif
+                }
+
+                if (TrySelfSerialize(value, out var item))
+                    return item;
+
+                return BeginObject(value);
+            }
+
+            private JsonEnumerableItem BeginObject(object value)
+            {
+                AddReferenceIfNeeded(value);
+
+                State nextState;
+
+                if (TryGetKeysFromObject(value, out KeysQueue queue))
+                {
+                    nextState = State.SerializeKeys;
+                    _stack.Push(queue);
+                }
+                else
+                {
+                    nextState = State.EndObject;
+                }
+
+                SetStateOrAddReferenceId(nextState);
+                return new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
+            }
+            
+            private JsonEnumerableItem EndObject()
+            {
+                _stack.Pop();
+                SetNextState();
+                return new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
             }
 
             private void SetNextState()
@@ -508,7 +515,7 @@ namespace PinkJson2.Serializers
                 _nextState.Clear();
 
                 Current = default;
-                _state = State.SerializeJsonValue;
+                _state = State.SerializeJsonValueAndSetNextState;
             }
 
             public void Dispose()

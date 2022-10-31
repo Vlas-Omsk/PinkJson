@@ -230,6 +230,24 @@ namespace PinkJson2.Examples
             Assert.True(ex1.InnerException.InnerException.InnerException.InnerException == ex1);
         }
 
+        [Fact]
+        public void SerializationWithSelfReferencesLoopDetectionTest()
+        {
+#if USELOOPDETECTING
+            var ex2 = new Exception("2");
+            var ex1 = new Exception("1", ex2);
+            ex2.GetType()
+                .GetField("_innerException", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                .SetValue(ex2, ex1);
+
+            Assert.Throws<JsonSerializationException>(() =>
+            {
+                var jsonj = ex1.Serialize(new ObjectSerializerOptions());
+                var json = jsonj.ToJsonString(new PrettyFormatter());
+            });
+#endif
+        }
+
 #nullable enable
 
         private class NullableTest1

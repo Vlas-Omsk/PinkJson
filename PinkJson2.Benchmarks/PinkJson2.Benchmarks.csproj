@@ -14,7 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PinkJson2.Tests.Common\PinkJson2.Tests.Common.csproj" />
     <ProjectReference Include="..\PinkJson2\PinkJson2.csproj">
-      <SetTargetFramework>TargetFramework=net5.0</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=net6.0</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
 

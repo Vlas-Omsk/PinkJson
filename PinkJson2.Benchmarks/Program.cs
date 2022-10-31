@@ -6,7 +6,7 @@ namespace PinkJson2.Benchmarks
     {
         static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<SerializeArrayOfLongBenchmark>();
+            var summary = BenchmarkRunner.Run<SerializeBenchmark>();
         }
     }
 }

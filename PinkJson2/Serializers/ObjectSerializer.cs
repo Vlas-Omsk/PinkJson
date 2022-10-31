@@ -21,28 +21,26 @@ namespace PinkJson2.Serializers
             private readonly List<object> _references;
             private readonly Stack<object> _stack = new Stack<object>();
             private readonly Stack<State> _nextState = new Stack<State>();
-            private State _state = State.SerializeJsonValueAndSetNextState;
-            private readonly bool _useJsonSerializeOnRootObject;
+            private State _state = State.SerializeJsonValue;
+            private readonly bool _useSelfSerializationOnRootObject;
             private int _referenceId;
 
             private enum State
             {
-                Enumerate,
+                SerializeJsonEnumerator,
                 SerializeReferenceValue,
-                EndObject,
+                SerializeObjectEnd,
                 SerializeReferenceId,
                 SerializeKeys,
-                BeginObject,
-                BeginArray,
-                EndArray,
+                SerializeArrayEnd,
                 SerializeValues,
                 SerializeDictionaryValues,
                 Disposed,
                 SerializeReference,
-                BeforeEndObject,
-                BeforeEndArray,
-                SerializeJsonValueAndSetNextState,
-                SerializeValueAndSetNextState
+                BeforeSerializeObjectEnd,
+                BeforeSerializeArrayEnd,
+                SerializeJsonValue,
+                SerializeValue
             }
 
             private interface IKey
@@ -128,7 +126,7 @@ namespace PinkJson2.Serializers
                 _rootObject = rootObject;
                 _options = options;
                 _references = references;
-                _useJsonSerializeOnRootObject = useJsonSerializeOnRootObject;
+                _useSelfSerializationOnRootObject = useJsonSerializeOnRootObject;
 
                 _nextState.Push(State.Disposed);
                 _stack.Push(instance);
@@ -142,26 +140,28 @@ namespace PinkJson2.Serializers
             {
                 switch (_state)
                 {
-                    case State.SerializeJsonValueAndSetNextState:
-                        Current = SerializeJsonValue(_stack.Pop());
-                        return true;
-
                     // Value
 
-                    case State.SerializeValueAndSetNextState:
+                    case State.SerializeJsonValue:
+                        Current = SerializeJsonValue(_stack.Pop());
+                        return true;
+                    case State.SerializeValue:
                         Current = SerializeValue(_stack.Pop());
                         return true;
-                    case State.Enumerate:
-                        Current = Enumerate();
+
+                    // Value arrays
+
+                    case State.SerializeJsonEnumerator:
+                        Current = SerializeJsonEnumerator((IEnumerator<JsonEnumerableItem>)_stack.Peek());
                         return true;
                     case State.SerializeKeys:
-                        Current = SerializeKeys();
+                        Current = SerializeKeys((KeysQueue)_stack.Peek());
                         return true;
                     case State.SerializeDictionaryValues:
-                        Current = SerializeDictionaryValues();
+                        Current = SerializeDictionaryValues((IDictionaryEnumerator)_stack.Peek());
                         return true;
                     case State.SerializeValues:
-                        Current = SerializeValues();
+                        Current = SerializeValues((IEnumerator)_stack.Peek());
                         return true;
 
                     // References
@@ -181,30 +181,26 @@ namespace PinkJson2.Serializers
 
                     // Array
 
-                    case State.BeginArray:
-                        Current = BeginArray(_stack.Pop());
-                        return true;
-                    case State.BeforeEndArray:
+                    case State.BeforeSerializeArrayEnd:
 #if USELOOPDETECTING
                         _stack.Pop();
 #endif
-                        goto case State.EndArray;
-                    case State.EndArray:
-                        Current = EndArray();
+                        _stack.Pop();
+                        goto case State.SerializeArrayEnd;
+                    case State.SerializeArrayEnd:
+                        Current = SerializeArrayEnd();
                         return true;
 
                     // Object
 
-                    case State.BeginObject:
-                        Current = BeginObject(_stack.Pop());
-                        return true;
-                    case State.BeforeEndObject:
+                    case State.BeforeSerializeObjectEnd:
 #if USELOOPDETECTING
                         _stack.Pop();
 #endif
-                        goto case State.EndObject;
-                    case State.EndObject:
-                        Current = EndObject();
+                        _stack.Pop();
+                        goto case State.SerializeObjectEnd;
+                    case State.SerializeObjectEnd:
+                        Current = SerializeObjectEnd();
                         return true;
                 }
 
@@ -230,15 +226,15 @@ namespace PinkJson2.Serializers
                         throw new UnexpectedEndOfJsonEnumerableException();
 
                     _stack.Push(enumerator);
-                    return Enumerate();
+                    return SerializeJsonEnumerator(enumerator);
                 }
                 else if (type.IsArrayType())
                 {
-                    return BeforeBeginArray(value);
+                    return SerializeArray(value);
                 }
                 else
                 {
-                    return BeforeBeginObject(value);
+                    return SerializeObject(value);
                 }
             }
 
@@ -249,44 +245,42 @@ namespace PinkJson2.Serializers
                 return new JsonEnumerableItem(JsonEnumerableItemType.Value, value);
             }
 
-            private JsonEnumerableItem Enumerate()
+            private JsonEnumerableItem SerializeJsonEnumerator(IEnumerator<JsonEnumerableItem> enumerator)
             {
-                var enumerator = (IEnumerator<JsonEnumerableItem>)_stack.Peek();
                 var item = enumerator.Current;
 
                 if (!enumerator.MoveNext())
                 {
                     enumerator.Dispose();
                     _stack.Pop();
-                    _state = _nextState.Pop();
+                    SetNextState();
                 }
 
                 if (item.Type == JsonEnumerableItemType.Value)
                 {
-                    _nextState.Push(State.Enumerate);
+                    _nextState.Push(State.SerializeJsonEnumerator);
                     return SerializeJsonValue(item.Value);
                 }
 
-                _state = State.Enumerate;
+                _state = State.SerializeJsonEnumerator;
                 return item;
             }
 
-            private JsonEnumerableItem SerializeKeys()
+            private JsonEnumerableItem SerializeKeys(KeysQueue keys)
             {
-                var keys = (KeysQueue)_stack.Peek();
                 var current = new JsonEnumerableItem(JsonEnumerableItemType.Key, keys.Current.Name);
 
                 _stack.Push(keys.GetCurrentValue());
 
                 if (keys.Current.IsValueType)
-                    _state = State.SerializeValueAndSetNextState;
+                    _state = State.SerializeValue;
                 else
-                    _state = State.SerializeJsonValueAndSetNextState;
+                    _state = State.SerializeJsonValue;
 
                 if (!keys.MoveNext())
                 {
                     keys.Dispose();
-                    _nextState.Push(State.BeforeEndObject);
+                    _nextState.Push(State.BeforeSerializeObjectEnd);
                 }
                 else
                 {
@@ -295,18 +289,17 @@ namespace PinkJson2.Serializers
                 return current;
             }
 
-            private JsonEnumerableItem SerializeDictionaryValues()
+            private JsonEnumerableItem SerializeDictionaryValues(IDictionaryEnumerator enumerator)
             {
-                var enumerator = (IDictionaryEnumerator)_stack.Peek();
                 var current = new JsonEnumerableItem(JsonEnumerableItemType.Key, enumerator.Key);
 
                 _stack.Push(enumerator.Value);
-                _state = State.SerializeJsonValueAndSetNextState;
+                _state = State.SerializeJsonValue;
 
                 if (!enumerator.MoveNext())
                 {
                     enumerator.TryDispose();
-                    _nextState.Push(State.BeforeEndObject);
+                    _nextState.Push(State.BeforeSerializeObjectEnd);
                 }
                 else
                 {
@@ -315,15 +308,14 @@ namespace PinkJson2.Serializers
                 return current;
             }
 
-            private JsonEnumerableItem SerializeValues()
+            private JsonEnumerableItem SerializeValues(IEnumerator enumerator)
             {
-                var enumerator = (IEnumerator)_stack.Peek();
                 var current = enumerator.Current;
 
                 if (!enumerator.MoveNext())
                 {
                     enumerator.TryDispose();
-                    _nextState.Push(State.BeforeEndArray);
+                    _nextState.Push(State.BeforeSerializeArrayEnd);
                 }
                 else
                 {
@@ -334,7 +326,7 @@ namespace PinkJson2.Serializers
 
             private bool TrySelfSerialize(object value, out JsonEnumerableItem item)
             {
-                if (_stack.Count <= 1 && !_useJsonSerializeOnRootObject && value == _rootObject)
+                if (_stack.Count <= 1 && !_useSelfSerializationOnRootObject && value == _rootObject)
                 {
                     item = default;
                     return false;
@@ -350,8 +342,11 @@ namespace PinkJson2.Serializers
                         enumerator.Current.Type == JsonEnumerableItemType.ObjectBegin
                     )
                     {
+#if USELOOPDETECTING
+                        _stack.Push(value);
+#endif
                         _stack.Push(enumerator);
-                        item = Enumerate();
+                        item = SerializeJsonEnumerator(enumerator);
                         return true;
                     }
                     else if (enumerator.Current.Type == JsonEnumerableItemType.Value)
@@ -382,6 +377,9 @@ namespace PinkJson2.Serializers
 
                 if (TryGetKeysFromSerializable(value, out KeysQueue queue))
                 {
+#if USELOOPDETECTING
+                    _stack.Push(value);
+#endif
                     _stack.Push(queue);
 
                     AddReferenceIfNeeded(value);
@@ -395,28 +393,23 @@ namespace PinkJson2.Serializers
                 return false;
             }
 
-            private JsonEnumerableItem BeforeBeginArray(object value)
+            private JsonEnumerableItem SerializeArray(object value)
             {
-#if USELOOPDETECTING
-                _stack.Push(value);
-#endif
-
                 if (TrySelfSerialize(value, out var item))
                     return item;
 
-                return BeginArray(value);
-            }
-
-            private JsonEnumerableItem BeginArray(object value)
-            {
                 var enumerator = ((IEnumerable)value).GetEnumerator();
-                _stack.Push(enumerator);
 
                 if (!enumerator.MoveNext())
                 {
-                    _state = State.EndArray;
+                    _state = State.SerializeArrayEnd;
                     return new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
                 }
+
+#if USELOOPDETECTING
+                _stack.Push(value);
+#endif
+                _stack.Push(enumerator);
 
                 var type = value.GetType();
 
@@ -435,26 +428,21 @@ namespace PinkJson2.Serializers
                 return new JsonEnumerableItem(JsonEnumerableItemType.ArrayBegin, null);
             }
 
-            private JsonEnumerableItem EndArray()
+            private JsonEnumerableItem SerializeArrayEnd()
             {
-                _stack.Pop();
                 SetNextState();
                 return new JsonEnumerableItem(JsonEnumerableItemType.ArrayEnd, null);
             }
 
-            private JsonEnumerableItem BeforeBeginObject(object value)
+            private JsonEnumerableItem SerializeObject(object value)
             {
-#if USELOOPDETECTING
-                _stack.Push(value);
-#endif
-
                 if (_options.PreserveObjectsReferences)
                 {
                     _referenceId = _references.IndexOf(value);
 
                     if (_referenceId != -1)
                     {
-                        _nextState.Push(State.EndObject);
+                        _nextState.Push(State.SerializeObjectEnd);
                         _state = State.SerializeReference;
                         return new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
                     }
@@ -470,11 +458,6 @@ namespace PinkJson2.Serializers
                 if (TrySelfSerialize(value, out var item))
                     return item;
 
-                return BeginObject(value);
-            }
-
-            private JsonEnumerableItem BeginObject(object value)
-            {
                 AddReferenceIfNeeded(value);
 
                 State nextState;
@@ -482,20 +465,22 @@ namespace PinkJson2.Serializers
                 if (TryGetKeysFromObject(value, out KeysQueue queue))
                 {
                     nextState = State.SerializeKeys;
+#if USELOOPDETECTING
+                    _stack.Push(value);
+#endif
                     _stack.Push(queue);
                 }
                 else
                 {
-                    nextState = State.EndObject;
+                    nextState = State.SerializeObjectEnd;
                 }
 
                 SetStateOrAddReferenceId(nextState);
                 return new JsonEnumerableItem(JsonEnumerableItemType.ObjectBegin, null);
             }
             
-            private JsonEnumerableItem EndObject()
+            private JsonEnumerableItem SerializeObjectEnd()
             {
-                _stack.Pop();
                 SetNextState();
                 return new JsonEnumerableItem(JsonEnumerableItemType.ObjectEnd, null);
             }
@@ -503,32 +488,6 @@ namespace PinkJson2.Serializers
             private void SetNextState()
             {
                 _state = _nextState.Pop();
-            }
-
-            public void Reset()
-            {
-                if (_state == State.Disposed)
-                    throw new ObjectDisposedException(GetType().FullName);
-
-                _references.Clear();
-                _stack.Clear();
-                _nextState.Clear();
-
-                Current = default;
-                _state = State.SerializeJsonValueAndSetNextState;
-            }
-
-            public void Dispose()
-            {
-                if (_state == State.Disposed)
-                    return;
-
-                _references.Clear();
-                _stack.Clear();
-                _nextState.Clear();
-
-                Current = default;
-                _state = State.Disposed;
             }
 
             private void SetStateOrAddReferenceId(State state)
@@ -635,7 +594,7 @@ namespace PinkJson2.Serializers
                 {
                     var properties = type.GetProperties(_options.PropertyBindingFlags);
                     var fields = type.GetFields(_options.FieldBindingFlags);
-                    keys = new List<IKey>();
+                    keys = new List<IKey>(properties.Length + fields.Length);
 
                     foreach (var property in properties)
                         if (property.CanRead && property.Name != _indexerPropertyName && TryGetKeyFromMember(new MemberAccessor(property), out var key))
@@ -652,7 +611,7 @@ namespace PinkJson2.Serializers
                         return false;
                     }
 
-                    keys.TrimExcess();
+                    //keys.TrimExcess();
 
                     _keysCache.TryAdd(hash, keys);
                 }
@@ -660,7 +619,7 @@ namespace PinkJson2.Serializers
                 queue = new KeysQueue(keys, obj);
                 return true;
             }
-            
+
             private bool TryGetKeyFromMember(MemberAccessor member, out MemberKey key)
             {
                 if (member.MemberInfo.TryGetCustomAttribute<NonSerializedAttribute>(out _))
@@ -690,6 +649,32 @@ namespace PinkJson2.Serializers
 
                 key = new MemberKey(member, name, isValueType);
                 return true;
+            }
+
+            public void Reset()
+            {
+                if (_state == State.Disposed)
+                    throw new ObjectDisposedException(GetType().FullName);
+
+                _references.Clear();
+                _stack.Clear();
+                _nextState.Clear();
+
+                Current = default;
+                _state = State.SerializeJsonValue;
+            }
+
+            public void Dispose()
+            {
+                if (_state == State.Disposed)
+                    return;
+
+                _references.Clear();
+                _stack.Clear();
+                _nextState.Clear();
+
+                Current = default;
+                _state = State.Disposed;
             }
         }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -12,7 +13,7 @@ namespace PinkJson2
         {
             using (var stream = await self.ReadAsStreamAsync())
             using (var reader = new StreamReader(stream))
-                return Json.Parse(reader);
+                return Json.Parse(reader).ToArray();
         }
     }
 }

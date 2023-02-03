@@ -9,44 +9,61 @@ namespace PinkJson2
     public sealed class TypeConverter : ICloneable
     {
         private readonly static MethodInfo _enumTryParseMethodInfo;
-        private readonly static TypeConversion _dateTimeTypeConversion = new TypeConversion(TypeConversionDirection.ToType, (object obj, Type targetType, ref bool handled) =>
-        {
-            if (obj is string @string)
+        private readonly static TypeConversion _dateTimeTypeConversion = new TypeConversion(
+            TypeConversionDirection.ToType,
+            (object obj, Type targetType, ref bool handled) =>
+            {
+                if (obj is string @string)
+                {
+                    handled = true;
+                    return DateTime.Parse(@string);
+                }
+                else if (obj is long @long)
+                {
+                    handled = true;
+                    return DateTime.FromBinary(@long);
+                }
+
+                return null;
+            }
+        );
+        private readonly static TypeConversion _enumTypeConversion = new TypeConversion(
+            TypeConversionDirection.ToType,
+            (object obj, Type targetType, ref bool handled) =>
+            {
+                if (obj is string @string)
+                {
+                    var parameters = new object[] { @string, true, null };
+                    handled = (bool)_enumTryParseMethodInfo
+                        .MakeGenericMethod(new Type[] { targetType })
+                        .Invoke(null, parameters);
+                    return parameters[2];
+                }
+
+                return null;
+            }
+        );
+        private readonly static TypeConversion _guidTypeConversion = new TypeConversion(
+            TypeConversionDirection.ToType,
+            (object obj, Type targetType, ref bool handled) =>
+            {
+                if (obj is string value)
+                {
+                    handled = true;
+                    return Guid.Parse(value);
+                }
+
+                return null;
+            }
+        );
+        private readonly static TypeConversion _serializedJsonValueTypeConversion = new TypeConversion(
+            TypeConversionDirection.ToType,
+            (object obj, Type targetType, ref bool handled) =>
             {
                 handled = true;
-                return DateTime.Parse(@string);
+                return new SerializedJsonValue(obj);
             }
-            else if (obj is long @long)
-            {
-                handled = true;
-                return DateTime.FromBinary(@long);
-            }
-
-            return null;
-        });
-        private readonly static TypeConversion _enumTypeConversion = new TypeConversion(TypeConversionDirection.ToType, (object obj, Type targetType, ref bool handled) =>
-        {
-            if (obj is string @string)
-            {
-                var parameters = new object[] { @string, true, null };
-                handled = (bool)_enumTryParseMethodInfo
-                    .MakeGenericMethod(new Type[] { targetType })
-                    .Invoke(null, parameters);
-                return parameters[2];
-            }
-
-            return null;
-        });
-        private readonly static TypeConversion _guidTypeConversion = new TypeConversion(TypeConversionDirection.ToType, (object obj, Type targetType, ref bool handled) =>
-        {
-            if (obj is string value)
-            {
-                handled = true;
-                return Guid.Parse(value);
-            }
-
-            return null;
-        });
+        );
         private readonly Dictionary<Type, List<TypeConversion>> _registeredTypes = new Dictionary<Type, List<TypeConversion>>();
         private readonly ConcurrentDictionary<int, bool> _isPrimitiveTypeCache = new ConcurrentDictionary<int, bool>();
         private readonly ConcurrentDictionary<int, IEnumerable<TypeConversion>> _tryConvertCache = new ConcurrentDictionary<int, IEnumerable<TypeConversion>>();
@@ -56,7 +73,8 @@ namespace PinkJson2
             typeof(decimal),
             typeof(DateTime),
             typeof(TimeSpan),
-            typeof(Guid)
+            typeof(Guid),
+            typeof(SerializedJsonValue)
         };
 
         static TypeConverter()
@@ -80,6 +98,7 @@ namespace PinkJson2
             Register(typeof(DateTime), _dateTimeTypeConversion);
             Register(typeof(Enum), _enumTypeConversion);
             Register(typeof(Guid), _guidTypeConversion);
+            Register(typeof(SerializedJsonValue), _serializedJsonValueTypeConversion);
         }
 
         private TypeConverter(Dictionary<Type, List<TypeConversion>> registeredTypes)
@@ -217,6 +236,8 @@ namespace PinkJson2
         )
         {
             var currentType = type;
+
+            var d = _registeredTypes.ToArray();
 
             while (currentType != null)
             {

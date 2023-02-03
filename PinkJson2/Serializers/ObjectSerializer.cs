@@ -241,8 +241,8 @@ namespace PinkJson2.Serializers
             private JsonEnumerableItem SerializeValue(object value)
             {
                 SetNextState();
-                value = _options.TypeConverter.ChangeType(value, typeof(object));
-                return new JsonEnumerableItem(JsonEnumerableItemType.Value, value);
+                var jsonValue = (SerializedJsonValue)_options.TypeConverter.ChangeType(value, typeof(SerializedJsonValue));
+                return new JsonEnumerableItem(JsonEnumerableItemType.Value, jsonValue.Value);
             }
 
             private JsonEnumerableItem SerializeJsonEnumerator(IEnumerator<JsonEnumerableItem> enumerator)

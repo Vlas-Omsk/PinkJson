@@ -51,7 +51,7 @@ namespace PinkJson2.Examples
             Assert.Equal("Comedy", m.Genres.ElementAt(1));
         }
 
-        private enum TestType
+        private enum TestEnum
         {
             Test1,
             Test2,
@@ -62,17 +62,17 @@ namespace PinkJson2.Examples
         private class Packet
         {
             [JsonProperty(Name = "type1")]
-            public TestType Type1 { get; set; }
+            public TestEnum Type1 { get; set; }
             [JsonProperty(Name = "type2")]
-            public TestType Type2 { get; set; }
+            public TestEnum Type2 { get; set; }
             [JsonProperty(Name = "type3")]
-            public TestType Type3 { get; set; }
+            public TestEnum Type3 { get; set; }
         }
 
         [Fact]
-        public void RegisterConversionsTest()
+        public void ConvertStringToEnumTest()
         {
-            TypeConverter.Default.Register(typeof(TestType), new TypeConversion(TypeConversionDirection.ToType, (object obj, Type targetType, ref bool handled) =>
+            TypeConverter.Default.Register(typeof(TestEnum), new TypeConversion(TypeConversionDirection.ToType, (object obj, Type targetType, ref bool handled) =>
             {
                 if (obj is string @string)
                 {
@@ -82,8 +82,8 @@ namespace PinkJson2.Examples
                         return char.ToUpper(ch).ToString();
                     });
 
-                    if (!Enum.TryParse(@string, out TestType type))
-                        type = TestType.Unknown;
+                    if (!Enum.TryParse(@string, out TestEnum type))
+                        type = TestEnum.Unknown;
 
                     handled = true;
                     return type;
@@ -99,17 +99,17 @@ namespace PinkJson2.Examples
             );
             var packet = obj.Deserialize<Packet>();
 
-            Assert.Equal(TestType.Unknown, packet.Type1);
-            Assert.Equal(TestType.Test2, packet.Type2);
-            Assert.Equal(TestType.TestTest, packet.Type3);
+            Assert.Equal(TestEnum.Unknown, packet.Type1);
+            Assert.Equal(TestEnum.Test2, packet.Type2);
+            Assert.Equal(TestEnum.TestTest, packet.Type3);
         }
 
         [Fact]
-        public void RegisterConversions2Test()
+        public void ConvertEnumFromStringTest()
         {
             TypeConverter.Default.Register(typeof(string), new TypeConversion(TypeConversionDirection.FromType, (object obj, Type targetType, ref bool handled) =>
             {
-                if (targetType != typeof(TestType))
+                if (targetType != typeof(TestEnum))
                     return null;
 
                 if (obj is string @string)
@@ -120,8 +120,8 @@ namespace PinkJson2.Examples
                         return char.ToUpper(ch).ToString();
                     });
 
-                    if (!Enum.TryParse(@string, out TestType type))
-                        type = TestType.Unknown;
+                    if (!Enum.TryParse(@string, out TestEnum type))
+                        type = TestEnum.Unknown;
 
                     handled = true;
                     return type;
@@ -137,9 +137,45 @@ namespace PinkJson2.Examples
             );
             var packet = obj.Deserialize<Packet>();
 
-            Assert.Equal(TestType.Unknown, packet.Type1);
-            Assert.Equal(TestType.Test2, packet.Type2);
-            Assert.Equal(TestType.TestTest, packet.Type3);
+            Assert.Equal(TestEnum.Unknown, packet.Type1);
+            Assert.Equal(TestEnum.Test2, packet.Type2);
+            Assert.Equal(TestEnum.TestTest, packet.Type3);
+        }
+
+        [Fact]
+        public void ConvertEnumToStringTest()
+        {
+            TypeConverter.Default.Register(typeof(TestEnum), new TypeConversion(TypeConversionDirection.FromType, (object obj, Type targetType, ref bool handled) =>
+            {
+                if (obj is string @string)
+                {
+                    @string = Regex.Replace(@string, "(^.|_.)", x =>
+                    {
+                        var ch = x.Value[0] == '_' ? x.Value[1] : x.Value[0];
+                        return char.ToUpper(ch).ToString();
+                    });
+
+                    if (!Enum.TryParse(@string, out TestEnum type))
+                        type = TestEnum.Unknown;
+
+                    handled = true;
+                    return type;
+                }
+
+                return null;
+            }));
+
+            var packet = new Packet()
+            {
+                Type1 = TestEnum.Unknown,
+                Type2 = TestEnum.Test2,
+                Type3 = TestEnum.TestTest,
+            };
+            var packetJson = packet.Serialize().ToJson();
+
+            Assert.Equal(TestEnum.Unknown, packet.Type1);
+            Assert.Equal(TestEnum.Test2, packet.Type2);
+            Assert.Equal(TestEnum.TestTest, packet.Type3);
         }
     }
 }

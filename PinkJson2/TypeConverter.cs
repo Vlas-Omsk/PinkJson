@@ -10,6 +10,7 @@ namespace PinkJson2
     {
         private readonly static MethodInfo _enumTryParseMethodInfo;
         private readonly static TypeConversion _dateTimeTypeConversion = new TypeConversion(
+            typeof(DateTime),
             TypeConversionDirection.ToType,
             (object obj, Type targetType, ref bool handled) =>
             {
@@ -28,6 +29,7 @@ namespace PinkJson2
             }
         );
         private readonly static TypeConversion _enumTypeConversion = new TypeConversion(
+            typeof(Enum),
             TypeConversionDirection.ToType,
             (object obj, Type targetType, ref bool handled) =>
             {
@@ -44,6 +46,7 @@ namespace PinkJson2
             }
         );
         private readonly static TypeConversion _guidTypeConversion = new TypeConversion(
+            typeof(Guid),
             TypeConversionDirection.ToType,
             (object obj, Type targetType, ref bool handled) =>
             {
@@ -56,15 +59,7 @@ namespace PinkJson2
                 return null;
             }
         );
-        private readonly static TypeConversion _serializedJsonValueTypeConversion = new TypeConversion(
-            TypeConversionDirection.ToType,
-            (object obj, Type targetType, ref bool handled) =>
-            {
-                handled = true;
-                return new SerializedJsonValue(obj);
-            }
-        );
-        private readonly Dictionary<Type, List<TypeConversion>> _registeredTypes = new Dictionary<Type, List<TypeConversion>>();
+        private readonly List<TypeConversion> _registeredTypes;
         private readonly ConcurrentDictionary<int, bool> _isPrimitiveTypeCache = new ConcurrentDictionary<int, bool>();
         private readonly ConcurrentDictionary<int, IEnumerable<TypeConversion>> _tryConvertCache = new ConcurrentDictionary<int, IEnumerable<TypeConversion>>();
         private readonly HashSet<Type> _primitiveTypes = new HashSet<Type>()
@@ -74,7 +69,6 @@ namespace PinkJson2
             typeof(DateTime),
             typeof(TimeSpan),
             typeof(Guid),
-            typeof(SerializedJsonValue)
         };
 
         static TypeConverter()
@@ -95,23 +89,24 @@ namespace PinkJson2
 
         public TypeConverter()
         {
-            Register(typeof(DateTime), _dateTimeTypeConversion);
-            Register(typeof(Enum), _enumTypeConversion);
-            Register(typeof(Guid), _guidTypeConversion);
-            Register(typeof(SerializedJsonValue), _serializedJsonValueTypeConversion);
+            _registeredTypes = new List<TypeConversion>()
+            {
+                _dateTimeTypeConversion,
+                _enumTypeConversion,
+                _guidTypeConversion,
+            };
         }
 
-        private TypeConverter(Dictionary<Type, List<TypeConversion>> registeredTypes)
+        private TypeConverter(IEnumerable<TypeConversion> registeredTypes)
         {
-            foreach (var registeredType in registeredTypes)
-                _registeredTypes.Add(registeredType.Key, new List<TypeConversion>(registeredType.Value));
+            _registeredTypes = new List<TypeConversion>(registeredTypes);
         }
 
         public static TypeConverter Default { get; set; } = new TypeConverter();
 
         public bool IsPrimitiveType(Type type)
         {
-            var hash = type.GetHashCode();
+            var hash = MemoizationHelper.GetHashCode(type);
 
             if (_isPrimitiveTypeCache.TryGetValue(hash, out var result))
                 return result;
@@ -124,40 +119,62 @@ namespace PinkJson2
             return result;
         }
 
-        public object ChangeType(object value, Type targetType)
+        public bool TryChangeType(object value, Type targetType, out object result)
         {
             if (targetType == null)
                 throw new ArgumentNullException(nameof(targetType));
 
             if (value == null)
-                return value;
+            {
+                result = value;
+                return true;
+            }
 
             var valueType = value.GetType();
 
-            if (targetType != typeof(object) && valueType.IsEqualsOrAssignableTo(targetType))
-                return value;
+            if (valueType.IsEqualsOrAssignableTo(targetType))
+            {
+                result = value;
+                return true;
+            }
 
             if (TryConvert(valueType, value, targetType, out var targetObj))
-                return targetObj;
+            {
+                result = targetObj;
+                return true;
+            }
 
             if (targetType == typeof(object))
-                return value;
+            {
+                result = value;
+                return true;
+            }
 
             try
             {
-                return Convert.ChangeType(value, targetType);
+                result = Convert.ChangeType(value, targetType);
+                return true;
             }
-            catch (Exception ex)
+            catch
             {
-                throw new ArgumentException($"Cannot convert value of type {value.GetType()} to type {targetType}", ex);
+                result = null;
+                return false;
             }
+        }
+
+        public object ChangeType(object value, Type targetType)
+        {
+            if (!TryChangeType(value, targetType, out var result))
+                throw new ArgumentException($"Cannot convert value of type {value.GetType()} to type {targetType}");
+
+            return result;
         }
 
         private bool TryConvert(Type type, object obj, Type targetType, out object targetObj)
         {
             targetObj = null;
 
-            var hash = unchecked(targetType.GetHashCode() + type.GetHashCode());
+            var hash = MemoizationHelper.GetHashCode(targetType, type);
 
             if (_tryConvertCache.TryGetValue(hash, out var cacheItem))
             {
@@ -237,20 +254,16 @@ namespace PinkJson2
         {
             var currentType = type;
 
-            var d = _registeredTypes.ToArray();
-
             while (currentType != null)
             {
-                if (_registeredTypes.TryGetValue(currentType, out var conversions))
+                foreach (var conversion in _registeredTypes.AsEnumerable().Reverse())
                 {
-                    foreach (var conversion in conversions)
-                    {
-                        if (conversion.Type != conversionType || 
-                            conversion.Direction != conversionDirection)
-                            continue;
+                    if (conversion.TargetType != currentType ||
+                        conversion.Type != conversionType ||
+                        conversion.Direction != conversionDirection)
+                        continue;
 
-                        yield return conversion;
-                    }
+                    yield return conversion;
                 }
 
                 currentType = currentType.BaseType;
@@ -268,14 +281,11 @@ namespace PinkJson2
                 throw new InvalidObjectTypeException(targetType);
         }
 
-        public void Register(Type type, TypeConversion typeConversion)
+        public void Register(TypeConversion typeConversion)
         {
             _tryConvertCache.Clear();
 
-            if (!_registeredTypes.TryGetValue(type, out List<TypeConversion> typeConversions))
-                _registeredTypes[type] = typeConversions = new List<TypeConversion>();
-
-            typeConversions.Add(typeConversion);
+            _registeredTypes.Add(typeConversion);
         }
 
         public void AddPrimitiveType(Type type)

@@ -1,3 +1,5 @@
+using PinkJson2.KeyTransformers;
+using PinkJson2.Serializers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -72,32 +74,38 @@ namespace PinkJson2.Examples
         [Fact]
         public void ConvertStringToEnumTest()
         {
-            TypeConverter.Default.Register(typeof(TestEnum), new TypeConversion(TypeConversionDirection.ToType, (object obj, Type targetType, ref bool handled) =>
-            {
-                if (obj is string @string)
+            var typeConverter = new TypeConverter();
+
+            typeConverter.Register(new TypeConversion(
+                typeof(TestEnum),
+                TypeConversionDirection.ToType,
+                (object obj, Type targetType, ref bool handled) =>
                 {
-                    @string = Regex.Replace(@string, "(^.|_.)", x =>
+                    if (obj is string @string)
                     {
-                        var ch = x.Value[0] == '_' ? x.Value[1] : x.Value[0];
-                        return char.ToUpper(ch).ToString();
-                    });
+                        @string = Regex.Replace(@string, "(^.|_.)", x =>
+                        {
+                            var ch = x.Value[0] == '_' ? x.Value[1] : x.Value[0];
+                            return char.ToUpper(ch).ToString();
+                        });
 
-                    if (!Enum.TryParse(@string, out TestEnum type))
-                        type = TestEnum.Unknown;
+                        if (!Enum.TryParse(@string, out TestEnum type))
+                            type = TestEnum.Unknown;
 
-                    handled = true;
-                    return type;
+                        handled = true;
+                        return type;
+                    }
+
+                    return null;
                 }
-
-                return null;
-            }));
+            ));
 
             var obj = new JsonObject(
                 new JsonKeyValue("type1", "value"), 
                 new JsonKeyValue("type2", "test2"), 
                 new JsonKeyValue("type3", "test_test")
             );
-            var packet = obj.Deserialize<Packet>();
+            var packet = obj.Deserialize<Packet>(new ObjectSerializerOptions() { TypeConverter = typeConverter });
 
             Assert.Equal(TestEnum.Unknown, packet.Type1);
             Assert.Equal(TestEnum.Test2, packet.Type2);
@@ -107,35 +115,38 @@ namespace PinkJson2.Examples
         [Fact]
         public void ConvertEnumFromStringTest()
         {
-            TypeConverter.Default.Register(typeof(string), new TypeConversion(TypeConversionDirection.FromType, (object obj, Type targetType, ref bool handled) =>
-            {
-                if (targetType != typeof(TestEnum))
-                    return null;
+            var typeConverter = new TypeConverter();
 
-                if (obj is string @string)
+            typeConverter.Register(new TypeConversion(
+                typeof(string), 
+                TypeConversionDirection.FromType, 
+                (object obj, Type targetType, ref bool handled) =>
                 {
-                    @string = Regex.Replace(@string, "(^.|_.)", x =>
+                    if (targetType != typeof(TestEnum))
+                        return null;
+
+                    var str = (string)obj;
+
+                    str = Regex.Replace(str, "(^.|_.)", x =>
                     {
                         var ch = x.Value[0] == '_' ? x.Value[1] : x.Value[0];
                         return char.ToUpper(ch).ToString();
                     });
 
-                    if (!Enum.TryParse(@string, out TestEnum type))
+                    if (!Enum.TryParse(str, out TestEnum type))
                         type = TestEnum.Unknown;
 
                     handled = true;
                     return type;
                 }
-
-                return null;
-            }));
+            ));
 
             var obj = new JsonObject(
                 new JsonKeyValue("type1", "value"), 
                 new JsonKeyValue("type2", "test2"), 
                 new JsonKeyValue("type3", "test_test")
             );
-            var packet = obj.Deserialize<Packet>();
+            var packet = obj.Deserialize<Packet>(new ObjectSerializerOptions() { TypeConverter = typeConverter });
 
             Assert.Equal(TestEnum.Unknown, packet.Type1);
             Assert.Equal(TestEnum.Test2, packet.Type2);
@@ -143,27 +154,25 @@ namespace PinkJson2.Examples
         }
 
         [Fact]
-        public void ConvertEnumToStringTest()
+        public void ConvertStringFromEnumTest()
         {
-            TypeConverter.Default.Register(typeof(TestEnum), new TypeConversion(TypeConversionDirection.FromType, (object obj, Type targetType, ref bool handled) =>
-            {
-                if (obj is string @string)
+            var typeConverter = new TypeConverter();
+            typeConverter.Register(new TypeConversion(
+                typeof(TestEnum),
+                TypeConversionDirection.FromType,
+                (object obj, Type targetType, ref bool handled) =>
                 {
-                    @string = Regex.Replace(@string, "(^.|_.)", x =>
+                    if (targetType == typeof(string))
                     {
-                        var ch = x.Value[0] == '_' ? x.Value[1] : x.Value[0];
-                        return char.ToUpper(ch).ToString();
-                    });
+                        var enumName = Enum.GetName((TestEnum)obj);
 
-                    if (!Enum.TryParse(@string, out TestEnum type))
-                        type = TestEnum.Unknown;
+                        handled = true;
+                        return new SnakeCaseKeyTransformer().TransformKey(enumName);
+                    }
 
-                    handled = true;
-                    return type;
+                    return null;
                 }
-
-                return null;
-            }));
+            ));
 
             var packet = new Packet()
             {
@@ -171,11 +180,47 @@ namespace PinkJson2.Examples
                 Type2 = TestEnum.Test2,
                 Type3 = TestEnum.TestTest,
             };
-            var packetJson = packet.Serialize().ToJson();
+            var packetJson = packet.Serialize().ToJsonString(typeConverter);
+            var newPacketJson = Json.Parse(packetJson).ToJson();
 
-            Assert.Equal(TestEnum.Unknown, packet.Type1);
-            Assert.Equal(TestEnum.Test2, packet.Type2);
-            Assert.Equal(TestEnum.TestTest, packet.Type3);
+            Assert.Equal("unknown", newPacketJson["type1"].Value);
+            Assert.Equal("test2", newPacketJson["type2"].Value);
+            Assert.Equal("test_test", newPacketJson["type3"].Value);
+        }
+
+        [Fact]
+        public void ConvertEnumToStringTest()
+        {
+            var typeConverter = new TypeConverter();
+            typeConverter.Register(new TypeConversion(
+                typeof(string),
+                TypeConversionDirection.ToType,
+                (object obj, Type targetType, ref bool handled) =>
+                {
+                    if (obj is TestEnum enumValue)
+                    {
+                        var enumName = Enum.GetName(enumValue);
+
+                        handled = true;
+                        return new SnakeCaseKeyTransformer().TransformKey(enumName);
+                    }
+
+                    return null;
+                }
+            ));
+
+            var packet = new Packet()
+            {
+                Type1 = TestEnum.Unknown,
+                Type2 = TestEnum.Test2,
+                Type3 = TestEnum.TestTest,
+            };
+            var packetJson = packet.Serialize().ToJsonString(typeConverter);
+            var newPacketJson = Json.Parse(packetJson).ToJson();
+
+            Assert.Equal("unknown", newPacketJson["type1"].Value);
+            Assert.Equal("test2", newPacketJson["type2"].Value);
+            Assert.Equal("test_test", newPacketJson["type3"].Value);
         }
     }
 }

@@ -241,8 +241,7 @@ namespace PinkJson2.Serializers
             private JsonEnumerableItem SerializeValue(object value)
             {
                 SetNextState();
-                var jsonValue = (SerializedJsonValue)_options.TypeConverter.ChangeType(value, typeof(SerializedJsonValue));
-                return new JsonEnumerableItem(JsonEnumerableItemType.Value, jsonValue.Value);
+                return new JsonEnumerableItem(JsonEnumerableItemType.Value, value);
             }
 
             private JsonEnumerableItem SerializeJsonEnumerator(IEnumerator<JsonEnumerableItem> enumerator)
@@ -580,7 +579,7 @@ namespace PinkJson2.Serializers
             private bool TryGetKeysFromObject(object obj, out KeysQueue queue)
             {
                 var type = obj.GetType();
-                var hash = type.GetHashCode();
+                var hash = MemoizationHelper.GetHashCode(type);
 
                 if (_keysCache.TryGetValue(hash, out List<IKey> keys))
                 {

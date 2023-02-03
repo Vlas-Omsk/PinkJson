@@ -13,7 +13,7 @@ namespace PinkJson2
 
         public static bool IsArrayType(this Type type)
         {
-            var hash = type.GetHashCode();
+            var hash = MemoizationHelper.GetHashCode(type);
 
             if (_isArrayTypeCache.TryGetValue(hash, out var result))
                 return result;
@@ -65,7 +65,7 @@ namespace PinkJson2
 
         public static bool IsAssignableToCached(this Type sourceType, Type targetType)
         {
-            var hash = unchecked(sourceType.GetHashCode() + targetType.GetHashCode());
+            var hash = MemoizationHelper.GetHashCode(sourceType, targetType);
 
             if (_isAssignableToCache.TryGetValue(hash, out var result))
                 return result;

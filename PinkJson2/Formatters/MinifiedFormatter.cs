@@ -1,5 +1,4 @@
-﻿using PinkJson2.Exceptions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -7,6 +6,8 @@ namespace PinkJson2.Formatters
 {
     public sealed class MinifiedFormatter : IFormatter
     {
+        private readonly TypeConverter _typeConverter;
+
         private sealed class Formatter : IDisposable
         {
             private readonly TextWriter _writer;
@@ -14,10 +15,10 @@ namespace PinkJson2.Formatters
             private readonly IEnumerator<JsonEnumerableItem> _enumerator;
             private JsonEnumerableItem _current;
 
-            public Formatter(TextWriter writer, IEnumerator<JsonEnumerableItem> enumerator)
+            public Formatter(TextWriter writer, TypeConverter typeConverter, IEnumerator<JsonEnumerableItem> enumerator)
             {
                 _writer = writer;
-                _valueFormatter = new ValueFormatter(writer);
+                _valueFormatter = new ValueFormatter(writer, typeConverter);
                 _enumerator = enumerator;
             }
 
@@ -126,9 +127,18 @@ namespace PinkJson2.Formatters
             }
         }
 
+        public MinifiedFormatter() : this(TypeConverter.Default)
+        {
+        }
+
+        public MinifiedFormatter(TypeConverter typeConverter)
+        {
+            _typeConverter = typeConverter;
+        }
+
         public void Format(IEnumerable<JsonEnumerableItem> json, TextWriter writer)
         {
-            using (var formatter = new Formatter(writer, json.GetEnumerator()))
+            using (var formatter = new Formatter(writer, _typeConverter, json.GetEnumerator()))
                 formatter.Format();
         }
     }

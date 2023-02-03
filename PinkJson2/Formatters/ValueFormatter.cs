@@ -32,11 +32,13 @@ namespace PinkJson2.Formatters
         [ThreadStatic]
         private static string _buffer;
         private readonly TextWriter _writer;
+        private readonly TypeConverter _typeConverter;
         private readonly GrisuWriter _grisuWriter;
 
-        public ValueFormatter(TextWriter writer)
+        public ValueFormatter(TextWriter writer, TypeConverter typeConverter)
         {
             _writer = writer;
+            _typeConverter = typeConverter;
             _grisuWriter = new GrisuWriter(writer, _numberFormatInfo);
 
             if (_buffer == null)
@@ -109,7 +111,12 @@ namespace PinkJson2.Formatters
             }
             else
             {
-                FormatString(value.ToString());
+                if (_typeConverter.TryChangeType(value, typeof(string), out var result))
+                    str = (string)result;
+                else
+                    str = value.ToString();
+
+                FormatString(str);
             }
         }
 

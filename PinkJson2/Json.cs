@@ -131,6 +131,11 @@ namespace PinkJson2
             return ToJsonString(self, new MinifiedFormatter());
         }
 
+        public static string ToJsonString(this IEnumerable<JsonEnumerableItem> self, TypeConverter typeConverter)
+        {
+            return ToJsonString(self, new MinifiedFormatter(typeConverter));
+        }
+
         public static string ToJsonString(this IEnumerable<JsonEnumerableItem> self, IFormatter formatter)
         {
             using (var writer = new StringWriter())
@@ -146,9 +151,19 @@ namespace PinkJson2
             ToStream(self.ToJsonEnumerable(), writer);
         }
 
+        public static void ToStream(this IJson self, TextWriter writer, TypeConverter typeConverter)
+        {
+            ToStream(self.ToJsonEnumerable(), writer, typeConverter);
+        }
+
         public static void ToStream(this IEnumerable<JsonEnumerableItem> self, TextWriter writer)
         {
             ToStream(self, writer, new MinifiedFormatter());
+        }
+
+        public static void ToStream(this IEnumerable<JsonEnumerableItem> self, TextWriter writer, TypeConverter typeConverter)
+        {
+            ToStream(self, writer, new MinifiedFormatter(typeConverter));
         }
 
         public static void ToStream(this IJson self, TextWriter writer, IFormatter formatter)

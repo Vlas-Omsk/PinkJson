@@ -7,6 +7,7 @@ namespace PinkJson2.Formatters
 {
     public sealed class PrettyFormatter : IFormatter
     {
+        private readonly TypeConverter _typeConverter;
         private IndentStyle _indentStyle = IndentStyle.Space;
         private int _indentSize = 2;
         private string _indent;
@@ -24,7 +25,7 @@ namespace PinkJson2.Formatters
             {
                 _formatter = formatter;
                 _writer = writer;
-                _valueFormatter = new ValueFormatter(writer);
+                _valueFormatter = new ValueFormatter(writer, formatter._typeConverter);
                 _enumerator = enumerator;
             }
 
@@ -164,6 +165,15 @@ namespace PinkJson2.Formatters
             }
         }
 
+        public PrettyFormatter() : this(TypeConverter.Default)
+        {
+        }
+
+        public PrettyFormatter(TypeConverter typeConverter)
+        {
+            _typeConverter = typeConverter;
+        }
+
         public IndentStyle IndentStyle
         {
             get => _indentStyle;
@@ -173,6 +183,7 @@ namespace PinkJson2.Formatters
                 _indent = null;
             }
         }
+
         public int IndentSize
         {
             get => _indentSize;

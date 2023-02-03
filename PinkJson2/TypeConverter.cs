@@ -115,7 +115,7 @@ namespace PinkJson2
 
             var valueType = value.GetType();
 
-            if (valueType.IsEqualsOrAssignableTo(targetType))
+            if (targetType != typeof(object) && valueType.IsEqualsOrAssignableTo(targetType))
                 return value;
 
             if (TryConvert(valueType, value, targetType, out var targetObj))
@@ -150,7 +150,11 @@ namespace PinkJson2
             else
             {
                 TypeConversion conversion;
-                var conversions = GetRegisteredTypeConversions(targetType, TypeConversionDirection.ToType, TypeConversionType.Static);
+                var conversions = GetRegisteredTypeConversions(
+                    targetType, 
+                    TypeConversionDirection.ToType, 
+                    TypeConversionType.Static
+                );
 
                 if (TryConvertUsingTypeConversions(conversions, obj, targetType, out targetObj, out conversion))
                 {
@@ -158,7 +162,11 @@ namespace PinkJson2
                     return true;
                 }
 
-                conversions = GetRegisteredTypeConversions(type, TypeConversionDirection.FromType, TypeConversionType.Static);
+                conversions = GetRegisteredTypeConversions(
+                    type, 
+                    TypeConversionDirection.FromType, 
+                    TypeConversionType.Static
+                );
 
                 if (TryConvertUsingTypeConversions(conversions, obj, targetType, out targetObj, out conversion))
                 {
@@ -202,7 +210,11 @@ namespace PinkJson2
             return false;
         }
 
-        private IEnumerable<TypeConversion> GetRegisteredTypeConversions(Type type, TypeConversionDirection conversionDirection, TypeConversionType conversionType)
+        private IEnumerable<TypeConversion> GetRegisteredTypeConversions(
+            Type type, 
+            TypeConversionDirection conversionDirection, 
+            TypeConversionType conversionType
+        )
         {
             var currentType = type;
 
@@ -212,7 +224,8 @@ namespace PinkJson2
                 {
                     foreach (var conversion in conversions)
                     {
-                        if (conversion.Type != conversionType || conversion.Direction != conversionDirection)
+                        if (conversion.Type != conversionType || 
+                            conversion.Direction != conversionDirection)
                             continue;
 
                         yield return conversion;

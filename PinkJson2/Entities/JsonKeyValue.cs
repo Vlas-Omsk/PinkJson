@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace PinkJson2
 {
-    [DebuggerDisplay("\\{JsonKeyValue: Key = {Key}, Value = {Value.ToString(),nq}}")]
+    [DebuggerDisplay("\\{JsonKeyValue: Key = {Key}, Value = {Value?.ToString(),nq}}")]
     public sealed class JsonKeyValue : JsonChild
     {
         public JsonKeyValue(string key, object value) : base(value)

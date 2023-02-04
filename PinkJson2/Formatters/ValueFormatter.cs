@@ -47,9 +47,28 @@ namespace PinkJson2.Formatters
 
         public void FormatValue(object value)
         {
+            if (TryFormatValue(value))
+                return;
+
+            if (_typeConverter.TryChangeType(value, typeof(FormattedValue), out var result))
+            {
+                var formattedValue = (FormattedValue)result;
+
+                if (TryFormatValue(formattedValue.Value))
+                    return;
+
+                value = formattedValue.Value;
+            }
+
+            FormatString(value.ToString());
+        }
+
+        public bool TryFormatValue(object value)
+        {
             if (value is null)
             {
                 _writer.Write(NullValue);
+                return true;
             }
             else if (value is bool bl)
             {
@@ -60,64 +79,70 @@ namespace PinkJson2.Formatters
                 _writer.Write(Quote);
                 _writer.Write(dt.ToISO8601String());
                 _writer.Write(Quote);
+                return true;
             }
             else if (value is int i)
             {
                 FormatInt32Value(i);
+                return true;
             }
             else if (value is uint ui)
             {
                 FormatUInt32Value(ui);
+                return true;
             }
             else if (value is long l)
             {
                 FormatInt64Value(l);
+                return true;
             }
             else if (value is ulong ul)
             {
                 FormatUInt64Value(ul);
+                return true;
             }
             else if (value is short s)
             {
                 FormatInt32Value(s);
+                return true;
             }
             else if (value is ushort us)
             {
                 FormatUInt32Value(us);
+                return true;
             }
             else if (value is sbyte sb)
             {
                 FormatInt32Value(sb);
+                return true;
             }
             else if (value is byte b)
             {
                 FormatUInt32Value(b);
+                return true;
             }
             else if (value is float f)
             {
                 FormatFloatValue(f);
+                return true;
             }
             else if (value is double d)
             {
                 FormatDoubleValue(d);
+                return true;
             }
             else if (value is decimal m)
             {
                 FormatDoubleValue((double)m);
+                return true;
             }
             else if (value is string str)
             {
                 FormatString(str);
+                return true;
             }
-            else
-            {
-                if (_typeConverter.TryChangeType(value, typeof(string), out var result))
-                    str = (string)result;
-                else
-                    str = value.ToString();
 
-                FormatString(str);
-            }
+            return false;
         }
 
         private void FormatString(string str)

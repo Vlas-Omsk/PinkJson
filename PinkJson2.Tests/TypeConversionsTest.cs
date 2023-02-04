@@ -1,3 +1,4 @@
+using PinkJson2.Formatters;
 using PinkJson2.KeyTransformers;
 using PinkJson2.Serializers;
 using System;
@@ -162,12 +163,12 @@ namespace PinkJson2.Examples
                 TypeConversionDirection.FromType,
                 (object obj, Type targetType, ref bool handled) =>
                 {
-                    if (targetType == typeof(string))
+                    if (targetType == typeof(FormattedValue))
                     {
                         var enumName = Enum.GetName((TestEnum)obj);
 
                         handled = true;
-                        return new SnakeCaseKeyTransformer().TransformKey(enumName);
+                        return new FormattedValue(new SnakeCaseKeyTransformer().TransformKey(enumName));
                     }
 
                     return null;
@@ -193,7 +194,7 @@ namespace PinkJson2.Examples
         {
             var typeConverter = new TypeConverter();
             typeConverter.Register(new TypeConversion(
-                typeof(string),
+                typeof(FormattedValue),
                 TypeConversionDirection.ToType,
                 (object obj, Type targetType, ref bool handled) =>
                 {
@@ -202,7 +203,7 @@ namespace PinkJson2.Examples
                         var enumName = Enum.GetName(enumValue);
 
                         handled = true;
-                        return new SnakeCaseKeyTransformer().TransformKey(enumName);
+                        return new FormattedValue(new SnakeCaseKeyTransformer().TransformKey(enumName));
                     }
 
                     return null;

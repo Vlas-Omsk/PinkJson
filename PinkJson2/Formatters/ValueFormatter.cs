@@ -73,6 +73,7 @@ namespace PinkJson2.Formatters
             else if (value is bool bl)
             {
                 _writer.Write(bl ? TrueValue : FalseValue);
+                return true;
             }
             else if (value is DateTime dt)
             {

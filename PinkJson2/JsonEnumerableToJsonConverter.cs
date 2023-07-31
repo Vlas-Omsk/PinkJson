@@ -13,7 +13,9 @@ namespace PinkJson2
             IJson json;
 
             _enumerator = enumerable.GetEnumerator();
-            _enumerator.MoveNext();
+
+            if (!_enumerator.MoveNext())
+                return null;
 
             switch (_enumerator.Current.Type)
             {

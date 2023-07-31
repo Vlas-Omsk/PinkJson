@@ -55,7 +55,8 @@ namespace PinkJson2
                         if (_enumerator == null)
                             _enumerator = _source.GetEnumerator();
 
-                        EnsureEnumeratorMoveNext(TokenType.LeftBrace, TokenType.LeftBracket);
+                        if (!TryEnumeratorMoveNext())
+                            return false;
 
                         if (_enumerator.Current.Type != TokenType.LeftBrace && _enumerator.Current.Type != TokenType.LeftBracket)
                             throw new UnexpectedTokenException(
@@ -269,17 +270,20 @@ namespace PinkJson2
 
             private void EnsureEnumeratorMoveNext(params TokenType[] expectedTokenTypes)
             {
-                bool success;
+                if (!TryEnumeratorMoveNext())
+                    throw new UnexpectedEndOfStreamException(expectedTokenTypes, Path);
+            }
+
+            private bool TryEnumeratorMoveNext()
+            {
                 try
                 {
-                    success = _enumerator.MoveNext();
+                    return _enumerator.MoveNext();
                 }
                 catch (JsonLexerException ex)
                 {
                     throw new JsonParserException("See inner exception", Path, ex);
                 }
-                if (!success)
-                    throw new UnexpectedEndOfStreamException(expectedTokenTypes, Path);
             }
 
             public void Reset()

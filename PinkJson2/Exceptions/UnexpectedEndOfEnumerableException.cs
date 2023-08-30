@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PinkJson2.Exceptions
+namespace PinkJson2
 {
     public class UnexpectedEndOfEnumerableException : Exception
     {

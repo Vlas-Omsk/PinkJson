@@ -447,10 +447,19 @@ namespace PinkJson2.Serializers
 
                 for (var i = 0; i < json.Count; i++)
                 {
-                    if (!array.IsFixedSize)
-                        array.Add(null);
+                    var value = DeserializeValue(json[i], elementType);
 
-                    array[i] = DeserializeValue(json[i], elementType);
+                    if (i >= array.Count)
+                    {
+                        if (array.IsFixedSize)
+                            throw new ArrayTooSmallException();
+
+                        array.Add(value);
+                    }
+                    else
+                    {
+                        array[i] = value;
+                    }
                 }
 
                 return array;
@@ -467,7 +476,7 @@ namespace PinkJson2.Serializers
             return false;
         }
 
-        private Type GetElementType(Type type)
+        private static Type GetElementType(Type type)
         {
             var enumerableType = type;
             if (type.Name != "IEnumerable`1")
@@ -489,12 +498,26 @@ namespace PinkJson2.Serializers
 
         private object CreateObject(IJson json, Type type)
         {
-            var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, Type.DefaultBinder, new Type[] { typeof(IJson) }, null);
+            var ctor = type.GetConstructor(
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
+                Type.DefaultBinder,
+                new Type[] { typeof(IJson) },
+                null
+            );
+
             if (ctor != null)
                 return ctor.Invoke(new object[] { json });
-            ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, Type.DefaultBinder, Type.EmptyTypes, null);
+
+            ctor = type.GetConstructor(
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
+                Type.DefaultBinder,
+                Type.EmptyTypes,
+                null
+            );
+
             if (ctor != null)
                 return ctor.Invoke(Array.Empty<object>());
+
             if (type.IsValueType())
                 return FormatterServices.GetUninitializedObject(type);
 
@@ -504,8 +527,10 @@ namespace PinkJson2.Serializers
         private static Type TryGetUnderlayingType(Type type)
         {
             var underlayingType = Nullable.GetUnderlyingType(type);
+
             if (underlayingType != null)
                 type = underlayingType;
+
             return type;
         }
     }

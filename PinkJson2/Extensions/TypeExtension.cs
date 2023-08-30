@@ -76,6 +76,14 @@ namespace PinkJson2
             return result;
         }
 
+        public static object GetDefaultValue(this Type type)
+        {
+            if (type.IsValueType)
+                return Activator.CreateInstance(type);
+
+            return null;
+        }
+
 #if !NET5_0_OR_GREATER
         public static bool IsAssignableTo(this Type sourceType, Type targetType) => targetType?.IsAssignableFrom(sourceType) ?? false;
 #endif

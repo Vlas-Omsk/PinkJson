@@ -253,6 +253,7 @@ namespace PinkJson2.Serializers
                     enumerator.Dispose();
                     _stack.Pop();
                     SetNextState();
+                    return item;
                 }
 
                 if (item.Type == JsonEnumerableItemType.Value)

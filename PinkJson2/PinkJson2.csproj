@@ -5,8 +5,10 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <Version>1.33.0</Version>
     <Authors>Vlas-Omsk</Authors>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\grisu.net\grisu.net\grisu.net.csproj" />
   </ItemGroup>

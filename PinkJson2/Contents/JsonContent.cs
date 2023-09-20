@@ -75,7 +75,7 @@ namespace PinkJson2.Contents
         {
             return Task.Run(() =>
             {
-                using (var streamWriter = new StreamWriter(stream, _encoding, -1, true))
+                using (var streamWriter = new StreamWriter(stream, _encoding, 1024, true))
                     _data.ToStream(streamWriter, _typeConverter);
             });
         }

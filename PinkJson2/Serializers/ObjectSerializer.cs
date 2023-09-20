@@ -268,7 +268,10 @@ namespace PinkJson2.Serializers
 
             private JsonEnumerableItem SerializeKeys(KeysQueue keys)
             {
-                var current = new JsonEnumerableItem(JsonEnumerableItemType.Key, keys.Current.Name);
+                var current = new JsonEnumerableItem(
+                    JsonEnumerableItemType.Key,
+                    _options.KeyTransformer.TransformKey(keys.Current.Name)
+                );
 
                 _stack.Push(keys.GetCurrentValue());
 
@@ -574,7 +577,7 @@ namespace PinkJson2.Serializers
             private IEnumerable<IKey> GetKeysFromSerializationInfo(SerializationInfo info)
             {
                 foreach (var prop in info)
-                    yield return new StaticKey(prop.Value, _options.KeyTransformer.TransformKey(prop.Name), false);
+                    yield return new StaticKey(prop.Value, prop.Name, false);
             }
 
             private bool TryGetKeysFromObject(object obj, out KeysQueue queue)
@@ -644,8 +647,6 @@ namespace PinkJson2.Serializers
 
                     isValueType = jsonProperty.IsValueType;
                 }
-
-                name = _options.KeyTransformer.TransformKey(name);
 
                 key = new MemberKey(member, name, isValueType);
                 return true;

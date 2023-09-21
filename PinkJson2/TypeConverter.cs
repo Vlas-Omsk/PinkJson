@@ -130,6 +130,11 @@ namespace PinkJson2
                 return true;
             }
 
+            var underlyingTargetType = Nullable.GetUnderlyingType(targetType);
+
+            if (underlyingTargetType != null)
+                targetType = underlyingTargetType;
+
             var valueType = value.GetType();
 
             if (valueType.IsEqualsOrAssignableTo(targetType))

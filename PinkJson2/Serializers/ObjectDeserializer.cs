@@ -435,8 +435,8 @@ namespace PinkJson2.Serializers
 
                 foreach (var arrayValue in json.AsArray())
                     dictionary.Add(
-                        DeserializeValue(arrayValue[_keyPropertyName], keyType),
-                        DeserializeValue(arrayValue[_valuePropertyName], valueType)
+                        DeserializeValue(arrayValue[Options.KeyTransformer.TransformKey(_keyPropertyName)], keyType),
+                        DeserializeValue(arrayValue[Options.KeyTransformer.TransformKey(_valuePropertyName)], valueType)
                     );
 
                 return dictionary;

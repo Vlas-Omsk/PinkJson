@@ -14,8 +14,13 @@ namespace PinkJson2.Serializers
 
         private sealed class Enumerator : IEnumerator<JsonEnumerableItem>
         {
+            private static readonly MemberAccessor _keyMemberAccessor =
+                new MemberAccessor(typeof(KeyValuePair<,>).GetProperty("Key"));
+            private static readonly MemberAccessor _valueMemberAccessor =
+                new MemberAccessor(typeof(KeyValuePair<,>).GetProperty("Value"));
             private const string _indexerPropertyName = "Item";
-            private static readonly ConcurrentDictionary<int, List<IKey>> _keysCache = new ConcurrentDictionary<int, List<IKey>>();
+            private static readonly ConcurrentDictionary<int, List<IKey>> _keysCache =
+                new ConcurrentDictionary<int, List<IKey>>();
             private readonly ObjectSerializerOptions _options;
             private readonly object _rootObject;
             private readonly List<object> _references;
@@ -158,7 +163,7 @@ namespace PinkJson2.Serializers
                         Current = SerializeKeys((KeysQueue)_stack.Peek());
                         return true;
                     case State.SerializeDictionaryValues:
-                        Current = SerializeDictionaryValues((IDictionaryEnumerator)_stack.Peek());
+                        Current = SerializeDictionaryValues((IEnumerator)_stack.Peek());
                         return true;
                     case State.SerializeValues:
                         Current = SerializeValues((IEnumerator)_stack.Peek());
@@ -292,11 +297,11 @@ namespace PinkJson2.Serializers
                 return current;
             }
 
-            private JsonEnumerableItem SerializeDictionaryValues(IDictionaryEnumerator enumerator)
+            private JsonEnumerableItem SerializeDictionaryValues(IEnumerator enumerator)
             {
-                var current = new JsonEnumerableItem(JsonEnumerableItemType.Key, enumerator.Key);
+                var current = new JsonEnumerableItem(JsonEnumerableItemType.Key, _keyMemberAccessor.GetValue(enumerator.Current));
 
-                _stack.Push(enumerator.Value);
+                _stack.Push(_valueMemberAccessor.GetValue(enumerator.Current));
                 _state = State.SerializeJsonValue;
 
                 if (!enumerator.MoveNext())
@@ -418,7 +423,7 @@ namespace PinkJson2.Serializers
 
                 if (type.IsEqualsOrAssignableTo(typeof(IDictionary)))
                 {
-                    var keyType = ((IDictionaryEnumerator)enumerator).Key.GetType();
+                    var keyType = enumerator.GetType().GetGenericArguments()[0];
 
                     if (keyType == typeof(string))
                     {

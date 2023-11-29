@@ -411,7 +411,7 @@ namespace PinkJson2
             }
         }
 
-        public JsonLexer(Stream stream) : this(new StreamReader(stream, null, true, 0))
+        public JsonLexer(Stream stream) : this(new StreamReader(stream, null, true, 1))
         {
         }
 

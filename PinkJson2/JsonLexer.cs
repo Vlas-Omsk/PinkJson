@@ -420,7 +420,7 @@ namespace PinkJson2
         }
 
         public JsonLexer(string source) : this(
-            new StreamReader(new MemoryStream(Encoding.Default.GetBytes(source)), null, true, 0)
+            new StreamReader(new MemoryStream(Encoding.Default.GetBytes(source)), null, true, 1)
         )
         {
         }

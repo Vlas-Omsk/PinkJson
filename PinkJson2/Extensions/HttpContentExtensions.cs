@@ -12,7 +12,7 @@ namespace PinkJson2
         public static async Task<IEnumerable<JsonEnumerableItem>> ReadAsJsonAsync(this HttpContent self)
         {
             using (var stream = await self.ReadAsStreamAsync())
-            using (var reader = new StreamReader(stream))
+            using (var reader = new StreamReader(stream, null, true, 0))
                 return Json.Parse(reader).ToArray();
         }
     }

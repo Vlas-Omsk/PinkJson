@@ -411,7 +411,7 @@ namespace PinkJson2
             }
         }
 
-        public JsonLexer(Stream stream) : this(new StreamReader(stream))
+        public JsonLexer(Stream stream) : this(new StreamReader(stream, null, true, 0))
         {
         }
 
@@ -419,7 +419,9 @@ namespace PinkJson2
         {
         }
 
-        public JsonLexer(string source) : this(new StreamReader(new MemoryStream(Encoding.Default.GetBytes(source))))
+        public JsonLexer(string source) : this(
+            new StreamReader(new MemoryStream(Encoding.Default.GetBytes(source)), null, true, 0)
+        )
         {
         }
 

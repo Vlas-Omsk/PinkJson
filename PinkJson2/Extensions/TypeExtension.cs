@@ -84,6 +84,19 @@ namespace PinkJson2
             return null;
         }
 
+        public static Type GetElementTypeFromEnumerable(this Type type)
+        {
+            var enumerableType = type;
+
+            if (type.Name != "IEnumerable`1")
+                enumerableType = type.GetInterface("IEnumerable`1");
+
+            if (enumerableType == null)
+                return typeof(object);
+            else
+                return enumerableType.GenericTypeArguments[0];
+        }
+
 #if !NET5_0_OR_GREATER
         public static bool IsAssignableTo(this Type sourceType, Type targetType) => targetType?.IsAssignableFrom(sourceType) ?? false;
 #endif

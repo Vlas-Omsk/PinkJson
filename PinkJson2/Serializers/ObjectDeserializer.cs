@@ -411,7 +411,7 @@ namespace PinkJson2.Serializers
 
         private object DeserializeArray(IJson json, Type type, object obj, bool createObject, bool useJsonDeserialize)
         {
-            var elementType = GetElementType(type);
+            var elementType = type.GetElementTypeFromEnumerable();
 
             if (createObject)
                 obj = CreateArray(json, type, elementType);
@@ -474,18 +474,6 @@ namespace PinkJson2.Serializers
                 return true;
             }
             return false;
-        }
-
-        private static Type GetElementType(Type type)
-        {
-            var enumerableType = type;
-            if (type.Name != "IEnumerable`1")
-                enumerableType = type.GetInterface("IEnumerable`1");
-
-            if (enumerableType == null)
-                return typeof(object);
-            else
-                return enumerableType.GenericTypeArguments[0];
         }
 
         private IEnumerable CreateArray(IJson json, Type type, Type elementType)

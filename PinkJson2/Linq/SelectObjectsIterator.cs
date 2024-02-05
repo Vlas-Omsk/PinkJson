@@ -48,7 +48,7 @@ namespace PinkJson2.Linq
                     if (new[] { JsonEnumerableItemType.ObjectEnd, JsonEnumerableItemType.ArrayEnd }.Contains(Enumerator.Current.Type))
                         break;
 
-                    var objectEnumerable = new OneTimeIterator<JsonEnumerableItem>((IEnumerable<JsonEnumerableItem>)new SelectObjectIterator(Enumerator));
+                    var objectEnumerable = new CachedIterator<JsonEnumerableItem>((IEnumerable<JsonEnumerableItem>)new SelectObjectIterator(Enumerator));
 
                     Current = _selector(objectEnumerable);
 

@@ -252,22 +252,30 @@ namespace PinkJson2.Serializers
             private JsonEnumerableItem SerializeJsonEnumerator(IEnumerator<JsonEnumerableItem> enumerator)
             {
                 var item = enumerator.Current;
+                State state;
 
                 if (!enumerator.MoveNext())
                 {
                     enumerator.Dispose();
                     _stack.Pop();
-                    SetNextState();
-                    return item;
+                    state = _nextState.Pop();
+                }
+                else
+                {
+                    state = State.SerializeJsonEnumerator;
                 }
 
-                if (item.Type == JsonEnumerableItemType.Value)
+                if (item.Type == JsonEnumerableItemType.Key)
                 {
-                    _nextState.Push(State.SerializeJsonEnumerator);
+                    item = new JsonEnumerableItem(item.Type, _options.KeyTransformer.TransformKey((string)item.Value));
+                }
+                else if (item.Type == JsonEnumerableItemType.Value)
+                {
+                    _nextState.Push(state);
                     return SerializeJsonValue(item.Value);
                 }
 
-                _state = State.SerializeJsonEnumerator;
+                _state = state;
                 return item;
             }
 

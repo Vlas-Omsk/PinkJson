@@ -260,9 +260,6 @@ namespace PinkJson2.Serializers
                 jsonId.HasObj)
                 return jsonId.Obj;
 
-            if (type.IsAnonymousType())
-                return DeserializeAnonymouseObject(json, type);
-
             if (createObject)
             {
                 if (type.Name != "Dictionary`2")
@@ -297,7 +294,8 @@ namespace PinkJson2.Serializers
                     }
                 }
 
-                obj = CreateObject(json, type);
+                if (!TryCreateObject(json, type, out obj))
+                    return DeserializeUsingConstructor(json, type);
             }
 
             if (useJsonDeserialize && TryJsonDeserialize(obj, json))
@@ -341,7 +339,7 @@ namespace PinkJson2.Serializers
             return obj;
         }
 
-        private object DeserializeAnonymouseObject(IJson json, Type type)
+        private object DeserializeUsingConstructor(IJson json, Type type)
         {
             if (!(json is JsonObject))
                 throw new Exception($"Json of type {json.GetType()} cannot be converted to an object of type {type}");
@@ -352,12 +350,14 @@ namespace PinkJson2.Serializers
 
             var constructor = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)[0];
             var constructorParameters = new object[constructor.GetParameters().Length];
-            var properties = type.GetProperties(Options.PropertyBindingFlags);
+            var properties = constructor.GetParameters();
 
             var i = 0;
             foreach (var property in properties)
             {
-                TryDeserializeMember(property, property.PropertyType, json, out object value);
+                if (!TryDeserializeMember(property.Name, property.ParameterType, json, out object value))
+                    throw new Exception($"Json does not include a field named {property.Name}");
+
                 constructorParameters[i] = value;
 
                 i++;
@@ -394,6 +394,13 @@ namespace PinkJson2.Serializers
                 if (jsonPropertyAttribute.DeserializeToType != null)
                     type = jsonPropertyAttribute.DeserializeToType;
             }
+
+            return TryDeserializeMember(key, type, json, out value);
+        }
+
+        private bool TryDeserializeMember(string key, Type type, IJson json, out object value)
+        {
+            value = null;
 
             key = Options.KeyTransformer.TransformKey(key);
 
@@ -480,11 +487,13 @@ namespace PinkJson2.Serializers
         {
             if (type.IsArray || type == typeof(IEnumerable) || type.Name == "IEnumerable`1")
                 return Array.CreateInstance(elementType, json.Count);
+            else if (TryCreateObject(json, type, out var obj))
+                return (IEnumerable)obj;
             else
-                return (IEnumerable)CreateObject(json, type);
+                throw new Exception($"No matching constructors found for array of type {type}"); ;
         }
 
-        private object CreateObject(IJson json, Type type)
+        private bool TryCreateObject(IJson json, Type type, out object obj)
         {
             var ctor = type.GetConstructor(
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
@@ -494,7 +503,10 @@ namespace PinkJson2.Serializers
             );
 
             if (ctor != null)
-                return ctor.Invoke(new object[] { json });
+            {
+                obj = ctor.Invoke(new object[] { json });
+                return true;
+            }
 
             ctor = type.GetConstructor(
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
@@ -504,12 +516,13 @@ namespace PinkJson2.Serializers
             );
 
             if (ctor != null)
-                return ctor.Invoke(Array.Empty<object>());
+            {
+                obj = ctor.Invoke(Array.Empty<object>());
+                return true;
+            }
 
-            if (type.IsValueType())
-                return FormatterServices.GetUninitializedObject(type);
-
-            throw new Exception($"No matching constructors found for object of type {type}");
+            obj = null;
+            return false;
         }
 
         private static Type TryGetUnderlayingType(Type type)
